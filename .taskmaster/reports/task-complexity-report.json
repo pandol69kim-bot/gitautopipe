@@ -1,0 +1,109 @@
+{
+	"meta": {
+		"generatedAt": "2026-04-30T04:28:22.960Z",
+		"tasksAnalyzed": 12,
+		"totalTasks": 12,
+		"analysisCount": 12,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "프로젝트 초기 설정 및 개발 환경 구성",
+			"complexityScore": 3,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Node.js/TypeScript 프로젝트 초기화, 의존성 설치 (gray-matter, chokidar, @octokit/rest, @anthropic-ai/sdk, @notionhq/client), 폴더 구조 생성 (src/core, integrations, workflows, templates, utils), TypeScript 및 ESLint/Prettier 설정, 환경 변수 로딩 모듈 구현으로 세분화하세요.",
+			"reasoning": "현재 코드베이스에 실제 소스 코드가 없는 그린필드 프로젝트입니다. .env.example과 .gitignore는 이미 존재하므로 기본 구조가 일부 갖춰져 있습니다. 프로젝트 초기화는 표준화된 작업이지만, 여러 외부 서비스(GitHub, Claude, Notion, Vercel) 연동을 위한 의존성 설정과 TypeScript 환경 구성이 필요합니다. 복잡도는 낮은 편이지만 5개의 명확한 서브태스크로 분리하여 체계적으로 진행하는 것이 좋습니다."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Obsidian 볼트 구조 및 폴더 스캐너 구현",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "VaultConfig 인터페이스 및 타입 정의, VaultScanner 클래스 기본 구조 구현, gray-matter를 활용한 마크다운 파싱 모듈 개발, 주차별 폴더 구조 자동 인식 로직 구현, chokidar를 활용한 실시간 파일 변경 감지 시스템 개발, 단위 테스트 및 통합 테스트 작성으로 세분화하세요.",
+			"reasoning": "Obsidian 볼트 스캐닝은 파일 시스템 작업과 마크다운 파싱을 조합한 중간 복잡도 작업입니다. gray-matter를 활용한 frontmatter 파싱, 6개 폴더 타입 관리, 주차별 폴더 구조 인식(Week01, Week02 등), chokidar를 통한 실시간 변경 감지 등 다양한 기능이 필요합니다. 기존 코드가 없으므로 인터페이스 설계부터 시작해야 합니다."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "GitHub 연동 및 자동 동기화 모듈 개발",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "GitHubSync 클래스 인터페이스 설계, simple-git 라이브러리를 활용한 로컬 Git 작업 래퍼 구현, @octokit/rest를 활용한 GitHub API 연동 모듈 개발, 자동 커밋 메시지 생성 규칙 엔진 구현, 충돌 감지 및 알림 시스템 개발, PR 자동 생성 기능 구현, 에러 핸들링 및 테스트 작성으로 세분화하세요.",
+			"reasoning": "GitHub 동기화는 로컬 Git 작업(simple-git)과 GitHub API(@octokit/rest) 양쪽을 모두 다뤄야 합니다. 자동 커밋 메시지 생성 규칙([Mission] Week{N} 등), 충돌 감지, PR 생성 등 비즈니스 로직이 복잡합니다. Task 2(VaultScanner)의 결과를 입력으로 받아야 하므로 의존성도 명확합니다. 에러 핸들링과 동시 수정 충돌 처리가 핵심 난이도입니다."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Claude Code 분석 엔진 통합",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "ClaudeAnalyzer 클래스 인터페이스 및 타입 정의, @anthropic-ai/sdk 클라이언트 래퍼 구현, 분석 타입별 프롬프트 템플릿 관리 시스템 개발, 키워드 추출 모듈 구현, 주차별 요약 생성 모듈 구현, 트렌드 분석 모듈 구현, 토큰 최적화(청킹/캐싱) 로직 개발, 에러 핸들링(exponential backoff) 및 테스트 작성으로 세분화하세요.",
+			"reasoning": "Claude API 통합은 단순 API 호출을 넘어 프롬프트 엔지니어링, 토큰 최적화, 다양한 분석 타입(mission, meeting, skill, sharing) 처리가 필요합니다. 대용량 문서 청킹, 결과 캐싱, exponential backoff 재시도 로직 등 고급 패턴이 요구됩니다. 분석 결과를 마크다운으로 포맷팅하는 출력 계층도 필요합니다."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Analysis 폴더 자동 보고서 생성기 구현",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Report 인터페이스 및 ReportSection 타입 정의, ReportGenerator 클래스 기본 구조 구현, 주차별 보고서 템플릿 및 생성 로직 개발, 멤버별 보고서 생성 모듈 구현, 팀 개요 보고서 생성 모듈 구현, frontmatter 자동 생성 및 이전 보고서 비교 기능 개발로 세분화하세요.",
+			"reasoning": "보고서 생성기는 Task 2(VaultScanner)와 Task 4(ClaudeAnalyzer)의 출력을 조합해야 합니다. 주차별/멤버별/팀 전체 3가지 보고서 유형, 마크다운 템플릿 시스템, frontmatter 자동 생성, 이전 보고서와의 변화 비교 섹션 등 다양한 기능이 필요합니다. 파일 명명 규칙(YYYY-WW_weekly_report.md)과 빈 데이터 폴백 처리도 구현해야 합니다."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "LinkedIn 콘텐츠 자동 생성 시스템 구현",
+			"complexityScore": 5,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "LinkedInPost 인터페이스 및 타입 정의, LinkedInContentGenerator 클래스 기본 구조 구현, 톤 스타일별(professional/casual/thought-leader) 프롬프트 및 적용 로직 개발, 해시태그 자동 추천 모듈 구현, 글자 수 검증 및 포맷팅 모듈 개발로 세분화하세요.",
+			"reasoning": "LinkedIn 콘텐츠 생성은 Task 4(ClaudeAnalyzer)를 기반으로 하지만, 별도의 프롬프트 전략이 필요합니다. 3가지 톤 스타일, 해시태그 자동 추천, LinkedIn 3000자 제한 검증, 한글/영문 혼용 처리 등이 핵심입니다. 복잡도는 중간이며, 템플릿 기반 접근으로 효율적으로 구현할 수 있습니다."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Notion MCP 연동 및 Meetings 동기화",
+			"complexityScore": 8,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "NotionMCPConnector 클래스 인터페이스 설계, @notionhq/client 래퍼 및 인증 모듈 구현, Notion 블록 → 마크다운 변환기 개발 (텍스트/헤딩/리스트/체크박스/코드블록/이미지), 마크다운 → Notion 블록 역변환기 개발, 동기화 메타데이터 관리 시스템 구현, 충돌 감지 및 해결 전략 모듈 개발, 양방향 동기화 오케스트레이션 로직 구현, 네트워크 오류 재시도 및 테스트 작성으로 세분화하세요.",
+			"reasoning": "Notion MCP 연동은 가장 복잡한 태스크 중 하나입니다. 양방향 동기화, Notion 블록 ↔ 마크다운 변환(텍스트, 헤딩, 리스트, 체크박스, 코드 블록, 이미지/파일 링크), 동기화 메타데이터 관리, 충돌 해결 전략(최신 수정 시간 우선 + 수동 머지 알림)이 필요합니다. Notion API의 블록 구조가 복잡하여 변환 로직 개발에 상당한 노력이 필요합니다."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Skill/Insight 웹사이트 자동 배포 시스템 (Vercel)",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "정적 사이트 생성기(Astro 또는 Next.js SSG) 프로젝트 구조 설정, 마크다운 → HTML 변환 파이프라인 구현, 카테고리별 자동 분류 시스템 개발, 클라이언트 사이드 검색 기능 구현, Vercel API 연동 및 배포 자동화 모듈 개발, 배포 상태 모니터링 및 롤백 기능 구현, 배포 알림(webhook) 시스템 개발로 세분화하세요.",
+			"reasoning": "웹사이트 배포는 정적 사이트 생성(Astro/Next.js SSG), 마크다운 → HTML 변환, 카테고리 분류, 클라이언트 사이드 검색, Vercel API 연동, 롤백 기능, 배포 알림 등 다양한 기술 스택을 조합해야 합니다. 프론트엔드 프로젝트 구조 설정부터 시작해야 하므로 상당한 작업량이 예상됩니다."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "자동화 워크플로우 오케스트레이터 구현",
+			"complexityScore": 9,
+			"recommendedSubtasks": 10,
+			"expansionPrompt": "Workflow 및 WorkflowStep 인터페이스 설계, WorkflowOrchestrator 클래스 기본 구조 구현, 이벤트 기반 트리거 시스템(EventEmitter) 개발, Cron 기반 스케줄링 시스템 구현, onMissionUpdate 워크플로우 정의 및 구현, onMeetingSync 워크플로우 정의 및 구현, onSkillUpdate 워크플로우 정의 및 구현, weeklyDigest 워크플로우 정의 및 구현, 워크플로우 실행 로그 및 상태 관리 시스템 개발, 실패 재시도/롤백/알림 정책 구현으로 세분화하세요.",
+			"reasoning": "오케스트레이터는 모든 이전 태스크(3, 4, 5, 6, 7, 8)를 통합하는 핵심 컴포넌트입니다. 4개의 사전 정의 워크플로우, 이벤트 기반 트리거, Cron 스케줄링, 실행 로그/상태 대시보드, 실패 재시도/알림 정책 등 복잡한 상태 관리가 필요합니다. 6개의 의존성을 가지며, 동시 워크플로우 실행 충돌 처리도 고려해야 합니다."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "CLI 인터페이스 및 운영 대시보드 개발",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Commander.js 기반 CLI 프레임워크 설정, 핵심 명령어(scan, sync, analyze, deploy, workflow, status) 구현, Inquirer.js 기반 인터랙티브 모드 개발, 출력 포맷 옵션(table/json/minimal) 구현, 설정 파일(selfish-club.config.json) 관리 모듈 개발, 로깅 시스템 및 도움말 구현으로 세분화하세요.",
+			"reasoning": "CLI 도구는 Commander.js와 Inquirer.js를 활용한 표준화된 패턴을 따릅니다. 6개의 핵심 명령어, 3가지 출력 포맷, 인터랙티브 모드, 설정 파일 관리, 로깅 레벨 제어가 필요합니다. Task 9(Orchestrator)에 의존하므로 해당 API를 호출하는 래퍼 역할입니다. 웹 UI 대시보드는 선택적이므로 복잡도에서 제외했습니다."
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "AA 스타터 키트 템플릿 및 문서화",
+			"complexityScore": 4,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "스타터 키트 폴더 구조 및 Obsidian 볼트 템플릿 생성, 퀵스타트 가이드 작성, 커스텀 워크플로우 작성법 문서화, 트러블슈팅 FAQ 및 비개발자 가이드 작성, GitHub README/CONTRIBUTING/LICENSE 파일 작성으로 세분화하세요.",
+			"reasoning": "문서화 및 템플릿 작업은 코드 개발보다 콘텐츠 작성에 초점을 맞춥니다. 기술적 복잡도는 낮지만, 한국어 사용자 대상의 명확한 가이드 작성이 필요합니다. 비개발자용 노코드 설정 가이드는 특히 신중하게 작성해야 합니다. 모든 이전 태스크가 완료된 후에 정확한 문서화가 가능합니다."
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "보안 및 권한 관리 시스템 구현",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "SecretManager 클래스 인터페이스 및 구현, API 키 암호화 저장 및 검증 모듈 개발, 민감 정보 필터링 시스템(pre-commit hook 포함) 구현, 팀 멤버 권한 레벨(Admin/Member/Viewer) 시스템 개발, 감사 로그 기록 시스템 구현, Rate limiting 모듈 개발, 보안 테스트 및 검증으로 세분화하세요.",
+			"reasoning": "보안 시스템은 전체 시스템의 기반이 됩니다. 시크릿 관리(환경 변수/볼트), API 키 암호화, 민감 정보 필터링(pre-commit hook), 3단계 권한 레벨, 감사 로그, Rate limiting 등 다양한 보안 레이어가 필요합니다. Task 1, 3과만 의존성이 있어 초기에 병렬 개발이 가능하지만, 보안 검증은 철저해야 합니다."
+		}
+	]
+}

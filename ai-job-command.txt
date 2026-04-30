@@ -1,0 +1,66 @@
+crosoft Windows [Version 10.0.19045.6466]
+(c) Microsoft Corporation. All rights reserved.
+
+D:\TM_PROJECT_셀피시\코드엑스개발>cd "D:\TM_PROJECT_셀피시\코드엑스개발" && npx vitest run --reporter=verbose 2>&1
+
+ RUN  v4.1.5 D:/TM_PROJECT_셀피시/코드엑스개발
+
+ ✓ src/utils/env.test.ts > loadEnv > 유효한 환경 변수로 정상 로드 132ms
+ ✓ src/utils/env.test.ts > loadEnv > 필수 환경 변수 누락 시 에러 발생 8ms
+ ✓ src/utils/env.test.ts > loadEnv > VERCEL_TOKEN은 선택 사항 3ms
+ ✓ src/integrations/github.test.ts > GitHubSync > 생성자 > 유효한 설정으로 인스턴스 생성 4ms
+ ✓ src/integrations/github.test.ts > GitHubSync > 생성자 > 빈 owner로 생성 시 에러 2ms
+ ✓ src/integrations/github.test.ts > GitHubSync > 생성자 > 빈 token으로 생성 시 에러 1ms
+ ✓ src/integrations/github.test.ts > GitHubSync > buildCommitMessage (정적 메서드) > context 0 → 올바른 커밋 메시지 생 성 1ms
+ ✓ src/integrations/github.test.ts > GitHubSync > buildCommitMessage (정적 메서드) > context 1 → 올바른 커밋 메시지 생 성 0ms
+ ✓ src/integrations/github.test.ts > GitHubSync > buildCommitMessage (정적 메서드) > context 2 → 올바른 커밋 메시지 생 성 0ms
+ ✓ src/integrations/github.test.ts > GitHubSync > buildCommitMessage (정적 메서드) > context 3 → 올바른 커밋 메시지 생 성 0ms
+ ✓ src/integrations/github.test.ts > GitHubSync > buildCommitMessage (정적 메서드) > context 4 → 올바른 커밋 메시지 생 성 0ms
+
+<--- Last few GCs --->
+
+[11852:000002D033A80000]    79343 ms: Scavenge (interleaved) 4055.0 (4072.1) -> 4055.0 (4119.1) MB, pooled: 0 MB, 166.76 / 0.00 ms  (average mu = 0.309, current mu = 0.304) allocation failure;
+[11852:000002D033A80000]    90361 ms: Mark-Compact (reduce) 4055.1 (4119.1) -> 4055.1 (4057.4) MB, pooled: 0 MB, 8594.31 / 0.00 ms  (+ 5.1 ms in 2 steps since start of marking, biggest step 5.0 ms, walltime since start of marking 8608 ms) (average mu = 0.
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----t.ts > GitHubSync > createPullRequest > PR 생성 후 PullRequestResult 반환 1ms
+ ✓ src/integrations/github.test.ts > GitHubSync > sync > 충돌 없을 때 성공 결과 반환 1ms
+ 1: 00007FF74CD3AE1F node::OnFatalError+1343nner > 생성자 > 유효한 설정으로 인스턴스 생성 13ms
+ 2: 00007FF74D9837B7 v8::Function::NewInstance+423 생성자 > 존재하지 않는 basePath로 생성 시 에러 9ms
+ 3: 00007FF74D783E77 v8::base::AddressSpaceReservation::AddressSpaceReservation+322071 9ms
+ 4: 00007FF74D787B84 v8::base::AddressSpaceReservation::AddressSpaceReservation+337700 파일 목록 반환 11ms
+ 5: 00007FF74D796B1C v8::internal::StrongRootAllocatorBase::deallocate_impl+16604 반환 8ms
+ 6: 00007FF74D79635B v8::internal::StrongRootAllocatorBase::deallocate_impl+14619 스캔 시 빈 배열 반환 9ms
+ 7: 00007FF74EBFEBED v8::base::UnsignedDivisionByConstant<unsigned __int64>+2791309 relativePath, createdAt, modifiedAt
+ 8: 00007FF74D781940 v8::base::AddressSpaceReservation::AddressSpaceReservation+312544
+ 9: 00007FF74D805619 v8::Unlocker::~Unlocker+9273> parseMarkdown > frontmatter와 content 정상 파싱 13ms
+10: 00007FF74D37AFF2 v8::String::Utf8Value::~Utf8Value+141746own > excerpt 생성 (200자 초과 시 자름) 9ms
+11: 000002D05B9B733A nner.test.ts > VaultScanner > parseMarkdown > frontmatter 없는 파일도 파싱 9ms
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Worker forks emitted error.
+ ❯ EventEmitter.<anonymous> ../../TM_PROJECT_%EC%85%80%ED%94%BC%EC%8B%9C/%EC%BD%94%EB%93%9C%EC%97%91%EC%8A%A4%EA%B0%9C%EB%B0%9C/node_modules/vitest/dist/chunks/cli-api.Cjt90eJu.js:3445:22
+ ❯ EventEmitter.emit node:events:508:28
+ ❯ ChildProcess.emitUnexpectedExit ../../TM_PROJECT_%EC%85%80%ED%94%BC%EC%8B%9C/%EC%BD%94%EB%93%9C%EC%97%91%EC%8A%A4%EA%B0%9C%EB%B0%9C/node_modules/vitest/dist/chunks/cli-api.Cjt90eJu.js:3012:22
+ ❯ ChildProcess.emit node:events:508:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+Caused by: Error: Worker exited unexpectedly
+ ❯ ChildProcess.emitUnexpectedExit ../../TM_PROJECT_%EC%85%80%ED%94%BC%EC%8B%9C/%EC%BD%94%EB%93%9C%EC%97%91%EC%8A%A4%EA%B0%9C%EB%B0%9C/node_modules/vitest/dist/chunks/cli-api.Cjt90eJu.js:3011:33
+ ❯ ChildProcess.emit node:events:508:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  3 passed (4)
+      Tests  33 passed (53)
+     Errors  1 error
+   Start at  17:45:40
+   Duration  92.18s (transform 302ms, setup 0ms, import 744ms, tests 306ms, environment 1ms)
+
+
+D:\TM_PROJECT_셀피시\코드엑스개발>

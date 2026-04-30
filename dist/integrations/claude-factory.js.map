@@ -1,0 +1,1 @@
+{"version":3,"file":"claude-factory.js","sourceRoot":"","sources":["../../src/integrations/claude-factory.ts"],"names":[],"mappings":";;;;;AAKA,oDAKC;AAVD,4DAA0C;AAC1C,qCAA0C;AAI1C,SAAgB,oBAAoB,CAClC,MAAkD;IAElD,MAAM,MAAM,GAAG,IAAI,aAAS,CAAC,EAAE,MAAM,EAAE,MAAM,CAAC,MAAM,EAAE,CAA+B,CAAC;IACtF,OAAO,IAAI,uBAAc,CAAC,MAAM,EAAE,MAAM,CAAC,CAAC;AAC5C,CAAC"}

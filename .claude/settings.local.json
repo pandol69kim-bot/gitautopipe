@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npx task-master *)",
+      "Bash(npx vitest *)",
+      "Bash(dir /s \"D:\\\\TM_PROJECT_셀피시\\\\코드엑스개발\\\\node_modules\\\\@anthropic-ai\\\\sdk\")",
+      "Bash(node --max-old-space-size=8192 node_modules/.bin/vitest run src/integrations/claude.test.ts)",
+      "Bash(echo \"EXIT:$?\")"
+    ]
+  }
+}

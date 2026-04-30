@@ -1,0 +1,797 @@
+{
+  "meta": {
+    "projectName": "셀피시 클럽 AI 에이전트 협업 시스템",
+    "version": "1.0.0",
+    "createdAt": "2026-04-30",
+    "description": "Obsidian + Claude Code + GitHub 기반 팀 단위 AX 자동화 파이프라인",
+    "totalPhases": 3,
+    "estimatedWeeks": 8
+  },
+  "tasks": [
+    {
+      "id": 1,
+      "title": "GitHub 저장소 생성 및 브랜치 전략 수립",
+      "description": "Private 저장소 생성, main/dev 브랜치 보호 규칙 설정, .gitignore 구성",
+      "phase": 1,
+      "status": "pending",
+      "priority": "high",
+      "difficulty": 1,
+      "estimatedDays": 0.5,
+      "assignee": "관리자",
+      "dependencies": [],
+      "tags": ["github", "infra", "phase1"],
+      "subtasks": [
+        {
+          "id": "1-1",
+          "title": "GitHub Private 저장소 생성",
+          "status": "pending"
+        },
+        {
+          "id": "1-2",
+          "title": "main 브랜치 보호 규칙 설정",
+          "status": "pending"
+        },
+        {
+          "id": "1-3",
+          "title": ".gitignore 작성 (Obsidian 캐시 제외)",
+          "status": "pending"
+        },
+        {
+          "id": "1-4",
+          "title": "Personal Access Token (PAT) 발급",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": ["GitHub 계정"],
+      "notes": "Private 저장소 필수 — 내부 회의록·과제 포함됨"
+    },
+    {
+      "id": 2,
+      "title": "Obsidian Vault 폴더 구조 표준화",
+      "description": "6개 폴더(Mission, Meetings, Skill, Sharing, Analysis, LinkedIn) 생성 및 용도 문서화",
+      "phase": 1,
+      "status": "pending",
+      "priority": "high",
+      "difficulty": 1,
+      "estimatedDays": 0.5,
+      "assignee": "관리자",
+      "dependencies": [1],
+      "tags": ["obsidian", "structure", "phase1"],
+      "subtasks": [
+        {
+          "id": "2-1",
+          "title": "Mission/ 폴더 생성 및 네이밍 규칙 정의 (YYYY-WW_이름.md)",
+          "status": "pending"
+        },
+        {
+          "id": "2-2",
+          "title": "Meetings/ 폴더 생성 (YYYY-MM-DD_회의록.md)",
+          "status": "pending"
+        },
+        {
+          "id": "2-3",
+          "title": "Skill/ 폴더 생성",
+          "status": "pending"
+        },
+        {
+          "id": "2-4",
+          "title": "Sharing/ 폴더 생성",
+          "status": "pending"
+        },
+        {
+          "id": "2-5",
+          "title": "Analysis/ 폴더 생성 (Claude Code 전용, 직접 편집 금지 공지)",
+          "status": "pending"
+        },
+        {
+          "id": "2-6",
+          "title": "LinkedIn/ 폴더 생성 (Claude Code 전용)",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": ["Obsidian 설치"],
+      "notes": "Analysis/, LinkedIn/ 폴더는 Claude Code 자동 생성 전용 — 팀원 직접 편집 금지"
+    },
+    {
+      "id": 3,
+      "title": "마크다운 작성 가이드 및 템플릿 제작",
+      "description": "Mission, Meetings, Skill, Sharing 각 폴더별 frontmatter 포함 템플릿 작성",
+      "phase": 1,
+      "status": "pending",
+      "priority": "high",
+      "difficulty": 1,
+      "estimatedDays": 1,
+      "assignee": "전원",
+      "dependencies": [2],
+      "tags": ["template", "documentation", "phase1"],
+      "subtasks": [
+        {
+          "id": "3-1",
+          "title": "Mission 템플릿 작성 (week, author, tags frontmatter 포함)",
+          "status": "pending"
+        },
+        {
+          "id": "3-2",
+          "title": "Meetings 템플릿 작성 (참석자, 안건, 결정사항, 액션아이템)",
+          "status": "pending"
+        },
+        {
+          "id": "3-3",
+          "title": "Skill 템플릿 작성",
+          "status": "pending"
+        },
+        {
+          "id": "3-4",
+          "title": "작성 가이드 README.md 작성 (vault 루트)",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": [],
+      "notes": "frontmatter(week, author, tags)가 Claude Code 분석 정확도에 직접 영향"
+    },
+    {
+      "id": 4,
+      "title": "Obsidian Git 플러그인 설정 (자동 Push)",
+      "description": "obsidian-git 플러그인 설치 및 GitHub PAT 연동, 자동 커밋 주기 설정",
+      "phase": 1,
+      "status": "pending",
+      "priority": "high",
+      "difficulty": 1,
+      "estimatedDays": 0.5,
+      "assignee": "관리자",
+      "dependencies": [1, 2],
+      "tags": ["obsidian", "github", "automation", "phase1"],
+      "subtasks": [
+        {
+          "id": "4-1",
+          "title": "Obsidian Community Plugins에서 obsidian-git 설치",
+          "status": "pending"
+        },
+        {
+          "id": "4-2",
+          "title": "GitHub PAT를 플러그인에 입력",
+          "status": "pending"
+        },
+        {
+          "id": "4-3",
+          "title": "자동 커밋 주기 설정 (권장: 10분)",
+          "status": "pending"
+        },
+        {
+          "id": "4-4",
+          "title": "Push 테스트 및 GitHub 반영 확인",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": ["GitHub PAT (task 1-4 완료 필요)"],
+      "notes": ""
+    },
+    {
+      "id": 5,
+      "title": "팀원 온보딩 가이드 배포",
+      "description": "Obsidian 설치부터 GitHub 연동까지 비개발자 대상 단계별 설치 가이드 제작 및 배포",
+      "phase": 1,
+      "status": "pending",
+      "priority": "medium",
+      "difficulty": 1,
+      "estimatedDays": 1,
+      "assignee": "관리자",
+      "dependencies": [3, 4],
+      "tags": ["onboarding", "documentation", "phase1"],
+      "subtasks": [
+        {
+          "id": "5-1",
+          "title": "Obsidian 설치 가이드 (Windows/Mac 분리)",
+          "status": "pending"
+        },
+        {
+          "id": "5-2",
+          "title": "GitHub 계정 생성 및 저장소 Clone 가이드",
+          "status": "pending"
+        },
+        {
+          "id": "5-3",
+          "title": "obsidian-git 플러그인 설정 가이드 (스크린샷 포함)",
+          "status": "pending"
+        },
+        {
+          "id": "5-4",
+          "title": "첫 Mission 파일 작성 실습 가이드",
+          "status": "pending"
+        },
+        {
+          "id": "5-5",
+          "title": "팀원 전원 설정 완료 확인",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": [],
+      "notes": "비개발자 중심 팀 — 스크린샷 필수, 전문 용어 최소화"
+    },
+    {
+      "id": 6,
+      "title": "CLAUDE.md 작성 (분석 프롬프트 정의)",
+      "description": "Claude Code가 vault를 분석할 때 참조할 지침 파일 작성. 보고서 형식, LinkedIn 초안 형식, 분석 범위 정의",
+      "phase": 2,
+      "status": "pending",
+      "priority": "high",
+      "difficulty": 2,
+      "estimatedDays": 2,
+      "assignee": "관리자",
+      "dependencies": [5],
+      "tags": ["claude-code", "prompt", "phase2"],
+      "subtasks": [
+        {
+          "id": "6-1",
+          "title": "분석 에이전트 역할 및 범위 정의",
+          "status": "pending"
+        },
+        {
+          "id": "6-2",
+          "title": "Analysis 보고서 출력 형식 정의 (멤버별 참여도, 키워드, 성과 3줄)",
+          "status": "pending"
+        },
+        {
+          "id": "6-3",
+          "title": "LinkedIn 초안 형식 정의 (1인칭, 300자, 해시태그 3개)",
+          "status": "pending"
+        },
+        {
+          "id": "6-4",
+          "title": "파일 네이밍 규칙 정의 (Analysis/YYYY-WW_보고서.md)",
+          "status": "pending"
+        },
+        {
+          "id": "6-5",
+          "title": "프롬프트 테스트 및 출력 품질 검증",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": ["Anthropic API Key"],
+      "notes": "CLAUDE.md 품질이 자동화 결과물 품질을 결정. 반복 테스트 필수"
+    },
+    {
+      "id": 7,
+      "title": "Analysis 보고서 자동 생성 스크립트",
+      "description": "Mission/, Meetings/ 폴더 전수 분석 후 Analysis/ 폴더에 주간 보고서를 생성하는 스크립트 작성",
+      "phase": 2,
+      "status": "pending",
+      "priority": "high",
+      "difficulty": 2,
+      "estimatedDays": 2,
+      "assignee": "관리자",
+      "dependencies": [6],
+      "tags": ["claude-code", "automation", "analysis", "phase2"],
+      "subtasks": [
+        {
+          "id": "7-1",
+          "title": "분석 대상 파일 수집 로직 구현 (주차 필터링)",
+          "status": "pending"
+        },
+        {
+          "id": "7-2",
+          "title": "멤버별 참여도 집계 로직",
+          "status": "pending"
+        },
+        {
+          "id": "7-3",
+          "title": "키워드 추출 및 빈도 분석",
+          "status": "pending"
+        },
+        {
+          "id": "7-4",
+          "title": "Analysis/ 폴더에 보고서 파일 저장",
+          "status": "pending"
+        },
+        {
+          "id": "7-5",
+          "title": "중복 실행 방지 로직 (이미 생성된 주차 스킵)",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": ["ANTHROPIC_API_KEY (GitHub Secrets 등록)"],
+      "notes": ""
+    },
+    {
+      "id": 8,
+      "title": "LinkedIn 초안 자동 생성 스크립트",
+      "description": "Mission/ 파일 기반으로 개인별 LinkedIn 포스팅 초안을 LinkedIn/ 폴더에 자동 생성",
+      "phase": 2,
+      "status": "pending",
+      "priority": "medium",
+      "difficulty": 2,
+      "estimatedDays": 1,
+      "assignee": "관리자",
+      "dependencies": [6],
+      "tags": ["claude-code", "linkedin", "automation", "phase2"],
+      "subtasks": [
+        {
+          "id": "8-1",
+          "title": "개인별 Mission 파일 파싱 로직",
+          "status": "pending"
+        },
+        {
+          "id": "8-2",
+          "title": "1인칭 관점 300자 초안 생성 프롬프트 구현",
+          "status": "pending"
+        },
+        {
+          "id": "8-3",
+          "title": "LinkedIn/이름_YYYY-WW.md 파일로 저장",
+          "status": "pending"
+        },
+        {
+          "id": "8-4",
+          "title": "출력 품질 검증 (어투, 길이, 해시태그 수)",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": ["ANTHROPIC_API_KEY"],
+      "notes": "Phase 3의 LinkedIn API 자동 포스팅과 구분 — 이 단계는 초안 파일 생성까지만"
+    },
+    {
+      "id": 9,
+      "title": "Notion MCP 연동 (회의록 동기화)",
+      "description": "노션 회의록 데이터베이스를 Meetings/ 폴더로 자동 동기화하는 MCP 서버 구성",
+      "phase": 2,
+      "status": "pending",
+      "priority": "medium",
+      "difficulty": 3,
+      "estimatedDays": 3,
+      "assignee": "관리자",
+      "dependencies": [5],
+      "tags": ["notion", "mcp", "sync", "phase2"],
+      "subtasks": [
+        {
+          "id": "9-1",
+          "title": "Notion Integration 생성 (notion.so/my-integrations)",
+          "status": "pending"
+        },
+        {
+          "id": "9-2",
+          "title": "대상 노션 페이지에 Integration 공유 권한 부여",
+          "status": "pending"
+        },
+        {
+          "id": "9-3",
+          "title": "Claude Code MCP 설정 파일에 notion MCP 서버 추가",
+          "status": "pending"
+        },
+        {
+          "id": "9-4",
+          "title": "노션 Database ID 확인 및 환경변수 등록",
+          "status": "pending"
+        },
+        {
+          "id": "9-5",
+          "title": "동기화 테스트 (노션 작성 → Meetings/ 파일 생성 확인)",
+          "status": "pending"
+        },
+        {
+          "id": "9-6",
+          "title": "연동 실패 시 수동 백업 절차 문서화",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": [
+        "Notion Integration Token (notion.so/my-integrations)",
+        "Notion Database ID",
+        "NOTION_TOKEN (GitHub Secrets 등록)",
+        "NOTION_DATABASE_ID (GitHub Secrets 등록)"
+      ],
+      "notes": "연동 실패 가능성 중간 — 수동 복붙을 임시 대안으로 항상 유지"
+    },
+    {
+      "id": 10,
+      "title": "GitHub Actions 자동 실행 트리거 설정",
+      "description": "Mission/, Meetings/ 폴더에 Push 발생 시 Claude Code 분석을 자동 실행하는 GitHub Actions 워크플로우 구성",
+      "phase": 2,
+      "status": "pending",
+      "priority": "high",
+      "difficulty": 2,
+      "estimatedDays": 1,
+      "assignee": "관리자",
+      "dependencies": [7, 8],
+      "tags": ["github-actions", "ci-cd", "automation", "phase2"],
+      "subtasks": [
+        {
+          "id": "10-1",
+          "title": ".github/workflows/analyze.yml 파일 작성",
+          "status": "pending"
+        },
+        {
+          "id": "10-2",
+          "title": "GitHub Secrets에 ANTHROPIC_API_KEY 등록",
+          "status": "pending"
+        },
+        {
+          "id": "10-3",
+          "title": "트리거 경로 설정 (Mission/**, Meetings/** push 시)",
+          "status": "pending"
+        },
+        {
+          "id": "10-4",
+          "title": "생성 파일 자동 커밋 및 Push 로직 구현",
+          "status": "pending"
+        },
+        {
+          "id": "10-5",
+          "title": "Actions 실행 테스트 및 로그 확인",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": [
+        "ANTHROPIC_API_KEY (GitHub Secrets)",
+        "GitHub Actions 실행 권한"
+      ],
+      "notes": "Claude Code --headless 모드 사용. 실행 시간 제한(6시간) 주의"
+    },
+    {
+      "id": 11,
+      "title": "Next.js 정적 사이트 구축 (마크다운 렌더링)",
+      "description": "Skill/Insight 폴더의 마크다운 파일을 웹페이지로 렌더링하는 Next.js 사이트 구축",
+      "phase": 3,
+      "status": "pending",
+      "priority": "high",
+      "difficulty": 2,
+      "estimatedDays": 3,
+      "assignee": "관리자",
+      "dependencies": [10],
+      "tags": ["nextjs", "frontend", "web", "phase3"],
+      "subtasks": [
+        {
+          "id": "11-1",
+          "title": "Next.js 프로젝트 초기화 (App Router)",
+          "status": "pending"
+        },
+        {
+          "id": "11-2",
+          "title": "gray-matter + remark로 마크다운 파싱 설정",
+          "status": "pending"
+        },
+        {
+          "id": "11-3",
+          "title": "Skill/Insight 목록 페이지 구현",
+          "status": "pending"
+        },
+        {
+          "id": "11-4",
+          "title": "개별 포스트 상세 페이지 구현",
+          "status": "pending"
+        },
+        {
+          "id": "11-5",
+          "title": "기본 스타일링 (Typography, 코드 하이라이팅)",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": ["Node.js 설치"],
+      "notes": ""
+    },
+    {
+      "id": 12,
+      "title": "Vercel 자동 배포 연동",
+      "description": "GitHub main 브랜치 Push 시 Vercel이 자동으로 빌드·배포되도록 연동",
+      "phase": 3,
+      "status": "pending",
+      "priority": "high",
+      "difficulty": 1,
+      "estimatedDays": 0.5,
+      "assignee": "관리자",
+      "dependencies": [11],
+      "tags": ["vercel", "deployment", "phase3"],
+      "subtasks": [
+        {
+          "id": "12-1",
+          "title": "Vercel 계정 생성 및 GitHub 연결",
+          "status": "pending"
+        },
+        {
+          "id": "12-2",
+          "title": "Vercel Dashboard에서 저장소 Import",
+          "status": "pending"
+        },
+        {
+          "id": "12-3",
+          "title": "빌드 설정 확인 (Next.js 자동 감지)",
+          "status": "pending"
+        },
+        {
+          "id": "12-4",
+          "title": "커스텀 도메인 설정 (선택)",
+          "status": "pending"
+        },
+        {
+          "id": "12-5",
+          "title": "배포 테스트 및 URL 확인",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": ["Vercel 계정 (무료 Hobby 플랜 가능)"],
+      "notes": "Hobby 플랜 무료. 팀 협업 필요 시 팀 플랜 $20/월"
+    },
+    {
+      "id": 13,
+      "title": "Skill/Insight → 웹페이지 자동 변환 파이프라인",
+      "description": "Skill/ 폴더 마크다운이 GitHub Push되면 Vercel이 자동으로 웹사이트를 업데이트하는 전체 파이프라인 완성",
+      "phase": 3,
+      "status": "pending",
+      "priority": "high",
+      "difficulty": 3,
+      "estimatedDays": 3,
+      "assignee": "관리자",
+      "dependencies": [11, 12],
+      "tags": ["pipeline", "automation", "vercel", "phase3"],
+      "subtasks": [
+        {
+          "id": "13-1",
+          "title": "Skill/ 폴더를 Next.js content 소스로 연결",
+          "status": "pending"
+        },
+        {
+          "id": "13-2",
+          "title": "frontmatter 메타데이터 기반 필터링·정렬 구현",
+          "status": "pending"
+        },
+        {
+          "id": "13-3",
+          "title": "신규 파일 Push → 웹 자동 반영 E2E 테스트",
+          "status": "pending"
+        },
+        {
+          "id": "13-4",
+          "title": "빌드 실패 시 Slack/이메일 알림 설정",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": ["Vercel 연동 완료 (task 12)"],
+      "notes": ""
+    },
+    {
+      "id": 14,
+      "title": "AA 스타터 키트 README 및 설치 스크립트 작성",
+      "description": "전체 시스템을 다른 팀도 쉽게 도입할 수 있도록 README, 설치 스크립트, 템플릿을 패키징",
+      "phase": 3,
+      "status": "pending",
+      "priority": "medium",
+      "difficulty": 2,
+      "estimatedDays": 2,
+      "assignee": "관리자",
+      "dependencies": [13],
+      "tags": ["open-source", "documentation", "starter-kit", "phase3"],
+      "subtasks": [
+        {
+          "id": "14-1",
+          "title": "README.md 작성 (시스템 개요, 빠른 시작 가이드)",
+          "status": "pending"
+        },
+        {
+          "id": "14-2",
+          "title": "setup.sh 설치 스크립트 작성 (자동 폴더 생성, 플러그인 안내)",
+          "status": "pending"
+        },
+        {
+          "id": "14-3",
+          "title": "마크다운 템플릿 패키징",
+          "status": "pending"
+        },
+        {
+          "id": "14-4",
+          "title": "CLAUDE.md 예시 포함",
+          "status": "pending"
+        },
+        {
+          "id": "14-5",
+          "title": "GitHub Actions 워크플로우 예시 포함",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": [],
+      "notes": "삽질·실패 사례도 문서에 포함 — 셀피시 클럽 핵심 가치"
+    },
+    {
+      "id": 15,
+      "title": "오픈소스 라이선스 선택 및 공개 배포",
+      "description": "MIT 또는 Apache 2.0 라이선스 선택 후 Public 저장소로 전환하여 AA 스타터 키트 공개",
+      "phase": 3,
+      "status": "pending",
+      "priority": "low",
+      "difficulty": 1,
+      "estimatedDays": 0.5,
+      "assignee": "관리자",
+      "dependencies": [14],
+      "tags": ["open-source", "license", "phase3"],
+      "subtasks": [
+        {
+          "id": "15-1",
+          "title": "라이선스 선택 (MIT 권장)",
+          "status": "pending"
+        },
+        {
+          "id": "15-2",
+          "title": "LICENSE 파일 저장소에 추가",
+          "status": "pending"
+        },
+        {
+          "id": "15-3",
+          "title": "저장소를 Public으로 전환 (내부 기록 분리 후)",
+          "status": "pending"
+        },
+        {
+          "id": "15-4",
+          "title": "커뮤니티 공유 (링크드인, 관련 커뮤니티)",
+          "status": "pending"
+        }
+      ],
+      "externalDependencies": [],
+      "notes": "Public 전환 전 내부 기록(회의록, 과제) 반드시 제거 확인"
+    }
+  ],
+  "externalIntegrations": [
+    {
+      "id": "ext-1",
+      "name": "GitHub",
+      "priority": 1,
+      "required": true,
+      "phase": 1,
+      "credentials": [
+        {
+          "key": "GITHUB_PAT",
+          "description": "Personal Access Token",
+          "storage": "Obsidian Git 플러그인 설정",
+          "howToGet": "github.com → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token (repo 권한 필요)"
+        }
+      ],
+      "notes": "Private 저장소 필수. obsidian-git 플러그인으로 자동 Push 설정"
+    },
+    {
+      "id": "ext-2",
+      "name": "Anthropic API",
+      "priority": 2,
+      "required": true,
+      "phase": 2,
+      "credentials": [
+        {
+          "key": "ANTHROPIC_API_KEY",
+          "description": "Claude API 키",
+          "storage": "GitHub Secrets",
+          "howToGet": "console.anthropic.com → API Keys → Create Key"
+        }
+      ],
+      "estimatedMonthlyCost": "$5~$30 (팀 규모 및 분석 빈도에 따라 상이)",
+      "costControl": "GitHub Actions 트리거를 Push 기반으로 제한. 주 1회 배치 실행 권장",
+      "notes": "절대 코드에 하드코딩 금지 — GitHub Secrets에만 보관"
+    },
+    {
+      "id": "ext-3",
+      "name": "Notion MCP",
+      "priority": 4,
+      "required": false,
+      "phase": 2,
+      "credentials": [
+        {
+          "key": "NOTION_TOKEN",
+          "description": "Notion Integration Secret Token",
+          "storage": "GitHub Secrets",
+          "howToGet": "notion.so/my-integrations → New integration → 생성 후 Secret 복사"
+        },
+        {
+          "key": "NOTION_DATABASE_ID",
+          "description": "동기화할 노션 데이터베이스 ID",
+          "storage": "GitHub Secrets",
+          "howToGet": "노션 데이터베이스 URL에서 추출: notion.so/[workspace]/[DATABASE_ID]?v=..."
+        }
+      ],
+      "fallback": "연동 실패 시 노션 내용을 수동으로 마크다운으로 복붙하여 Meetings/ 폴더에 저장",
+      "notes": "노션 페이지에 Integration 공유 권한 부여 필수 (Share 버튼 → Invite integration)"
+    },
+    {
+      "id": "ext-4",
+      "name": "Vercel",
+      "priority": 3,
+      "required": true,
+      "phase": 3,
+      "credentials": [
+        {
+          "key": "VERCEL_TOKEN",
+          "description": "Vercel API 토큰 (CI/CD 자동화 시 필요)",
+          "storage": "GitHub Secrets",
+          "howToGet": "vercel.com → Settings → Tokens → Create Token"
+        }
+      ],
+      "estimatedMonthlyCost": "무료 (Hobby 플랜). 팀 협업 필요 시 $20/월",
+      "notes": "GitHub 저장소 연결만으로 자동 배포 가능. 별도 서버 불필요"
+    },
+    {
+      "id": "ext-5",
+      "name": "LinkedIn API",
+      "priority": 5,
+      "required": false,
+      "phase": 3,
+      "credentials": [
+        {
+          "key": "LINKEDIN_CLIENT_ID",
+          "description": "LinkedIn Developer App Client ID",
+          "storage": "GitHub Secrets",
+          "howToGet": "developer.linkedin.com → My Apps → Create App"
+        },
+        {
+          "key": "LINKEDIN_CLIENT_SECRET",
+          "description": "LinkedIn Developer App Client Secret",
+          "storage": "GitHub Secrets",
+          "howToGet": "developer.linkedin.com → My Apps → 해당 앱 → Auth 탭"
+        },
+        {
+          "key": "LINKEDIN_ACCESS_TOKEN",
+          "description": "OAuth 2.0 Access Token (사용자별 발급)",
+          "storage": "GitHub Secrets",
+          "howToGet": "OAuth 2.0 Authorization Code Flow 구현 후 발급"
+        }
+      ],
+      "difficulty": 3,
+      "warning": "OAuth 2.0 플로우 구현 필요. LinkedIn API 승인 지연 가능성 높음",
+      "recommendation": "Phase 3까지는 초안 파일 생성(task 8)만 자동화. 자동 포스팅은 Phase 3 완료 후 선택적 구현"
+    }
+  ],
+  "environmentVariables": {
+    "required": [
+      "ANTHROPIC_API_KEY"
+    ],
+    "optional": [
+      "NOTION_TOKEN",
+      "NOTION_DATABASE_ID",
+      "VERCEL_TOKEN",
+      "LINKEDIN_CLIENT_ID",
+      "LINKEDIN_CLIENT_SECRET",
+      "LINKEDIN_ACCESS_TOKEN"
+    ],
+    "storage": "GitHub Secrets (Settings → Secrets and variables → Actions)",
+    "warning": "위 변수들을 소스 코드, 커밋 메시지, 로그에 절대 포함하지 않을 것"
+  },
+  "risks": [
+    {
+      "id": "risk-1",
+      "description": "API 비용 초과",
+      "probability": "medium",
+      "mitigation": "분석 실행을 Push 이벤트 기반으로 제한. 대량 Push 시 debounce 처리 (주 1회 배치 권장)"
+    },
+    {
+      "id": "risk-2",
+      "description": "팀원 마크다운 미작성",
+      "probability": "high",
+      "mitigation": "템플릿 단순화, 주간 자동 리마인더 GitHub Actions 설정, Mission 미제출 시 Analysis 보고서에 경고 표시"
+    },
+    {
+      "id": "risk-3",
+      "description": "Notion MCP 연동 실패",
+      "probability": "medium",
+      "mitigation": "수동 마크다운 복붙을 상시 대안으로 유지. 연동 성공 전까지 수동 운영"
+    },
+    {
+      "id": "risk-4",
+      "description": "LinkedIn API 승인 지연",
+      "probability": "high",
+      "mitigation": "자동 포스팅 없이 초안 파일 생성까지만 자동화. 포스팅은 수동 유지"
+    }
+  ],
+  "schedule": [
+    {
+      "phase": 1,
+      "weeks": "1~2",
+      "tasks": [1, 2, 3, 4, 5],
+      "milestone": "GitHub + Obsidian 세팅 완료, 팀 전원 온보딩"
+    },
+    {
+      "phase": 2,
+      "weeks": "3~5",
+      "tasks": [6, 7, 8, 9, 10],
+      "milestone": "분석 보고서 및 LinkedIn 초안 자동 생성 파이프라인 가동"
+    },
+    {
+      "phase": 3,
+      "weeks": "6~8",
+      "tasks": [11, 12, 13, 14, 15],
+      "milestone": "웹사이트 자동 배포 완료, AA 스타터 키트 오픈소스 공개"
+    }
+  ]
+}
