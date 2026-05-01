@@ -26,7 +26,7 @@ erDiagram
         string path PK
         string title
         string content
-        string[] tags
+        strings tags
         string date
     }
 
@@ -34,7 +34,7 @@ erDiagram
         string path PK
         string title
         string date
-        string[] participants
+        strings participants
         string summary
         string notionPageId
     }
@@ -42,7 +42,7 @@ erDiagram
     SkillFile {
         string path PK
         string title
-        string[] tags
+        strings tags
         string content
         string deployedUrl
     }
@@ -51,7 +51,7 @@ erDiagram
         string id PK
         string sourceMissionPath FK
         string insight
-        string[] recommendations
+        strings recommendations
         string createdAt
     }
 
@@ -95,7 +95,7 @@ erDiagram
         string pageId PK
         string title
         string date
-        string[] participants
+        strings participants
         string status
     }
 
