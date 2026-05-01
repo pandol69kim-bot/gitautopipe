@@ -6,3 +6,4 @@ export * from './linkedin';
 export * from './notion';
 export * from './deployer';
 export * from './workflow';
+export * from './security';

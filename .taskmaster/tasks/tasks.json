@@ -1058,7 +1058,7 @@
           "9",
           "10"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1066,7 +1066,7 @@
             "description": "aa-starter-kit 프로젝트의 templates 폴더 내 Obsidian 볼트 템플릿과 디렉토리 구조를 생성합니다.",
             "dependencies": [],
             "details": "templates 폴더에 Mission, Meetings 등 각 서브폴더와 예시 마크다운 파일을 추가하고 .env.example 및 scripts 폴더를 초기화합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "디렉토리와 파일이 올바르게 생성되었는지 확인하고, Obsidian에서 템플릿이 정상 로드되는지 테스트합니다.",
             "parentId": "undefined"
           },
@@ -1078,7 +1078,7 @@
               1
             ],
             "details": "설치, 환경 변수 설정, 최초 실행 방법을 단계별로 예시 코드와 스크린샷을 포함해 설명합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "문서에 따라 신규 환경에서 설치 및 실행 절차를 수행해보고 오류 없이 진행되는지 확인합니다.",
             "parentId": "undefined"
           },
@@ -1090,7 +1090,7 @@
               1
             ],
             "details": "YAML/JSON 예제와 함께 템플릿 변수, 스크립트 사용법, 실행 명령어를 자세히 설명합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "예제 워크플로우를 작성해 실행해보고, 결과가 예상대로 출력되는지 검증합니다.",
             "parentId": "undefined"
           },
@@ -1103,7 +1103,7 @@
               3
             ],
             "details": "docs/faq.md와 docs/no-code-guide.md에 오류 메시지별 대응 방법과 GUI 기반 설정 방법을 스텝별로 설명합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "의도적으로 오류를 발생시키고 FAQ 참조 후 해결 가능 여부를 테스트하며, 노코드 가이드를 따라 설정해보아 확인합니다.",
             "parentId": "undefined"
           },
@@ -1115,7 +1115,7 @@
               4
             ],
             "details": "README에 프로젝트 개요와 사용법, CONTRIBUTING에 기여 가이드라인, MIT 또는 Apache 라이선스를 LICENSE 파일에 명시합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "GitHub 저장소에 파일을 업로드하고, 각 문서가 웹에서 제대로 렌더링되는지 확인합니다.",
             "parentId": "undefined"
           }
@@ -1135,7 +1135,7 @@
           "1",
           "3"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1143,7 +1143,7 @@
             "description": "시크릿 로드, 검증 및 회전 기능을 제공하는 SecretManager 클래스를 구현합니다.",
             "dependencies": [],
             "details": "TypeScript로 SecretManager 클래스를 작성하고 loadSecrets, validateSecrets, rotateSecret 메서드를 환경 변수(env) 및 Vault 연동 방식으로 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "환경 변수 누락 시 에러 발생 테스트, Vault 연결 오류 처리 테스트, rotateSecret 호출 후 값 변경 검증",
             "parentId": "undefined"
           },
@@ -1155,7 +1155,7 @@
               1
             ],
             "details": "환경 변수 또는 SecretManager를 이용해 API 키를 AES 등 대칭 암호화 방식으로 암호화·복호화하는 유틸리티 함수를 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "암호화된 키 저장 후 복호화 시 원본 키와 일치하는지 확인, 잘못된 키로 복호화 시 예외 처리 검증",
             "parentId": "undefined"
           },
@@ -1167,7 +1167,7 @@
               1
             ],
             "details": ".gitignore에 민감 파일 패턴을 등록하고 Husky나 lint-staged를 이용해 커밋 전 시크릿 스캔 훅을 추가해 민감 정보 포함 파일 커밋을 차단합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "민감 문자열 포함 파일 커밋 시 훅이 실행되어 차단되는지 확인, 정상 파일 커밋 시 훅 통과 확인",
             "parentId": "undefined"
           },
@@ -1179,7 +1179,7 @@
               1
             ],
             "details": "사용자 역할별로 읽기·쓰기·관리 권한을 분리하여 Express 미들웨어나 Guard 레이어에서 요청별 권한을 검사하는 기능을 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Admin, Member, Viewer 각 권한으로 API 호출 시 허용/차단 결과 검증, 역할 변경 후 권한 즉시 반영 확인",
             "parentId": "undefined"
           },
@@ -1192,7 +1192,7 @@
               4
             ],
             "details": "모든 주요 API 엔드포인트에 대해 사용자 ID, 타임스탬프, 실행된 작업 정보를 MongoDB나 파일 로그로 기록하는 로깅 미들웨어를 작성합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "API 호출 후 로그 저장소에 올바른 항목이 기록되는지 확인, 로그 포맷 및 검색 기능 테스트",
             "parentId": "undefined"
           },
@@ -1204,7 +1204,7 @@
               1
             ],
             "details": "Redis나 메모리 캐시 기반으로 IP 또는 사용자별 호출 횟수를 카운트하고 제한 정책(시간당 요청 수)을 적용하는 미들웨어를 작성합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "정해진 횟수 초과 호출 시 429 상태 코드 반환, 제한 해제 후 정상 호출 재개 확인",
             "parentId": "undefined"
           },
@@ -1220,7 +1220,7 @@
               6
             ],
             "details": "시크릿 관리, 암호화, 필터링, 권한, 로깅, 레이트 리밋 모듈을 포함한 통합 테스트 스위트를 작성하고, 취약점 스캐너를 이용해 보안 점검을 실시합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "자동화된 통합 테스트 실행, OWASP ZAP 등 도구로 취약점 스캔 및 보고서 검토",
             "parentId": "undefined"
           }
@@ -1232,9 +1232,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-04-30T09:10:25.182Z",
+      "lastModified": "2026-05-01T13:40:00.000Z",
       "taskCount": 12,
-      "completedCount": 4,
+      "completedCount": 12,
       "tags": [
         "master"
       ]

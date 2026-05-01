@@ -5,19 +5,19 @@ import { ConfigManager } from './config-manager';
 import { logger } from './logger';
 import type { LogLevel } from './logger';
 import type { OutputFormat } from './formatter';
-import {
-  runScan,
-  runSync,
-  runAnalyze,
-  runDeploy,
-  runWorkflow,
-  runStatus,
-} from './commands';
+import { runScan, runSync, runAnalyze, runDeploy, runWorkflow, runStatus } from './commands';
 import { runInteractive } from './interactive';
+import {
+  createCliSecurityDeps,
+  executeSecuredCommand,
+  getRequiredSecretsForCommand,
+  type CliCommandName,
+} from './security';
 
 const program = new Command();
 const configManager = new ConfigManager();
 const orchestrator = new WorkflowOrchestrator();
+const securityDeps = createCliSecurityDeps();
 
 program
   .name('selfish-club')
@@ -39,7 +39,9 @@ program
   .option('--folder <folder>', '스캔할 폴더 이름')
   .action(async (opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
-    const result = await runScan(opts, { orchestrator, outputFormat: output });
+    const result = await executeCliCommand('scan', opts, async () =>
+      runScan(opts, { orchestrator, outputFormat: output })
+    );
     console.log(result);
   });
 
@@ -49,7 +51,9 @@ program
   .option('--target <target>', '동기화 대상 (github|notion|all)', 'github')
   .action(async (opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
-    const result = await runSync(opts, { orchestrator, outputFormat: output });
+    const result = await executeCliCommand('sync', opts, async () =>
+      runSync(opts, { orchestrator, outputFormat: output })
+    );
     console.log(result);
   });
 
@@ -59,7 +63,9 @@ program
   .option('--week <week>', '분석할 주차 번호', (v) => parseInt(v, 10))
   .action(async (opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
-    const result = await runAnalyze(opts, { orchestrator, outputFormat: output });
+    const result = await executeCliCommand('analyze', opts, async () =>
+      runAnalyze(opts, { orchestrator, outputFormat: output })
+    );
     console.log(result);
   });
 
@@ -69,7 +75,9 @@ program
   .option('--preview', '프리뷰 배포로 실행', false)
   .action(async (opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
-    const result = await runDeploy(opts, { orchestrator, outputFormat: output });
+    const result = await executeCliCommand('deploy', opts, async () =>
+      runDeploy(opts, { orchestrator, outputFormat: output })
+    );
     console.log(result);
   });
 
@@ -79,16 +87,21 @@ program
   .argument('<workflowId>', '실행할 워크플로우 ID')
   .action(async (workflowId: string, _opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
-    const result = await runWorkflow({ workflowId }, { orchestrator, outputFormat: output });
+    const options = { workflowId };
+    const result = await executeCliCommand('workflow', options, async () =>
+      runWorkflow(options, { orchestrator, outputFormat: output })
+    );
     console.log(result);
   });
 
 program
   .command('status')
   .description('시스템 상태를 확인합니다')
-  .action((_opts, cmd) => {
+  .action(async (_opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
-    const result = runStatus({ orchestrator, outputFormat: output });
+    const result = await executeCliCommand('status', {}, async () =>
+      Promise.resolve(runStatus({ orchestrator, outputFormat: output }))
+    );
     console.log(result);
   });
 
@@ -110,22 +123,34 @@ program
     let result: string;
     switch (selected.command) {
       case 'scan':
-        result = await runScan(selected.options, deps);
+        result = await executeCliCommand('scan', selected.options, async () =>
+          runScan(selected.options, deps)
+        );
         break;
       case 'sync':
-        result = await runSync(selected.options, deps);
+        result = await executeCliCommand('sync', selected.options, async () =>
+          runSync(selected.options, deps)
+        );
         break;
       case 'analyze':
-        result = await runAnalyze(selected.options, deps);
+        result = await executeCliCommand('analyze', selected.options, async () =>
+          runAnalyze(selected.options, deps)
+        );
         break;
       case 'deploy':
-        result = await runDeploy(selected.options, deps);
+        result = await executeCliCommand('deploy', selected.options, async () =>
+          runDeploy(selected.options, deps)
+        );
         break;
       case 'workflow':
-        result = await runWorkflow(selected.options, deps);
+        result = await executeCliCommand('workflow', selected.options, async () =>
+          runWorkflow(selected.options, deps)
+        );
         break;
       case 'status':
-        result = runStatus(deps);
+        result = await executeCliCommand('status', selected.options, async () =>
+          Promise.resolve(runStatus(deps))
+        );
         break;
     }
     console.log(result!);
@@ -135,4 +160,39 @@ export { program };
 
 if (require.main === module) {
   program.parse(process.argv);
+}
+
+async function executeCliCommand<T>(
+  command: CliCommandName,
+  options: Record<string, unknown>,
+  handler: () => Promise<T>
+): Promise<T> {
+  return executeSecuredCommand(
+    {
+      command,
+      resource: buildCommandResource(command, options),
+      requiredSecrets: getRequiredSecretsForCommand(command, options),
+    },
+    securityDeps,
+    handler
+  );
+}
+
+function buildCommandResource(command: CliCommandName, options: Record<string, unknown>): string {
+  switch (command) {
+    case 'scan':
+      return `vault/${String(options['folder'] ?? 'all')}`;
+    case 'sync':
+      return `sync/${String(options['target'] ?? 'github')}`;
+    case 'analyze':
+      return `analysis/week-${String(options['week'] ?? 'current')}`;
+    case 'deploy':
+      return `deploy/${options['preview'] ? 'preview' : 'production'}`;
+    case 'workflow':
+      return `workflow/${String(options['workflowId'] ?? 'unknown')}`;
+    case 'status':
+      return 'system/status';
+    case 'interactive':
+      return 'cli/interactive';
+  }
 }

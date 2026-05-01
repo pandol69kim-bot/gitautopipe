@@ -19,7 +19,8 @@
     "test:claude": "node --max-old-space-size=8192 node_modules/.bin/vitest run src/integrations/claude.test.ts",
     "test:all": "npm test && npm run test:claude",
     "test:watch": "vitest",
-    "test:api": "ts-node scripts/api-smoke-test.ts"
+    "test:api": "ts-node scripts/api-smoke-test.ts",
+    "security:scan": "ts-node scripts/secret-scan.ts"
   },
   "keywords": [],
   "author": "",
