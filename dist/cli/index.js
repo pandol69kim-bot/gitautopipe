@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.program = void 0;
 const commander_1 = require("commander");
+const dotenv_1 = require("dotenv");
 const inquirer_1 = __importDefault(require("inquirer"));
 const orchestrator_1 = require("../workflows/orchestrator");
 const config_manager_1 = require("./config-manager");
@@ -12,6 +13,7 @@ const logger_1 = require("./logger");
 const commands_1 = require("./commands");
 const interactive_1 = require("./interactive");
 const security_1 = require("./security");
+(0, dotenv_1.config)();
 const program = new commander_1.Command();
 exports.program = program;
 const configManager = new config_manager_1.ConfigManager();

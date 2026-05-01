@@ -2,12 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LinkedInContentGenerator } from './linkedin';
 import type { MissionContent, LinkedInPost } from '../types/linkedin';
 
-const mockClient = {
-  messages: {
-    create: vi.fn(),
-  },
-};
-
 const sampleMission: MissionContent = {
   title: 'React Hooks 심화 학습',
   body: 'useState와 useEffect를 실제 프로젝트에 적용하며 커스텀 훅을 만들어봤습니다. 상태 관리의 복잡성을 줄이는 방법을 익혔습니다.',

@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { config as loadDotenv } from 'dotenv';
 import inquirer from 'inquirer';
 import { WorkflowOrchestrator } from '../workflows/orchestrator';
 import { ConfigManager } from './config-manager';
@@ -13,6 +14,8 @@ import {
   getRequiredSecretsForCommand,
   type CliCommandName,
 } from './security';
+
+loadDotenv();
 
 const program = new Command();
 const configManager = new ConfigManager();

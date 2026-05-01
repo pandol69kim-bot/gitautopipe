@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fs from 'fs';
 import { WebsiteDeployer } from './website-deployer';
-import type { DeploymentResult, DeploymentStatus } from '../types/deployer';
+import type { DeploymentResult } from '../types/deployer';
 
 vi.mock('fs');
 
