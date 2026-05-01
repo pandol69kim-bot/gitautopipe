@@ -1,0 +1,17 @@
+{
+  "vault": {
+    "rootPath": "./vault",
+    "folders": [
+      "Mission",
+      "Skills",
+      "Insights",
+      "Meetings"
+    ]
+  },
+  "github": {
+    "owner": "",
+    "repo": "",
+    "branch": "main"
+  },
+  "logLevel": "info"
+}

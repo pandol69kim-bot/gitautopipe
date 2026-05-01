@@ -1,0 +1,1243 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "프로젝트 초기 설정 및 개발 환경 구성",
+        "description": "셀피시 클럽 AI 에이전트 협업 시스템의 기반이 되는 프로젝트 구조와 개발 환경을 설정합니다.",
+        "details": "1. Node.js/TypeScript 프로젝트 초기화\n2. 필수 의존성 설치:\n   - obsidian-md (Obsidian 볼트 파싱)\n   - @octokit/rest (GitHub API)\n   - @anthropic-ai/sdk (Claude API)\n   - notion-client (Notion MCP 연동)\n3. 폴더 구조 설정:\n   ```\n   src/\n   ├── core/          # 핵심 비즈니스 로직\n   ├── integrations/  # 외부 서비스 연동\n   ├── workflows/     # 자동화 워크플로우\n   ├── templates/     # 마크다운 템플릿\n   └── utils/         # 유틸리티 함수\n   ```\n4. 환경 변수 설정 (.env):\n   - GITHUB_TOKEN, CLAUDE_API_KEY, NOTION_TOKEN, VERCEL_TOKEN\n5. TypeScript 설정 (tsconfig.json) 및 ESLint/Prettier 구성",
+        "testStrategy": "1. 프로젝트 빌드 성공 여부 확인\n2. 모든 환경 변수 로드 테스트\n3. 기본 모듈 import 테스트\n4. npm run lint, npm run build 명령어 정상 실행 확인",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Node.js/TypeScript 프로젝트 초기화 및 package.json 구성",
+            "description": "npm init으로 프로젝트를 초기화하고 TypeScript 기반 Node.js 프로젝트의 기본 package.json을 설정합니다.",
+            "dependencies": [],
+            "details": "1. npm init -y로 package.json 생성\n2. TypeScript 개발 의존성 설치: typescript, ts-node, @types/node\n3. package.json scripts 설정:\n   - \"build\": \"tsc\"\n   - \"start\": \"node dist/index.js\"\n   - \"dev\": \"ts-node src/index.ts\"\n   - \"lint\": \"eslint src --ext .ts\"\n   - \"format\": \"prettier --write src\"\n4. Node.js 엔진 버전 명시 (>=18.0.0)\n5. \"type\": \"module\" 또는 \"commonjs\" 결정",
+            "status": "done",
+            "testStrategy": "npm run build 명령어 실행 시 오류 없이 완료되는지 확인, tsc --version으로 TypeScript 설치 확인",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:03:30.755Z"
+          },
+          {
+            "id": 2,
+            "title": "필수 의존성 패키지 설치",
+            "description": "Obsidian 파싱, GitHub API, Claude API, Notion API 연동을 위한 핵심 패키지들을 설치합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. 핵심 의존성 설치:\n   - gray-matter: 마크다운 프론트매터 파싱\n   - chokidar: 파일 시스템 감시\n   - @octokit/rest: GitHub API 클라이언트\n   - @anthropic-ai/sdk: Claude AI API SDK\n   - @notionhq/client: Notion 공식 API 클라이언트\n2. 유틸리티 의존성:\n   - dotenv: 환경 변수 로딩\n   - zod: 스키마 검증\n3. 개발 의존성:\n   - @types/* 패키지 (gray-matter 등)\n   - vitest 또는 jest: 테스트 프레임워크",
+            "status": "done",
+            "testStrategy": "각 패키지를 import하여 정상 로드 여부 확인, npm ls로 의존성 트리 검증",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:04:01.094Z"
+          },
+          {
+            "id": 3,
+            "title": "프로젝트 폴더 구조 생성",
+            "description": "src/ 하위에 core, integrations, workflows, templates, utils 폴더를 생성하고 진입점 파일을 배치합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. 폴더 구조 생성:\n   ```\n   src/\n   ├── core/           # 핵심 비즈니스 로직\n   │   └── index.ts\n   ├── integrations/   # 외부 서비스 연동 (GitHub, Claude, Notion)\n   │   └── index.ts\n   ├── workflows/      # 자동화 워크플로우\n   │   └── index.ts\n   ├── templates/      # 마크다운 템플릿\n   │   └── index.ts\n   ├── utils/          # 유틸리티 함수\n   │   └── index.ts\n   └── index.ts        # 앱 진입점\n   ```\n2. 각 폴더에 barrel export용 index.ts 생성\n3. 기본 README 또는 .gitkeep 파일로 폴더 추적 보장",
+            "status": "done",
+            "testStrategy": "폴더 구조가 올바르게 생성되었는지 확인, 각 index.ts 파일 import 테스트",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:04:31.751Z"
+          },
+          {
+            "id": 4,
+            "title": "TypeScript 및 ESLint/Prettier 설정",
+            "description": "tsconfig.json, .eslintrc, .prettierrc 파일을 구성하여 일관된 코드 스타일과 타입 검사 환경을 설정합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. tsconfig.json 설정:\n   - target: ES2022\n   - module: NodeNext 또는 CommonJS\n   - outDir: ./dist\n   - rootDir: ./src\n   - strict: true\n   - esModuleInterop: true\n   - resolveJsonModule: true\n2. ESLint 설정:\n   - @typescript-eslint/parser\n   - @typescript-eslint/eslint-plugin\n   - eslint-config-prettier (충돌 방지)\n3. Prettier 설정 (.prettierrc):\n   - semi: true\n   - singleQuote: true\n   - tabWidth: 2\n   - trailingComma: 'es5'\n4. .eslintignore, .prettierignore 파일 생성",
+            "status": "done",
+            "testStrategy": "npm run lint 실행 시 오류 없음 확인, npm run format 실행 후 파일 변경 여부 확인, tsc --noEmit으로 타입 체크 통과 확인",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:05:06.063Z"
+          },
+          {
+            "id": 5,
+            "title": "환경 변수 로딩 모듈 구현",
+            "description": "dotenv를 활용한 환경 변수 로딩 및 검증 유틸리티를 src/utils/에 구현합니다.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "1. src/utils/env.ts 파일 생성:\n   - dotenv.config() 호출로 .env 로드\n   - Zod 스키마로 필수 환경 변수 검증\n2. 환경 변수 타입 정의:\n   ```typescript\n   interface EnvConfig {\n     GITHUB_TOKEN: string;\n     CLAUDE_API_KEY: string;\n     NOTION_TOKEN: string;\n     VERCEL_TOKEN?: string;\n   }\n   ```\n3. 누락된 필수 변수 시 명확한 에러 메시지 출력\n4. .env.example 업데이트 (프로젝트 전용 변수 추가)\n5. 환경 변수 로드 함수 export하여 앱 진입점에서 호출",
+            "status": "done",
+            "testStrategy": "환경 변수 누락 시 적절한 에러 메시지 출력 확인, 유효한 .env 파일로 정상 로드 테스트, Zod 검증 실패 케이스 테스트",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:05:49.209Z"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Node.js/TypeScript 프로젝트 초기화, 의존성 설치 (gray-matter, chokidar, @octokit/rest, @anthropic-ai/sdk, @notionhq/client), 폴더 구조 생성 (src/core, integrations, workflows, templates, utils), TypeScript 및 ESLint/Prettier 설정, 환경 변수 로딩 모듈 구현으로 세분화하세요.",
+        "updatedAt": "2026-04-30T05:05:49.209Z"
+      },
+      {
+        "id": "2",
+        "title": "Obsidian 볼트 구조 및 폴더 스캐너 구현",
+        "description": "Obsidian 볼트의 6개 핵심 폴더(Mission, Meetings, Skill/Insight, Sharing, Analysis, LinkedIn)를 스캔하고 마크다운 파일을 파싱하는 모듈을 개발합니다.",
+        "details": "1. VaultScanner 클래스 구현:\n   ```typescript\n   interface VaultConfig {\n     basePath: string;\n     folders: {\n       mission: string;\n       meetings: string;\n       skillInsight: string;\n       sharing: string;\n       analysis: string;\n       linkedin: string;\n     };\n   }\n   \n   class VaultScanner {\n     async scanFolder(folderType: keyof VaultConfig['folders']): Promise<MarkdownFile[]>\n     async parseMarkdown(filePath: string): Promise<ParsedContent>\n     async watchChanges(callback: (event: FileEvent) => void): void\n   }\n   ```\n2. gray-matter 라이브러리로 YAML frontmatter 파싱\n3. 파일 메타데이터 추출 (날짜, 태그, 작성자)\n4. 주차별 폴더 구조 자동 인식 (Mission/Week01, Mission/Week02...)\n5. chokidar로 실시간 파일 변경 감지",
+        "testStrategy": "1. 샘플 Obsidian 볼트로 스캔 테스트\n2. 각 폴더 타입별 파일 목록 반환 검증\n3. 마크다운 파싱 정확도 테스트 (frontmatter, 본문 분리)\n4. 파일 변경 이벤트 감지 테스트",
+        "priority": "high",
+        "dependencies": [
+          "1"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "VaultConfig 인터페이스 및 핵심 타입 정의",
+            "description": "Obsidian 볼트 스캐너에 필요한 모든 TypeScript 인터페이스와 타입을 정의합니다.",
+            "dependencies": [],
+            "details": "src/types/vault.ts 파일을 생성하고 다음 타입들을 정의합니다:\n\n1. VaultConfig 인터페이스:\n   - basePath: string (볼트 루트 경로)\n   - folders: { mission, meetings, skillInsight, sharing, analysis, linkedin }\n\n2. MarkdownFile 인터페이스:\n   - filePath: string\n   - relativePath: string\n   - folderType: FolderType\n   - fileName: string\n   - createdAt: Date\n   - modifiedAt: Date\n\n3. ParsedContent 인터페이스:\n   - frontmatter: FrontmatterData\n   - content: string\n   - excerpt?: string\n\n4. FrontmatterData 인터페이스:\n   - title?: string\n   - date?: Date\n   - author?: string\n   - tags?: string[]\n   - week?: number\n   - category?: string\n\n5. FileEvent 인터페이스:\n   - type: 'add' | 'change' | 'unlink'\n   - path: string\n   - folderType: FolderType\n\n6. FolderType enum 또는 union type 정의\n\n7. WeekFolder 인터페이스 (주차별 폴더 구조용):\n   - weekNumber: number\n   - path: string\n   - files: MarkdownFile[]",
+            "status": "done",
+            "testStrategy": "타입 정의 파일이 TypeScript 컴파일러에서 오류 없이 통과하는지 확인합니다. 각 인터페이스에 대해 샘플 객체를 생성하여 타입 호환성을 검증합니다.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:10:55.766Z"
+          },
+          {
+            "id": 2,
+            "title": "VaultScanner 클래스 기본 구조 및 초기화 로직 구현",
+            "description": "VaultScanner 클래스의 생성자, 설정 검증, 기본 메서드 시그니처를 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "src/core/vault-scanner.ts 파일을 생성하고 VaultScanner 클래스를 구현합니다:\n\n1. 생성자 구현:\n   - VaultConfig를 매개변수로 받음\n   - zod 스키마로 설정 유효성 검증\n   - basePath 존재 여부 확인\n   - 각 폴더 경로 초기화\n\n2. 메서드 시그니처 정의:\n   - async scanFolder(folderType: FolderType): Promise<MarkdownFile[]>\n   - async parseMarkdown(filePath: string): Promise<ParsedContent>\n   - async watchChanges(callback: (event: FileEvent) => void): Promise<void>\n   - async stopWatching(): Promise<void>\n   - getFullPath(folderType: FolderType): string\n\n3. 비공개 헬퍼 메서드:\n   - private validateConfig(config: VaultConfig): void\n   - private getFolderPath(folderType: FolderType): string\n   - private isMarkdownFile(filePath: string): boolean\n\n4. 설정 스키마 정의 (zod 활용):\n   - VaultConfigSchema\n   - 필수 필드 및 선택 필드 구분\n   - 경로 형식 검증",
+            "status": "done",
+            "testStrategy": "유효한 설정과 유효하지 않은 설정으로 VaultScanner 인스턴스 생성을 테스트합니다. 존재하지 않는 경로, 누락된 필드 등 에러 케이스를 검증합니다.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:13:41.732Z"
+          },
+          {
+            "id": 3,
+            "title": "gray-matter 기반 마크다운 파싱 모듈 개발",
+            "description": "gray-matter 라이브러리를 활용하여 YAML frontmatter와 본문을 분리하고 파싱하는 기능을 구현합니다.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "src/core/markdown-parser.ts 파일을 생성하고 마크다운 파싱 로직을 구현합니다:\n\n1. MarkdownParser 클래스 또는 유틸리티 함수 구현:\n   - parseFile(filePath: string): Promise<ParsedContent>\n   - parseContent(rawContent: string): ParsedContent\n   - extractFrontmatter(content: string): FrontmatterData\n   - extractBody(content: string): string\n\n2. gray-matter 통합:\n   - import matter from 'gray-matter'\n   - frontmatter 자동 타입 변환 (날짜 문자열 → Date 객체)\n   - tags 배열 정규화 (문자열 → 배열 변환)\n\n3. 파싱 오류 처리:\n   - 유효하지 않은 YAML 형식 예외 처리\n   - frontmatter 없는 파일 처리 (빈 객체 반환)\n   - 파일 인코딩 처리 (UTF-8 기본)\n\n4. 메타데이터 추출:\n   - 날짜 파싱 (ISO 8601, YYYY-MM-DD 등 다양한 형식 지원)\n   - 태그 정규화 (#태그 형식 처리)\n   - 작성자 정보 추출\n\n5. VaultScanner.parseMarkdown() 메서드와 연결",
+            "status": "done",
+            "testStrategy": "다양한 frontmatter 형식의 샘플 마크다운 파일을 준비하여 테스트합니다. 정상 케이스, frontmatter 누락, 잘못된 YAML 형식, 특수 문자 포함 등을 검증합니다.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:14:19.328Z"
+          },
+          {
+            "id": 4,
+            "title": "주차별 폴더 구조 자동 인식 로직 구현",
+            "description": "Mission/Week01, Mission/Week02 등 주차별 폴더 구조를 자동으로 탐지하고 파싱하는 기능을 개발합니다.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "src/core/week-folder-scanner.ts 파일을 생성하고 주차별 폴더 인식 로직을 구현합니다:\n\n1. WeekFolderScanner 클래스 구현:\n   - scanWeekFolders(basePath: string): Promise<WeekFolder[]>\n   - getWeekNumber(folderName: string): number | null\n   - getFilesInWeek(weekNumber: number): Promise<MarkdownFile[]>\n   - getLatestWeek(): Promise<WeekFolder | null>\n\n2. 폴더 명명 패턴 인식:\n   - Week01, Week02... (기본 패턴)\n   - week-01, week-02... (하이픈 구분자)\n   - W01, W02... (축약형)\n   - 주차01, 주차02... (한글 패턴)\n   - 정규표현식 기반 유연한 매칭\n\n3. 폴더 정렬 및 필터링:\n   - 주차 번호 기준 오름차순 정렬\n   - 유효하지 않은 폴더 무시\n   - 중첩 폴더 처리\n\n4. VaultScanner.scanFolder() 통합:\n   - folderType이 'mission'일 때 주차별 스캔 적용\n   - 다른 폴더 타입은 일반 스캔 유지\n\n5. 캐싱 전략:\n   - 스캔 결과 메모리 캐싱\n   - 변경 감지 시 캐시 무효화",
+            "status": "done",
+            "testStrategy": "다양한 주차 폴더 명명 규칙 (Week01, week-01, W01, 주차01)으로 테스트 디렉토리를 구성하여 인식 정확도를 검증합니다. 빈 폴더, 중첩 폴더, 잘못된 이름 등 엣지 케이스를 테스트합니다.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:14:57.834Z"
+          },
+          {
+            "id": 5,
+            "title": "chokidar 기반 실시간 파일 변경 감지 시스템 개발",
+            "description": "chokidar 라이브러리를 활용하여 Obsidian 볼트의 파일 변경을 실시간으로 감지하고 이벤트를 발생시키는 기능을 구현합니다.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "src/core/file-watcher.ts 파일을 생성하고 파일 변경 감지 시스템을 구현합니다:\n\n1. FileWatcher 클래스 구현:\n   - watch(paths: string[], callback: (event: FileEvent) => void): void\n   - unwatch(paths?: string[]): void\n   - isWatching(): boolean\n   - getWatchedPaths(): string[]\n\n2. chokidar 설정:\n   - ignored: ['.git', 'node_modules', '.obsidian']\n   - persistent: true\n   - awaitWriteFinish: { stabilityThreshold: 300 }\n   - usePolling: false (성능 최적화)\n   - depth: 5 (최대 탐색 깊이)\n\n3. 이벤트 처리:\n   - 'add': 새 파일 추가\n   - 'change': 파일 수정\n   - 'unlink': 파일 삭제\n   - 'addDir': 새 폴더 추가\n   - 'unlinkDir': 폴더 삭제\n\n4. 마크다운 파일 필터링:\n   - .md 확장자만 감지\n   - 임시 파일 무시 (.tmp, ~, .swp)\n\n5. VaultScanner.watchChanges() 통합:\n   - FileWatcher 인스턴스 관리\n   - 콜백 등록 및 해제\n   - 리소스 정리 (stopWatching)\n\n6. 이벤트 디바운싱:\n   - 빠른 연속 변경 시 마지막 이벤트만 처리\n   - 설정 가능한 디바운스 시간",
+            "status": "done",
+            "testStrategy": "테스트 디렉토리에서 파일 추가, 수정, 삭제 이벤트를 시뮬레이션하여 콜백 호출을 검증합니다. 비-마크다운 파일, 무시 패턴, 디바운싱 동작을 테스트합니다.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:15:28.815Z"
+          },
+          {
+            "id": 6,
+            "title": "VaultScanner 모듈 단위 테스트 및 통합 테스트 작성",
+            "description": "VaultScanner 모듈의 모든 기능에 대한 단위 테스트와 통합 테스트를 작성하여 80% 이상 코드 커버리지를 달성합니다.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "tests/vault-scanner/ 디렉토리를 생성하고 테스트를 작성합니다:\n\n1. 테스트 환경 구성:\n   - vitest 설정 (vitest.config.ts)\n   - 테스트 유틸리티 (tests/utils/)\n   - 샘플 볼트 픽스처 (tests/fixtures/sample-vault/)\n\n2. 단위 테스트 (tests/vault-scanner/unit/):\n   - vault-config.test.ts: 설정 유효성 검증\n   - markdown-parser.test.ts: frontmatter 파싱\n   - week-folder-scanner.test.ts: 주차 폴더 인식\n   - file-watcher.test.ts: 이벤트 처리\n\n3. 통합 테스트 (tests/vault-scanner/integration/):\n   - vault-scanner.integration.test.ts:\n     - 실제 파일 시스템과 연동\n     - 전체 스캔 워크플로우\n     - 변경 감지 → 파싱 → 이벤트 발생\n\n4. 테스트 픽스처 생성:\n   - 샘플 마크다운 파일 (다양한 frontmatter)\n   - 주차별 폴더 구조\n   - 엣지 케이스 파일 (빈 파일, 특수 문자 등)\n\n5. 모킹 전략:\n   - fs 모듈 모킹 (단위 테스트)\n   - chokidar 이벤트 모킹\n   - 실제 파일 시스템 사용 (통합 테스트)\n\n6. 커버리지 목표:\n   - 라인 커버리지 80% 이상\n   - 브랜치 커버리지 75% 이상\n   - 함수 커버리지 90% 이상",
+            "status": "done",
+            "testStrategy": "vitest --coverage를 실행하여 커버리지 리포트를 생성합니다. 각 테스트 파일이 해당 소스 파일의 모든 주요 경로를 커버하는지 확인합니다. CI 파이프라인에서 커버리지 임계값 검사를 수행합니다.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:15:57.050Z"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 6,
+        "expansionPrompt": "VaultConfig 인터페이스 및 타입 정의, VaultScanner 클래스 기본 구조 구현, gray-matter를 활용한 마크다운 파싱 모듈 개발, 주차별 폴더 구조 자동 인식 로직 구현, chokidar를 활용한 실시간 파일 변경 감지 시스템 개발, 단위 테스트 및 통합 테스트 작성으로 세분화하세요.",
+        "updatedAt": "2026-04-30T05:15:57.050Z"
+      },
+      {
+        "id": "3",
+        "title": "GitHub 연동 및 자동 동기화 모듈 개발",
+        "description": "Obsidian 볼트 변경 사항을 GitHub 저장소에 자동으로 Push하는 동기화 시스템을 구현합니다.",
+        "details": "1. GitHubSync 클래스 구현:\n   ```typescript\n   class GitHubSync {\n     constructor(config: { owner: string; repo: string; branch: string; })\n     async commitAndPush(files: ChangedFile[], message: string): Promise<CommitResult>\n     async createPullRequest(title: string, body: string): Promise<PRResult>\n     async getLatestChanges(since: Date): Promise<Commit[]>\n   }\n   ```\n2. simple-git 라이브러리 활용하여 로컬 Git 작업\n3. @octokit/rest로 GitHub API 연동\n4. 자동 커밋 메시지 생성 규칙:\n   - `[Mission] Week{N} - {멤버명} 과제 업데이트`\n   - `[Meetings] {날짜} 위클리 회의록 추가`\n5. 충돌 감지 및 알림 시스템\n6. .gitignore 자동 관리 (민감 정보 제외)",
+        "testStrategy": "1. 테스트 저장소에 파일 Push 테스트\n2. 커밋 메시지 포맷 검증\n3. 동시 수정 충돌 시나리오 테스트\n4. 대용량 파일 업로드 제한 테스트",
+        "priority": "high",
+        "dependencies": [
+          "1",
+          "2"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "GitHubSync 클래스 인터페이스 설계",
+            "description": "GitHubSync 클래스의 메서드와 구성 매개변수를 포함한 인터페이스를 설계합니다.",
+            "dependencies": [],
+            "details": "TypeScript로 GitHubSync 클래스의 constructor(config) 시그니처와 async 메서드(commitAndPush, createPullRequest, getLatestChanges) 정의 및 필요한 타입(ChangedFile, CommitResult, PRResult, Commit 등) 선언.",
+            "status": "done",
+            "testStrategy": "인터페이스 정의가 컴파일 에러 없이 빌드되는지 확인",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:29:07.818Z"
+          },
+          {
+            "id": 2,
+            "title": "simple-git 기반 로컬 Git 작업 래퍼 구현",
+            "description": "simple-git 라이브러리를 활용하여 로컬 Git add, commit, push 기능을 래핑하는 모듈을 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "simple-git 인스턴스를 초기화하고 파일 스테이징, 커밋 및 원격 브랜치 푸시 로직을 commitAndPush 메서드 내부에 구현하며 .gitignore 예외 처리를 포함합니다.",
+            "status": "done",
+            "testStrategy": "테스트 저장소를 생성해 파일 변경 후 add, commit, push 동작이 정상 수행되는지 검증",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:29:38.008Z"
+          },
+          {
+            "id": 3,
+            "title": "@octokit/rest 기반 GitHub API 연동 모듈 개발",
+            "description": "@octokit/rest 라이브러리를 활용해 GitHub API로 커밋 조회 및 PR 생성 기능을 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "Octokit 클라이언트를 초기화하고 createPullRequest 및 getLatestChanges 메서드 내부에서 GitHub REST API 엔드포인트 호출, 응답 파싱, 오류 처리 로직을 구현합니다.",
+            "status": "done",
+            "testStrategy": "GitHub 테스트 리포지토리에 실제 API 호출 후 PR 생성 및 커밋 조회 결과 검증",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:30:08.520Z"
+          },
+          {
+            "id": 4,
+            "title": "자동 커밋 메시지 생성 규칙 엔진 구현",
+            "description": "주어진 포맷([Mission], [Meetings])에 따라 커밋 메시지를 자동 생성하는 규칙 엔진을 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "Week 번호 및 멤버명 파싱, 날짜 포맷팅, 템플릿 엔진을 이용한 메시지 생성 로직을 구현하고 다양한 케이스 입력에 대해 메시지 포맷 일관성 보장.",
+            "status": "done",
+            "testStrategy": "다양한 입력 파라미터에 대해 생성된 메시지가 규칙 포맷을 준수하는지 유닛 테스트 실행",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:30:41.563Z"
+          },
+          {
+            "id": 5,
+            "title": "충돌 감지 및 알림 시스템 개발",
+            "description": "동시 수정 충돌을 감지하고 사용자에게 알림을 발생시키는 시스템을 구현합니다.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "simple-git의 diff 및 merge 충돌 정보를 파싱해 충돌 여부를 판단하고, 충돌 발생 시 알림 메시지 생성 및 로깅, 재시도 또는 수동 조치 안내 로직을 추가합니다.",
+            "status": "done",
+            "testStrategy": "의도적으로 충돌 상황을 시뮬레이션한 후 경고 메시지 출력 및 알림 동작 확인",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:31:13.858Z"
+          },
+          {
+            "id": 6,
+            "title": "자동 PR 생성 기능 구현",
+            "description": "변경 사항을 자동으로 Pull Request로 생성하는 기능을 구현합니다.",
+            "dependencies": [
+              3
+            ],
+            "details": "createPullRequest 메서드를 사용해 자동으로 PR 타이틀과 본문을 구성하고, 브랜치 설정 및 레이블/리뷰어 지정 옵션을 지원하도록 구현합니다.",
+            "status": "done",
+            "testStrategy": "테스트 리포지토리에서 브랜치 생성 후 PR이 올바르게 생성되는지 통합 테스트 수행",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:31:38.244Z"
+          },
+          {
+            "id": 7,
+            "title": "에러 핸들링 및 통합 테스트 케이스 작성",
+            "description": "모든 모듈에 대한 예외 처리 로직을 보완하고 통합 테스트 케이스를 작성합니다.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "네트워크 오류, 인증 실패, API 제한, 파일 권한 오류 등 시나리오별 예외 처리를 구현하고, end-to-end 테스트 스크립트를 작성해 전체 플로우를 검증합니다.",
+            "status": "done",
+            "testStrategy": "CI 환경에서 통합 테스트 스위트를 실행해 각 기능의 정상/예외 시나리오를 검증",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T05:32:02.468Z"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 7,
+        "expansionPrompt": "GitHubSync 클래스 인터페이스 설계, simple-git 라이브러리를 활용한 로컬 Git 작업 래퍼 구현, @octokit/rest를 활용한 GitHub API 연동 모듈 개발, 자동 커밋 메시지 생성 규칙 엔진 구현, 충돌 감지 및 알림 시스템 개발, PR 자동 생성 기능 구현, 에러 핸들링 및 테스트 작성으로 세분화하세요.",
+        "updatedAt": "2026-04-30T05:32:02.468Z"
+      },
+      {
+        "id": "4",
+        "title": "Claude Code 분석 엔진 통합",
+        "description": "Claude API를 활용하여 Obsidian 콘텐츠를 분석하고 인사이트를 추출하는 AI 분석 엔진을 구현합니다.",
+        "details": "1. ClaudeAnalyzer 클래스 구현:\n   ```typescript\n   class ClaudeAnalyzer {\n     async analyzeContent(content: string, type: AnalysisType): Promise<AnalysisResult>\n     async extractKeywords(documents: Document[]): Promise<Keyword[]>\n     async generateSummary(weeklyData: WeeklyData): Promise<Summary>\n     async identifyTrends(history: AnalysisHistory[]): Promise<Trend[]>\n   }\n   \n   type AnalysisType = 'mission' | 'meeting' | 'skill' | 'sharing';\n   ```\n2. 프롬프트 템플릿 관리 시스템:\n   - 주차별 요약 프롬프트\n   - 키워드 추출 프롬프트\n   - 참여도 분석 프롬프트\n3. 토큰 사용량 최적화 (청킹, 캐싱)\n4. 분석 결과 마크다운 포맷팅\n5. 에러 핸들링 및 재시도 로직 (exponential backoff)",
+        "testStrategy": "1. 각 분석 타입별 출력 포맷 검증\n2. 키워드 추출 정확도 테스트\n3. 대용량 문서 처리 테스트\n4. API 에러 시 재시도 로직 테스트\n5. 토큰 제한 초과 시 청킹 동작 확인",
+        "priority": "high",
+        "dependencies": [
+          "1",
+          "2"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "ClaudeAnalyzer 인터페이스 및 타입 정의",
+            "description": "ClaudeAnalyzer 클래스의 메서드 시그니처와 관련 타입을 정의합니다.",
+            "dependencies": [],
+            "details": "TypeScript로 ClaudeAnalyzer 클래스 메서드 signatures를 선언하고 AnalysisType, Document, Keyword, WeeklyData, AnalysisHistory, AnalysisResult, Summary, Trend 등의 인터페이스와 타입을 정의합니다.",
+            "status": "done",
+            "testStrategy": "타입스크립트 컴파일 및 타입 검사 통과 여부 확인",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T09:08:39.251Z"
+          },
+          {
+            "id": 2,
+            "title": "@anthropic-ai/sdk 클라이언트 래퍼 구현",
+            "description": "Anthropic SDK를 래핑하여 API 호출을 통합 관리하는 클라이언트를 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "API 키 관리, 요청/응답 파싱, 에러 예외 처리 로직을 포함한 Anthropic SDK wrapper 클래스를 TypeScript로 작성하고 초기화합니다.",
+            "status": "done",
+            "testStrategy": "Mock 서버를 통한 성공/실패 API 호출 시나리오 테스트",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T09:08:53.309Z"
+          },
+          {
+            "id": 3,
+            "title": "프롬프트 템플릿 관리 시스템 개발",
+            "description": "분석 유형별 프롬프트 템플릿을 저장하고 선택하는 시스템을 구현합니다.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "주차별 요약, 키워드 추출, 참여도 분석 등 각 분석 타입에 대응하는 프롬프트 템플릿을 파일 또는 데이터베이스에 저장하고 로드·수정·삭제 기능을 제공하는 모듈을 작성합니다.",
+            "status": "done",
+            "testStrategy": "템플릿 CRUD 기능 단위 테스트",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T09:09:07.979Z"
+          },
+          {
+            "id": 4,
+            "title": "키워드 추출 모듈 구현",
+            "description": "문서 배열을 입력으로 받아 핵심 키워드를 추출하는 기능을 구현합니다.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "ClaudeAnalyzer.extractKeywords 메서드 내부에서 적절한 프롬프트를 생성하고 Anthropic SDK를 호출하여 응답을 파싱한 뒤 Keyword 객체 배열을 반환하는 로직을 작성합니다.",
+            "status": "done",
+            "testStrategy": "샘플 문서 대비 추출 키워드 검증 테스트",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T09:09:22.725Z"
+          },
+          {
+            "id": 5,
+            "title": "주차별 요약 생성 모듈 구현",
+            "description": "WeeklyData를 기반으로 주차별 요약을 생성하는 기능을 구현합니다.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "ClaudeAnalyzer.generateSummary 메서드에서 WeeklyData 입력을 받아 주차별 요약용 프롬프트를 적용하고 Summary 객체를 반환하는 로직을 작성합니다.",
+            "status": "done",
+            "testStrategy": "다양한 WeeklyData 입력으로 요약 일관성 테스트",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T09:09:43.968Z"
+          },
+          {
+            "id": 6,
+            "title": "트렌드 분석 모듈 구현",
+            "description": "과거 분석 결과를 바탕으로 트렌드를 식별하는 기능을 구현합니다.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "ClaudeAnalyzer.identifyTrends 메서드에서 AnalysisHistory 배열을 입력으로 받아 패턴 분석을 수행하고 Trend 객체 배열을 생성하는 로직을 작성합니다.",
+            "status": "done",
+            "testStrategy": "시계열 분석 데이터로 트렌드 식별 정확도 테스트",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T09:09:57.891Z"
+          },
+          {
+            "id": 7,
+            "title": "토큰 사용량 최적화 로직 개발",
+            "description": "대용량 콘텐츠 처리 시 청킹 및 캐싱을 통해 토큰 사용량을 최적화하는 로직을 구현합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "입력 콘텐츠를 적절한 크기로 분할(청킹)하고 각 청크 결과를 캐싱하여 반복 호출 시 캐시 계층에서 재사용하도록 하는 캐싱 및 분할 로직을 작성합니다.",
+            "status": "done",
+            "testStrategy": "대용량 문서 처리 전후 토큰 사용량 비교 테스트",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T09:10:11.561Z"
+          },
+          {
+            "id": 8,
+            "title": "에러 핸들링 및 재시도 로직 구현",
+            "description": "API 호출 실패 시 exponential backoff를 적용하여 재시도 로직을 구현합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "Anthropic SDK 호출 실패 시 상태별 예외 처리를 추가하고 최대 재시도 횟수, 재시도 간격 증가 알고리즘을 포함한 exponential backoff 로직을 작성합니다.",
+            "status": "done",
+            "testStrategy": "의도적 오류 발생 시 재시도 횟수 및 backoff 동작 테스트",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-30T09:10:25.181Z"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 8,
+        "expansionPrompt": "ClaudeAnalyzer 클래스 인터페이스 및 타입 정의, @anthropic-ai/sdk 클라이언트 래퍼 구현, 분석 타입별 프롬프트 템플릿 관리 시스템 개발, 키워드 추출 모듈 구현, 주차별 요약 생성 모듈 구현, 트렌드 분석 모듈 구현, 토큰 최적화(청킹/캐싱) 로직 개발, 에러 핸들링(exponential backoff) 및 테스트 작성으로 세분화하세요.",
+        "updatedAt": "2026-04-30T09:10:25.181Z"
+      },
+      {
+        "id": "5",
+        "title": "Analysis 폴더 자동 보고서 생성기 구현",
+        "description": "참여 이력, 키워드, 주차별 요약을 포함한 분석 보고서를 Analysis 폴더에 자동 생성하는 시스템을 개발합니다.",
+        "details": "1. ReportGenerator 클래스 구현:\n   ```typescript\n   class ReportGenerator {\n     async generateWeeklyReport(weekNumber: number): Promise<Report>\n     async generateMemberReport(memberId: string): Promise<Report>\n     async generateTeamOverview(): Promise<Report>\n     async saveReport(report: Report, outputPath: string): Promise<void>\n   }\n   \n   interface Report {\n     title: string;\n     generatedAt: Date;\n     sections: ReportSection[];\n     metadata: ReportMetadata;\n   }\n   ```\n2. 보고서 템플릿 (마크다운):\n   - 주차별 활동 요약\n   - 멤버별 기여도\n   - 핵심 키워드 클라우드 (텍스트 형태)\n   - 트렌드 분석\n3. frontmatter 자동 생성 (날짜, 태그, 관련 링크)\n4. 이전 보고서와의 변화 비교 섹션\n5. 자동 명명 규칙: `YYYY-WW_weekly_report.md`",
+        "testStrategy": "1. 보고서 마크다운 문법 유효성 검증\n2. 모든 필수 섹션 포함 여부 확인\n3. frontmatter 파싱 테스트\n4. 동일 주차 재생성 시 덮어쓰기 동작 확인\n5. 빈 데이터 시 적절한 폴백 메시지 확인",
+        "priority": "high",
+        "dependencies": [
+          "2",
+          "4"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Report 및 ReportSection 타입 정의",
+            "description": "Report, ReportSection, ReportMetadata 인터페이스를 정의합니다.",
+            "dependencies": [],
+            "details": "TypeScript로 Report, ReportSection, ReportMetadata 인터페이스와 관련 유틸 타입을 src/core/types/report.ts에 구현합니다.",
+            "status": "done",
+            "testStrategy": "타입 검증 컴파일 테스트 및 인터페이스 속성 누락 여부 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "ReportGenerator 클래스 기본 구조 구현",
+            "description": "ReportGenerator 클래스와 메서드 스텁을 작성합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "src/core/ReportGenerator.ts에 generateWeeklyReport, generateMemberReport, generateTeamOverview, saveReport 메서드 시그니처와 기본 반환값 또는 예외 처리를 구현합니다.",
+            "status": "done",
+            "testStrategy": "클래스 인스턴스 생성 및 각 메서드 호출 시 Promise 반환 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "주차별 보고서 템플릿 및 생성 로직 개발",
+            "description": "주차별 활동 요약을 위한 마크다운 템플릿과 데이터를 채우는 로직을 구현합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "templates/weekly.md 파일에 frontmatter와 섹션 플레이스홀더를 정의하고, generateWeeklyReport 내부에서 Task2, Task4 결과를 바인딩하여 완전한 마크다운을 생성하도록 구현합니다.",
+            "status": "done",
+            "testStrategy": "생성된 마크다운에 필수 frontmatter, 주차별 요약 섹션 포함 여부 자동 검증",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "멤버별 보고서 생성 모듈 구현",
+            "description": "멤버별 기여도 및 키워드 클라우드를 포함한 보고서를 생성합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "generateMemberReport 메서드에서 회원 ID별 참여 이력 조회, 키워드 추출, 템플릿 바인딩을 수행하고, 마크다운 파일 형태로 반환하도록 구현합니다.",
+            "status": "done",
+            "testStrategy": "샘플 memberId로 실행 시 섹션 수, 키워드 리스트 유무, 파일 생성 성공 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "팀 개요 보고서 생성 모듈 구현",
+            "description": "팀 전체 트렌드 및 요약을 포함한 개요 보고서를 생성합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "generateTeamOverview 메서드에서 주간 및 전체 데이터 집계를 수행하고, 트렌드 분석 결과를 마크다운으로 포맷하여 반환하도록 구현합니다.",
+            "status": "done",
+            "testStrategy": "팀 전체 데이터로 실행 시 트렌드 키워드 및 요약 섹션 존재 여부 검증",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Frontmatter 자동 생성 및 이전 보고서 비교 기능 개발",
+            "description": "frontmatter 작성과 이전 보고서 간 차이 비교 섹션을 구현합니다.",
+            "dependencies": [
+              3,
+              4,
+              5
+            ],
+            "details": "saveReport 호출 전 frontmatter(date, tags, 링크)를 자동 삽입하고, 기존 파일을 파싱해 섹션별 변동 사항을 diff하여 ‘변화 비교’ 섹션을 추가하도록 구현합니다.",
+            "status": "done",
+            "testStrategy": "동일 주차 재생성 시 frontmatter 업데이트 및 변화 비교 섹션 삽입 여부 검증",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 6,
+        "expansionPrompt": "Report 인터페이스 및 ReportSection 타입 정의, ReportGenerator 클래스 기본 구조 구현, 주차별 보고서 템플릿 및 생성 로직 개발, 멤버별 보고서 생성 모듈 구현, 팀 개요 보고서 생성 모듈 구현, frontmatter 자동 생성 및 이전 보고서 비교 기능 개발로 세분화하세요."
+      },
+      {
+        "id": "6",
+        "title": "LinkedIn 콘텐츠 자동 생성 시스템 구현",
+        "description": "Mission 폴더의 개인 과제를 기반으로 LinkedIn 포스팅 초안을 자동 생성하여 LinkedIn 폴더에 저장합니다.",
+        "details": "1. LinkedInContentGenerator 클래스 구현:\n   ```typescript\n   class LinkedInContentGenerator {\n     async generateDraft(missionContent: MissionContent): Promise<LinkedInPost>\n     async applyTone(draft: string, tone: 'professional' | 'casual' | 'thought-leader'): Promise<string>\n     async addHashtags(content: string, keywords: string[]): Promise<string>\n     async formatForPlatform(post: LinkedInPost): Promise<FormattedPost>\n   }\n   \n   interface LinkedInPost {\n     headline: string;\n     body: string;\n     hashtags: string[];\n     callToAction?: string;\n     suggestedMedia?: string[];\n   }\n   ```\n2. 포스팅 템플릿:\n   - 학습/인사이트 공유형\n   - 프로젝트 결과 발표형\n   - 팀 협업 스토리형\n3. 해시태그 자동 추천 (AI 키워드 기반)\n4. 글자 수 제한 체크 (LinkedIn 3000자)\n5. 초안 파일명: `{날짜}_{멤버}_{주제}.md`",
+        "testStrategy": "1. 생성된 콘텐츠 길이 제한 준수 확인\n2. 해시태그 형식 (#태그) 검증\n3. 각 톤 스타일별 출력 차이 확인\n4. 한글/영문 혼용 시 정상 처리 확인\n5. 빈 Mission 콘텐츠 예외 처리 테스트",
+        "priority": "medium",
+        "dependencies": [
+          "2",
+          "4"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "LinkedInPost 인터페이스 및 관련 타입 정의",
+            "description": "LinkedInPost 및 FormattedPost, 톤 스타일, MissionContent 타입 등 정의",
+            "dependencies": [],
+            "details": "TypeScript에서 LinkedInPost, FormattedPost, 'professional'|'casual'|'thought-leader' tone 타입 및 MissionContent 인터페이스 정의",
+            "status": "done",
+            "testStrategy": "타입스크립트 컴파일 테스트",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "LinkedInContentGenerator 클래스 기본 구조 구현",
+            "description": "LinkedInContentGenerator 클래스와 메서드 스텁(generateDraft, applyTone, addHashtags, formatForPlatform) 구현",
+            "dependencies": [
+              1
+            ],
+            "details": "LinkedInContentGenerator 클래스를 생성하고 각 메서드를 Promise<LinkedInPost> 및 Promise<string> 리턴하는 스텁으로 작성",
+            "status": "done",
+            "testStrategy": "메서드 존재 여부 및 반환 타입 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "톤 스타일별 프롬프트 및 applyTone 로직 개발",
+            "description": "professional, casual, thought-leader 세 가지 톤 스타일에 대한 프롬프트 및 적용 로직 구현",
+            "dependencies": [
+              2
+            ],
+            "details": "각 톤별 프롬프트 템플릿을 설계하고 applyTone 메서드에서 AI 호출을 통해 스타일을 적용하도록 구현",
+            "status": "done",
+            "testStrategy": "각 톤 스타일별 출력 차이 및 일관성 검증",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "해시태그 자동 추천 모듈 구현",
+            "description": "키워드 기반 해시태그 생성 로직과 AI 추천 통합 기능 개발",
+            "dependencies": [
+              2
+            ],
+            "details": "addHashtags 메서드에서 입력 키워드를 분석하여 AI로부터 관련 해시태그를 추천받고 '#태그' 형식으로 반환하도록 구현",
+            "status": "done",
+            "testStrategy": "추천 해시태그 형식(#태그) 및 키워드 연관성 테스트",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "플랫폼 포맷팅, 문자 제한 검증 및 파일 저장 로직 구현",
+            "description": "최종 포스팅 포맷팅, LinkedIn 3000자 제한 확인, 마크다운 파일 저장 기능 구현",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "formatForPlatform에서 headline, body, hashtags를 합치고 문자 수 3000자 이하 검증 후 `{날짜}_{멤버}_{주제}.md` 형식으로 LinkedIn 폴더에 저장",
+            "status": "done",
+            "testStrategy": "문자수 제한 준수, 파일명 형식 및 저장 위치 검증",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "LinkedInPost 인터페이스 및 타입 정의, LinkedInContentGenerator 클래스 기본 구조 구현, 톤 스타일별(professional/casual/thought-leader) 프롬프트 및 적용 로직 개발, 해시태그 자동 추천 모듈 구현, 글자 수 검증 및 포맷팅 모듈 개발로 세분화하세요."
+      },
+      {
+        "id": "7",
+        "title": "Notion MCP 연동 및 Meetings 동기화",
+        "description": "Notion의 회의록을 Obsidian Meetings 폴더와 양방향 동기화하는 MCP(Model Context Protocol) 연동을 구현합니다.",
+        "details": "1. NotionMCPConnector 클래스 구현:\n   ```typescript\n   class NotionMCPConnector {\n     async fetchMeetings(databaseId: string): Promise<NotionPage[]>\n     async syncToObsidian(notionPage: NotionPage, targetPath: string): Promise<void>\n     async syncFromObsidian(markdownFile: MarkdownFile, databaseId: string): Promise<void>\n     async resolveConflicts(local: MarkdownFile, remote: NotionPage): Promise<MergeResult>\n   }\n   ```\n2. @notionhq/client 라이브러리 활용\n3. Notion 블록 → 마크다운 변환:\n   - 텍스트, 헤딩, 리스트, 체크박스, 코드 블록\n   - 이미지/파일 링크 처리\n4. 동기화 메타데이터 관리 (마지막 동기화 시간, ID 매핑)\n5. 충돌 해결 전략: 최신 수정 시간 우선 + 수동 머지 알림",
+        "testStrategy": "1. Notion → Obsidian 마크다운 변환 정확도 테스트\n2. Obsidian → Notion 역방향 동기화 테스트\n3. 동시 수정 충돌 시나리오 테스트\n4. 네트워크 오류 시 재시도 동작 확인\n5. 대용량 회의록 처리 테스트",
+        "priority": "medium",
+        "dependencies": [
+          "1",
+          "2"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "NotionMCPConnector 인터페이스 설계",
+            "description": "NotionMCPConnector 클래스의 메서드 시그니처와 반환 타입을 정의합니다.",
+            "dependencies": [],
+            "details": "fetchMeetings, syncToObsidian, syncFromObsidian, resolveConflicts 메서드 시그니처를 TypeScript 인터페이스로 설계합니다.",
+            "status": "done",
+            "testStrategy": "인터페이스 컴파일 검증",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "@notionhq/client 래퍼 및 인증 모듈 구현",
+            "description": "Notion API 호출을 위한 인증 및 클라이언트 래퍼 클래스를 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "환경 변수에서 NOTION_TOKEN을 불러와 @notionhq/client를 초기화하고, API 호출용 래퍼 메서드를 작성합니다.",
+            "status": "done",
+            "testStrategy": "토큰 유효성 확인 테스트 및 API 호출 모킹",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Notion 블록 → 마크다운 변환기 개발",
+            "description": "텍스트, 헤딩, 리스트, 체크박스, 코드 블록, 이미지/파일 링크를 포함한 Notion 블록을 마크다운으로 변환합니다.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Notion 블록 객체를 순회하며 각 블록 유형별로 적절한 마크다운 문자열로 변환하는 함수와 유틸리티를 구현합니다.",
+            "status": "done",
+            "testStrategy": "각 블록 유형별 출력 마크다운 스냅샷 테스트",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "마크다운 → Notion 블록 역변환기 개발",
+            "description": "Obsidian 마크다운 파일을 파싱하여 Notion 블록 형식으로 변환하는 로직을 구현합니다.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "마크다운 AST 파서를 이용해 헤딩, 리스트, 코드 블록, 체크박스를 Notion 블록 구조로 매핑하는 변환기 모듈을 작성합니다.",
+            "status": "done",
+            "testStrategy": "마크다운 예제 파일을 Notion 블록으로 변환 후 구조 검증 테스트",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "동기화 메타데이터 관리 시스템 구현",
+            "description": "마지막 동기화 시간과 페이지-파일 ID 매핑 정보를 저장·조회하는 모듈을 구현합니다.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "로컬 JSON 파일 또는 SQLite DB에 동기화 메타데이터를 저장하고 CRUD할 수 있는 함수와 인터페이스를 작성합니다.",
+            "status": "done",
+            "testStrategy": "메타데이터 저장 및 조회 유닛 테스트",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "충돌 감지 및 해결 전략 모듈 개발",
+            "description": "최신 수정 시간 우선과 수동 머지 알림을 위한 충돌 해결 로직을 구현합니다.",
+            "dependencies": [
+              1,
+              2,
+              5
+            ],
+            "details": "로컬과 원격의 최종 수정 시간을 비교하고, 충돌 발생 시 MergeResult 구조체로 충돌 항목을 반환하는 함수를 작성합니다.",
+            "status": "done",
+            "testStrategy": "동시 수정 시나리오 유닛 테스트",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "양방향 동기화 오케스트레이션 로직 구현",
+            "description": "Notion과 Obsidian 간 양방향 동기화를 제어하는 Orchestrator 클래스를 구현합니다.",
+            "dependencies": [
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "fetchMeetings 호출 후 변환기 적용, 로컬 파일 쓰기 또는 Notion 업데이트, 메타데이터 갱신 순서의 제어 로직을 작성합니다.",
+            "status": "done",
+            "testStrategy": "모의 Notion API와 로컬 파일 시스템을 사용한 통합 테스트",
+            "parentId": "undefined"
+          },
+          {
+            "id": 8,
+            "title": "네트워크 오류 재시도 및 통합 테스트 작성",
+            "description": "API 호출 실패 시 재시도 로직을 추가하고 전체 동기화 워크플로우에 대한 통합 테스트를 작성합니다.",
+            "dependencies": [
+              7
+            ],
+            "details": "axios-retry 또는 자체 재시도 로직을 도입해 백오프와 최대 재시도 횟수를 설정하고, 전체 시나리오 통합 테스트를 구성합니다.",
+            "status": "done",
+            "testStrategy": "네트워크 오류를 모킹하여 재시도 동작 및 전체 동기화 시나리오 테스트",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 8,
+        "expansionPrompt": "NotionMCPConnector 클래스 인터페이스 설계, @notionhq/client 래퍼 및 인증 모듈 구현, Notion 블록 → 마크다운 변환기 개발 (텍스트/헤딩/리스트/체크박스/코드블록/이미지), 마크다운 → Notion 블록 역변환기 개발, 동기화 메타데이터 관리 시스템 구현, 충돌 감지 및 해결 전략 모듈 개발, 양방향 동기화 오케스트레이션 로직 구현, 네트워크 오류 재시도 및 테스트 작성으로 세분화하세요."
+      },
+      {
+        "id": "8",
+        "title": "Skill/Insight 웹사이트 자동 배포 시스템 (Vercel)",
+        "description": "Skill/Insight 폴더의 AI 툴·플러그인 정보를 Vercel을 통해 웹사이트로 자동 배포하는 Publit 스킬 기반 시스템을 구현합니다.",
+        "details": "1. WebsiteDeployer 클래스 구현:\n   ```typescript\n   class WebsiteDeployer {\n     async buildSite(sourceFolder: string): Promise<BuildResult>\n     async deployToVercel(buildOutput: string): Promise<DeploymentResult>\n     async getDeploymentStatus(deploymentId: string): Promise<DeploymentStatus>\n     async rollback(deploymentId: string): Promise<void>\n   }\n   ```\n2. 정적 사이트 생성 (Astro 또는 Next.js SSG):\n   - 마크다운 → HTML 변환\n   - 카테고리별 자동 분류 (AI 툴, 플러그인, 인사이트)\n   - 검색 기능 (클라이언트 사이드)\n3. Vercel API 연동:\n   - 자동 배포 트리거\n   - 배포 상태 모니터링\n   - 프리뷰 URL 생성\n4. GitHub Actions 워크플로우 (선택적):\n   - Push 이벤트 → 빌드 → 배포\n5. 배포 알림 (Slack/Discord webhook)",
+        "testStrategy": "1. 마크다운 → HTML 빌드 테스트\n2. Vercel 배포 성공 여부 확인\n3. 배포 후 웹사이트 접근 가능성 테스트\n4. 롤백 기능 테스트\n5. 빌드 실패 시 알림 전송 확인",
+        "priority": "medium",
+        "dependencies": [
+          "2",
+          "3"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "프로젝트 구조 및 개발 환경 설정",
+            "description": "정적 사이트 생성(Astro/Next.js SSG)을 위한 프로젝트 구조를 초기화하고 개발 환경을 구성합니다.",
+            "dependencies": [],
+            "details": "Astro 또는 Next.js SSG 프로젝트 초기화, src 폴더 구조 생성, 필수 의존성 설치(npm/PNPM), 환경 변수(.env) 설정",
+            "status": "done",
+            "testStrategy": "디렉터리 구조와 주요 파일 생성 여부 확인, 의존성 설치 후 빌드 명령 실행 성공 검증",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "마크다운 → HTML 변환 파이프라인 구현",
+            "description": "Skill/Insight 폴더 내 마크다운 파일을 HTML로 변환하는 빌드 파이프라인을 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "마크다운 파서 설정(remakdown-it 등), frontmatter 파싱, HTML 템플릿 머지, 변환 결과를 public/output 디렉터리에 저장",
+            "status": "done",
+            "testStrategy": "샘플 마크다운 파일을 입력해 HTML 출력물 생성 및 템플릿 적용 여부 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "카테고리별 자동 분류 시스템 개발",
+            "description": "변환된 콘텐츠를 AI 툴, 플러그인, 인사이트 카테고리로 자동 분류하는 로직을 개발합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "frontmatter 또는 파일명 기반 카테고리 추출, 분류 규칙 구현, 파일 메타데이터에 카테고리 태그 추가",
+            "status": "done",
+            "testStrategy": "다양한 샘플 콘텐츠로 분류 정확도 테스트, 카테고리별 출력 파일 목록 검증",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "클라이언트 사이드 검색 기능 구현",
+            "description": "정적 사이트에서 사용자가 키워드로 콘텐츠를 검색할 수 있는 클라이언트 사이드 검색 기능을 구현합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "검색 인덱스(JSON) 생성, Lunr.js 또는 Fuse.js 연동, 검색 UI 컴포넌트 개발 및 결과 렌더링",
+            "status": "done",
+            "testStrategy": "검색 인덱스 로딩 테스트, 키워드 입력 시 결과 필터링 정확도 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Vercel API 연동 및 배포 자동화 모듈 개발",
+            "description": "WebsiteDeployer 클래스를 활용해 Vercel API와 연동하여 빌드 및 배포를 자동화합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "Vercel API 토큰 환경 변수 설정, buildSite()와 deployToVercel() 구현, API 요청 및 응답 처리 로직 작성",
+            "status": "done",
+            "testStrategy": "모의(buildOutput) 데이터를 이용한 API 호출 시뮬레이션, 실제 Vercel 프로젝트에 배포 트리거 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "배포 상태 모니터링 및 롤백 기능 구현",
+            "description": "배포 후 상태를 모니터링하고 문제 발생 시 이전 배포로 롤백하는 기능을 구현합니다.",
+            "dependencies": [
+              5
+            ],
+            "details": "getDeploymentStatus()로 배포 상태 폴링, 에러 조건 감지 시 rollback() 호출, 롤백 완료 후 상태 리포트",
+            "status": "done",
+            "testStrategy": "성공/실패 시나리오로 상태 폴링 테스트, 강제 오류 발생 시 롤백 동작 검증",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "배포 알림 웹훅 시스템 개발",
+            "description": "배포 성공 또는 실패 시 Slack/Discord 웹훅으로 알림을 전송하는 시스템을 개발합니다.",
+            "dependencies": [
+              5
+            ],
+            "details": "알림 메시지 포맷 정의, Slack/Discord 웹훅 URL 환경 변수 설정, 배포 후 notifyWebhook() 함수 호출",
+            "status": "done",
+            "testStrategy": "배포 시뮬레이션 후 웹훅 엔드포인트에 예상 메시지 전송 여부 확인",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 7,
+        "expansionPrompt": "정적 사이트 생성기(Astro 또는 Next.js SSG) 프로젝트 구조 설정, 마크다운 → HTML 변환 파이프라인 구현, 카테고리별 자동 분류 시스템 개발, 클라이언트 사이드 검색 기능 구현, Vercel API 연동 및 배포 자동화 모듈 개발, 배포 상태 모니터링 및 롤백 기능 구현, 배포 알림(webhook) 시스템 개발로 세분화하세요."
+      },
+      {
+        "id": "9",
+        "title": "자동화 워크플로우 오케스트레이터 구현",
+        "description": "전체 자동화 파이프라인(기록 → GitHub → Claude 분석 → 보고서/콘텐츠/배포)을 조율하는 중앙 오케스트레이터를 개발합니다.",
+        "details": "1. WorkflowOrchestrator 클래스 구현:\n   ```typescript\n   class WorkflowOrchestrator {\n     async registerWorkflow(workflow: Workflow): void\n     async executeWorkflow(workflowId: string, trigger: Trigger): Promise<ExecutionResult>\n     async scheduleWorkflow(workflowId: string, cron: string): void\n     async getExecutionHistory(workflowId: string): Promise<Execution[]>\n   }\n   \n   interface Workflow {\n     id: string;\n     name: string;\n     steps: WorkflowStep[];\n     triggers: Trigger[];\n     errorHandling: ErrorStrategy;\n   }\n   ```\n2. 사전 정의 워크플로우:\n   - `onMissionUpdate`: Mission 폴더 변경 → 분석 → LinkedIn 초안\n   - `onMeetingSync`: Notion 동기화 → Analysis 보고서 업데이트\n   - `onSkillUpdate`: Skill/Insight 변경 → 웹사이트 재배포\n   - `weeklyDigest`: 주간 종합 보고서 생성 (Cron: 매주 금요일)\n3. 이벤트 기반 트리거 시스템 (Node EventEmitter)\n4. 워크플로우 실행 로그 및 상태 대시보드\n5. 실패 시 재시도 및 알림 정책",
+        "testStrategy": "1. 각 워크플로우 end-to-end 실행 테스트\n2. 트리거 이벤트 정상 발화 확인\n3. 스케줄링 (Cron) 정확도 테스트\n4. 중간 스텝 실패 시 롤백/알림 동작 확인\n5. 동시 워크플로우 실행 충돌 테스트",
+        "priority": "high",
+        "dependencies": [
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Workflow 및 WorkflowStep 인터페이스 설계",
+            "description": "워크플로우와 단계 정의를 위한 TypeScript 인터페이스 설계",
+            "dependencies": [],
+            "details": "Workflow와 WorkflowStep, Trigger, ErrorStrategy 인터페이스 구조를 명세하고 각 필드 타입과 제약조건을 정의합니다.",
+            "status": "done",
+            "testStrategy": "인터페이스 타입 테스트 및 잘못된 구조에 대한 컴파일 오류 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "WorkflowOrchestrator 기본 구조 구현",
+            "description": "WorkflowOrchestrator 클래스의 메서드 스켈레톤 구현",
+            "dependencies": [
+              1
+            ],
+            "details": "registerWorkflow, executeWorkflow, scheduleWorkflow, getExecutionHistory 메서드 시그니처와 기본 로깅 기능을 포함한 클래스 뼈대 코드를 작성합니다.",
+            "status": "done",
+            "testStrategy": "클래스 메서드 호출 시 에러 없이 스켈레톤이 로드되는지 단위 테스트",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "이벤트 기반 트리거 시스템 개발",
+            "description": "Node.js EventEmitter를 이용한 트리거 발화 시스템 구현",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "EventEmitter 인스턴스를 생성하고 Workflow 트리거 등록, 발화, 리스너 관리를 위한 메서드를 구현합니다.",
+            "status": "done",
+            "testStrategy": "가상 이벤트를 발화하여 등록된 콜백이 정상 호출되는지 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Cron 기반 스케줄링 시스템 구현",
+            "description": "cron 스케줄 문자열을 해석하고 예약 작업을 실행하는 스케줄러 개발",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "node-cron 또는 유사 라이브러리를 사용해 scheduleWorkflow 호출 시 지정된 cron 표현식으로 작업이 주기 실행되도록 설정합니다.",
+            "status": "done",
+            "testStrategy": "단위 테스트로 cron 표현식 파싱과 가짜 시간 진행 시 스케줄러 발화 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "onMissionUpdate 워크플로우 정의 및 구현",
+            "description": "Mission 폴더 변경 감지 후 LinkedIn 초안 생성 워크플로우 구현",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Workflow 객체에 id 'onMissionUpdate', 단계에 파일 감지, 분석, LinkedInContentGenerator 호출을 포함해 등록합니다.",
+            "status": "done",
+            "testStrategy": "가상 Mission 변경 이벤트 발생 시 end-to-end 실행 성공 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "onMeetingSync 워크플로우 정의 및 구현",
+            "description": "Notion 동기화 후 분석 보고서 업데이트 워크플로우 구현",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Workflow 객체에 id 'onMeetingSync', Notion 데이터 가져오기, ReportGenerator 호출 단계를 정의하고 등록합니다.",
+            "status": "done",
+            "testStrategy": "가상 MeetingSync 이벤트 시 보고서 생성 및 저장 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "onSkillUpdate 워크플로우 정의 및 구현",
+            "description": "Skill/Insight 변경 감지 후 웹사이트 재배포 워크플로우 구현",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Workflow 객체에 id 'onSkillUpdate', 변경 파일 동기화, 배포 스크립트 호출 단계를 포함해 등록합니다.",
+            "status": "done",
+            "testStrategy": "가상 Skill 변경 시 Vercel deploy 명령어가 호출되는지 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 8,
+            "title": "weeklyDigest 워크플로우 정의 및 구현",
+            "description": "주간 종합 보고서 생성 워크플로우 구현 및 cron 스케줄링",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Workflow 객체에 id 'weeklyDigest', ReportGenerator 주간 보고서 생성 단계 정의 후 scheduleWorkflow로 매주 금요일 배치합니다.",
+            "status": "done",
+            "testStrategy": "가짜 시간 시뮬레이션으로 주간 작업이 정확히 주기 실행되는지 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 9,
+            "title": "워크플로우 실행 로그 및 상태 대시보드 시스템 개발",
+            "description": "실행 내역 저장 및 상태 조회를 위한 로그 관리 및 대시보드 기능 구현",
+            "dependencies": [
+              2
+            ],
+            "details": "MongoDB 또는 파일 시스템에 Execution 기록 저장, getExecutionHistory API와 대시보드 뷰 렌더러를 개발합니다.",
+            "status": "done",
+            "testStrategy": "실행 로그가 저장되고 getExecutionHistory 호출 시 올바른 데이터를 반환하는지 검증",
+            "parentId": "undefined"
+          },
+          {
+            "id": 10,
+            "title": "실패 재시도 및 알림 정책 구현",
+            "description": "워크플로우 실패 시 재시도 로직과 알림 전송 정책 구현",
+            "dependencies": [
+              2,
+              3,
+              9
+            ],
+            "details": "ErrorStrategy에 따라 재시도 횟수, 지연 시간 설정 후 실패 시 Slack 또는 이메일 알림을 발송하도록 구현합니다.",
+            "status": "done",
+            "testStrategy": "인위적 에러 발생 시 재시도 로직 동작 및 알림 채널 전송 확인",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 9,
+        "recommendedSubtasks": 10,
+        "expansionPrompt": "Workflow 및 WorkflowStep 인터페이스 설계, WorkflowOrchestrator 클래스 기본 구조 구현, 이벤트 기반 트리거 시스템(EventEmitter) 개발, Cron 기반 스케줄링 시스템 구현, onMissionUpdate 워크플로우 정의 및 구현, onMeetingSync 워크플로우 정의 및 구현, onSkillUpdate 워크플로우 정의 및 구현, weeklyDigest 워크플로우 정의 및 구현, 워크플로우 실행 로그 및 상태 관리 시스템 개발, 실패 재시도/롤백/알림 정책 구현으로 세분화하세요."
+      },
+      {
+        "id": "10",
+        "title": "CLI 인터페이스 및 운영 대시보드 개발",
+        "description": "시스템 운영자를 위한 CLI 도구와 상태 모니터링 대시보드를 구현합니다.",
+        "details": "1. CLI 도구 (Commander.js) 구현:\n   ```typescript\n   // 명령어 예시\n   selfish-club scan --folder mission       // 폴더 스캔\n   selfish-club sync --target github        // GitHub 동기화\n   selfish-club analyze --week 12           // 특정 주차 분석\n   selfish-club deploy --preview            // 프리뷰 배포\n   selfish-club workflow run weekly-digest  // 워크플로우 실행\n   selfish-club status                      // 시스템 상태 확인\n   ```\n2. 인터랙티브 모드 (Inquirer.js)\n3. 출력 포맷 옵션 (table, json, minimal)\n4. 운영 대시보드 (선택적 - 웹 UI):\n   - 최근 워크플로우 실행 현황\n   - 폴더별 업데이트 통계\n   - 에러 로그 뷰어\n5. 설정 파일 (selfish-club.config.json) 관리\n6. 로깅 레벨 제어 (debug, info, warn, error)",
+        "testStrategy": "1. 모든 CLI 명령어 실행 테스트\n2. 잘못된 인자 입력 시 에러 메시지 확인\n3. 설정 파일 로드/저장 테스트\n4. 출력 포맷별 정상 렌더링 확인\n5. 도움말 (--help) 정확성 검증",
+        "priority": "medium",
+        "dependencies": [
+          "9"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Commander.js 기반 CLI 프레임워크 설정",
+            "description": "Commander.js를 사용해 기본 CLI 구조와 글로벌 옵션을 설정합니다.",
+            "dependencies": [],
+            "details": "프로젝트에 Commander.js 설치 후 프로그램 이름(selfish-club)과 버전, 글로벌 옵션(-v, --help)을 등록하고 기본 실행 핸들러를 구현합니다.",
+            "status": "pending",
+            "testStrategy": "CLI 실행 시 버전 및 도움말 출력 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "핵심 명령어 구현(scan, sync, analyze, deploy, workflow, status)",
+            "description": "6가지 주요 커맨드를 Commander.js로 정의하고 Orchestrator API 호출 래퍼를 연결합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "각 커맨드에 대해 옵션(folder, target, week 등)을 설정하고 내부 로직에서 Task 9 Orchestrator API를 호출해 동작하도록 구현합니다.",
+            "status": "pending",
+            "testStrategy": "올바른 인자 입력 시 정상 실행, 잘못된 인자 입력 시 에러 메시지 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "인터랙티브 모드(Inquirer.js) 개발",
+            "description": "Inquirer.js를 활용해 사용자에게 명령어 및 옵션 선택을 안내하는 인터랙티브 프롬프트를 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "메인 메뉴에서 실행할 커맨드 목록을 선택하고, 추가 옵션에 대해 단계별 질문을 제공한 후 선택값으로 해당 커맨드를 내부 호출합니다.",
+            "status": "pending",
+            "testStrategy": "프롬프트 흐름에 따라 올바른 커맨드가 실행되는지 수동 또는 자동화 테스트",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "출력 포맷(table, json, minimal) 구현",
+            "description": "명령어 결과를 표 형식, JSON, 최소 출력 형태로 전환하는 포맷 옵션을 추가합니다.",
+            "dependencies": [
+              2
+            ],
+            "details": "--output 옵션으로 포맷을 선택할 수 있도록 설정하고, table은 console.table, json은 JSON.stringify, minimal은 축약 텍스트로 렌더링 로직을 작성합니다.",
+            "status": "pending",
+            "testStrategy": "각 포맷별로 출력값 구조와 내용이 사양과 일치하는지 비교 검증",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "설정 파일(selfish-club.config.json) 관리 모듈 개발",
+            "description": "사용자 설정을 JSON 파일로 저장·로드하고 유효성 검사를 수행하는 모듈을 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "프로그램 시작 시 설정 파일 경로를 확인하고, 존재하지 않으면 기본 템플릿으로 생성합니다. 저장 시 스키마 기반 유효성 검사를 적용합니다.",
+            "status": "pending",
+            "testStrategy": "설정 파일 읽기/쓰기 및 스키마 유효성 검사 시나리오 테스트",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "로깅 시스템 및 도움말(--help) 구현",
+            "description": "로그 레벨(debug, info, warn, error)을 제어하고 각 커맨드별 도움말 출력을 강화합니다.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "winston 또는 debug 모듈을 도입해 로그 레벨을 환경 변수 또는 옵션으로 설정하고, Commander.js 도움말 템플릿을 커스터마이징해 상세 설명을 추가합니다.",
+            "status": "pending",
+            "testStrategy": "로그 레벨별 출력 여부 확인, --help 실행 시 모든 옵션 설명이 표시되는지 검증",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 6,
+        "expansionPrompt": "Commander.js 기반 CLI 프레임워크 설정, 핵심 명령어(scan, sync, analyze, deploy, workflow, status) 구현, Inquirer.js 기반 인터랙티브 모드 개발, 출력 포맷 옵션(table/json/minimal) 구현, 설정 파일(selfish-club.config.json) 관리 모듈 개발, 로깅 시스템 및 도움말 구현으로 세분화하세요."
+      },
+      {
+        "id": "11",
+        "title": "AA 스타터 키트 템플릿 및 문서화",
+        "description": "오픈소스 공개를 위한 AA(AI Agent) 스타터 키트 템플릿과 사용자 문서를 작성합니다.",
+        "details": "1. 스타터 키트 구성:\n   ```\n   aa-starter-kit/\n   ├── templates/           # Obsidian 볼트 템플릿\n   │   ├── Mission/\n   │   ├── Meetings/\n   │   └── ...\n   ├── scripts/             # 설정 스크립트\n   ├── docs/                # 사용자 가이드\n   ├── examples/            # 예제 워크플로우\n   └── .env.example         # 환경 변수 샘플\n   ```\n2. 사용자 문서 (한국어):\n   - 퀵스타트 가이드\n   - API 키 설정 방법\n   - 커스텀 워크플로우 작성법\n   - 트러블슈팅 FAQ\n3. 비개발자용 가이드 (노코드 설정)\n4. GitHub README.md 및 CONTRIBUTING.md\n5. 라이선스 (MIT 또는 Apache 2.0)",
+        "testStrategy": "1. 빈 환경에서 스타터 키트 설치 테스트\n2. 문서 내 코드 스니펫 실행 가능 여부 확인\n3. 환경 변수 샘플 완전성 검증\n4. 비개발자 대상 사용성 테스트 (피드백 수집)",
+        "priority": "low",
+        "dependencies": [
+          "9",
+          "10"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Obsidian 볼트 템플릿 및 폴더 구조 생성",
+            "description": "aa-starter-kit 프로젝트의 templates 폴더 내 Obsidian 볼트 템플릿과 디렉토리 구조를 생성합니다.",
+            "dependencies": [],
+            "details": "templates 폴더에 Mission, Meetings 등 각 서브폴더와 예시 마크다운 파일을 추가하고 .env.example 및 scripts 폴더를 초기화합니다.",
+            "status": "pending",
+            "testStrategy": "디렉토리와 파일이 올바르게 생성되었는지 확인하고, Obsidian에서 템플릿이 정상 로드되는지 테스트합니다.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "퀵스타트 가이드 문서 작성",
+            "description": "사용자가 빠르게 시작할 수 있도록 한국어 퀵스타트 가이드를 docs/quickstart.md로 작성합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "설치, 환경 변수 설정, 최초 실행 방법을 단계별로 예시 코드와 스크린샷을 포함해 설명합니다.",
+            "status": "pending",
+            "testStrategy": "문서에 따라 신규 환경에서 설치 및 실행 절차를 수행해보고 오류 없이 진행되는지 확인합니다.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "커스텀 워크플로우 작성법 문서화",
+            "description": "사용자가 자신의 워크플로우를 생성하고 적용하는 방법을 docs/custom-workflow.md에 문서화합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "YAML/JSON 예제와 함께 템플릿 변수, 스크립트 사용법, 실행 명령어를 자세히 설명합니다.",
+            "status": "pending",
+            "testStrategy": "예제 워크플로우를 작성해 실행해보고, 결과가 예상대로 출력되는지 검증합니다.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "트러블슈팅 FAQ 및 노코드 비개발자용 가이드 작성",
+            "description": "자주 발생하는 문제와 해결 방법을 트러블슈팅 FAQ에 정리하고, 비개발자용 노코드 설정 가이드를 작성합니다.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "docs/faq.md와 docs/no-code-guide.md에 오류 메시지별 대응 방법과 GUI 기반 설정 방법을 스텝별로 설명합니다.",
+            "status": "pending",
+            "testStrategy": "의도적으로 오류를 발생시키고 FAQ 참조 후 해결 가능 여부를 테스트하며, 노코드 가이드를 따라 설정해보아 확인합니다.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "GitHub README, CONTRIBUTING, LICENSE 파일 작성",
+            "description": "프로젝트 루트에 README.md, CONTRIBUTING.md, LICENSE 파일을 작성하여 오픈소스 공개 준비를 완료합니다.",
+            "dependencies": [
+              4
+            ],
+            "details": "README에 프로젝트 개요와 사용법, CONTRIBUTING에 기여 가이드라인, MIT 또는 Apache 라이선스를 LICENSE 파일에 명시합니다.",
+            "status": "pending",
+            "testStrategy": "GitHub 저장소에 파일을 업로드하고, 각 문서가 웹에서 제대로 렌더링되는지 확인합니다.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "스타터 키트 폴더 구조 및 Obsidian 볼트 템플릿 생성, 퀵스타트 가이드 작성, 커스텀 워크플로우 작성법 문서화, 트러블슈팅 FAQ 및 비개발자 가이드 작성, GitHub README/CONTRIBUTING/LICENSE 파일 작성으로 세분화하세요."
+      },
+      {
+        "id": "12",
+        "title": "보안 및 권한 관리 시스템 구현",
+        "description": "API 키 보호, 민감 정보 처리, 팀 멤버 권한 관리를 위한 보안 시스템을 구현합니다.",
+        "details": "1. 시크릿 관리:\n   ```typescript\n   class SecretManager {\n     async loadSecrets(source: 'env' | 'vault'): Promise<Secrets>\n     async validateSecrets(): Promise<ValidationResult>\n     async rotateSecret(key: string): Promise<void>\n   }\n   ```\n2. API 키 암호화 저장 (환경 변수 또는 시크릿 매니저)\n3. 민감 정보 필터링:\n   - .gitignore에 민감 파일 패턴 추가\n   - 커밋 전 시크릿 스캔 (pre-commit hook)\n4. 팀 멤버 권한 레벨:\n   - Admin: 전체 기능\n   - Member: 읽기/쓰기 (자신의 폴더)\n   - Viewer: 읽기 전용\n5. 감사 로그 (누가 언제 무엇을 실행했는지)\n6. Rate limiting (API 호출 제한)",
+        "testStrategy": "1. 환경 변수 누락 시 적절한 에러 발생 확인\n2. 민감 정보 포함 파일 커밋 차단 테스트\n3. 권한 레벨별 접근 제어 테스트\n4. 감사 로그 기록 정확성 검증\n5. Rate limit 초과 시 동작 확인",
+        "priority": "high",
+        "dependencies": [
+          "1",
+          "3"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "SecretManager 클래스 구현",
+            "description": "시크릿 로드, 검증 및 회전 기능을 제공하는 SecretManager 클래스를 구현합니다.",
+            "dependencies": [],
+            "details": "TypeScript로 SecretManager 클래스를 작성하고 loadSecrets, validateSecrets, rotateSecret 메서드를 환경 변수(env) 및 Vault 연동 방식으로 구현합니다.",
+            "status": "pending",
+            "testStrategy": "환경 변수 누락 시 에러 발생 테스트, Vault 연결 오류 처리 테스트, rotateSecret 호출 후 값 변경 검증",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "API 키 암호화 저장 모듈 개발",
+            "description": "API 키를 암호화하여 안전하게 저장하고 복호화할 수 있는 모듈을 개발합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "환경 변수 또는 SecretManager를 이용해 API 키를 AES 등 대칭 암호화 방식으로 암호화·복호화하는 유틸리티 함수를 구현합니다.",
+            "status": "pending",
+            "testStrategy": "암호화된 키 저장 후 복호화 시 원본 키와 일치하는지 확인, 잘못된 키로 복호화 시 예외 처리 검증",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "민감 정보 필터링 시스템 구현",
+            "description": ".gitignore 패턴 추가 및 pre-commit 훅을 통한 시크릿 스캔 기능을 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": ".gitignore에 민감 파일 패턴을 등록하고 Husky나 lint-staged를 이용해 커밋 전 시크릿 스캔 훅을 추가해 민감 정보 포함 파일 커밋을 차단합니다.",
+            "status": "pending",
+            "testStrategy": "민감 문자열 포함 파일 커밋 시 훅이 실행되어 차단되는지 확인, 정상 파일 커밋 시 훅 통과 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "팀 멤버 권한 관리 시스템 개발",
+            "description": "Admin, Member, Viewer의 권한 레벨을 정의하고 접근 제어 로직을 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "사용자 역할별로 읽기·쓰기·관리 권한을 분리하여 Express 미들웨어나 Guard 레이어에서 요청별 권한을 검사하는 기능을 구현합니다.",
+            "status": "pending",
+            "testStrategy": "Admin, Member, Viewer 각 권한으로 API 호출 시 허용/차단 결과 검증, 역할 변경 후 권한 즉시 반영 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "감사 로그 기록 시스템 구현",
+            "description": "사용자 활동(누가 언제 무엇을 실행했는지)을 기록하는 감사 로그 시스템을 구현합니다.",
+            "dependencies": [
+              1,
+              4
+            ],
+            "details": "모든 주요 API 엔드포인트에 대해 사용자 ID, 타임스탬프, 실행된 작업 정보를 MongoDB나 파일 로그로 기록하는 로깅 미들웨어를 작성합니다.",
+            "status": "pending",
+            "testStrategy": "API 호출 후 로그 저장소에 올바른 항목이 기록되는지 확인, 로그 포맷 및 검색 기능 테스트",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Rate Limiting 모듈 개발",
+            "description": "API 호출 횟수를 제한하는 Rate Limiting 기능을 구현합니다.",
+            "dependencies": [
+              1
+            ],
+            "details": "Redis나 메모리 캐시 기반으로 IP 또는 사용자별 호출 횟수를 카운트하고 제한 정책(시간당 요청 수)을 적용하는 미들웨어를 작성합니다.",
+            "status": "pending",
+            "testStrategy": "정해진 횟수 초과 호출 시 429 상태 코드 반환, 제한 해제 후 정상 호출 재개 확인",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "보안 테스트 및 검증",
+            "description": "구현된 보안 시스템 전반에 대해 통합 테스트 및 취약점 검증을 수행합니다.",
+            "dependencies": [
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "시크릿 관리, 암호화, 필터링, 권한, 로깅, 레이트 리밋 모듈을 포함한 통합 테스트 스위트를 작성하고, 취약점 스캐너를 이용해 보안 점검을 실시합니다.",
+            "status": "pending",
+            "testStrategy": "자동화된 통합 테스트 실행, OWASP ZAP 등 도구로 취약점 스캔 및 보고서 검토",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 7,
+        "expansionPrompt": "SecretManager 클래스 인터페이스 및 구현, API 키 암호화 저장 및 검증 모듈 개발, 민감 정보 필터링 시스템(pre-commit hook 포함) 구현, 팀 멤버 권한 레벨(Admin/Member/Viewer) 시스템 개발, 감사 로그 기록 시스템 구현, Rate limiting 모듈 개발, 보안 테스트 및 검증으로 세분화하세요."
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2026-04-30T09:10:25.182Z",
+      "taskCount": 12,
+      "completedCount": 4,
+      "tags": [
+        "master"
+      ]
+    }
+  }
+}
