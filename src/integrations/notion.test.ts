@@ -27,7 +27,11 @@ const mockNotionClient = {
 
 // ── 샘플 데이터 ──────────────────────────────────────────────────────
 
-const makeBlock = (type: string, text: string, extras: Record<string, unknown> = {}): NotionBlock => ({
+const makeBlock = (
+  type: string,
+  text: string,
+  extras: Record<string, unknown> = {}
+): NotionBlock => ({
   id: `block-${type}`,
   type: type as NotionBlock['type'],
   [type]: {

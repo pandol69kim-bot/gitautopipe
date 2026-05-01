@@ -211,7 +211,12 @@ export class WorkflowOrchestrator {
         this.makeLogStep('report-update', 'Analysis 보고서 업데이트'),
       ],
       triggers: [{ type: 'event', event: 'meeting:synced' }],
-      errorHandling: { strategy: 'retry', maxRetries: 2, retryDelayMs: 1000, notifyOnFailure: true },
+      errorHandling: {
+        strategy: 'retry',
+        maxRetries: 2,
+        retryDelayMs: 1000,
+        notifyOnFailure: true,
+      },
     });
 
     // onSkillUpdate: Skill/Insight 변경 → 배포

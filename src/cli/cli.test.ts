@@ -80,7 +80,10 @@ describe('Formatter', () => {
 
   describe('table 포맷', () => {
     it('배열 데이터를 탭 구분 형태로 출력한다', () => {
-      const data = [{ id: '1', name: 'alice' }, { id: '2', name: 'bob' }];
+      const data = [
+        { id: '1', name: 'alice' },
+        { id: '2', name: 'bob' },
+      ];
       const result = format(data, 'table');
       expect(result).toContain('id');
       expect(result).toContain('name');
@@ -277,7 +280,8 @@ import type { PromptFn } from './interactive';
 
 describe('Interactive', () => {
   it('scan 선택 시 folder 옵션과 함께 scan 명령어를 반환한다', async () => {
-    const prompt: PromptFn = vi.fn()
+    const prompt: PromptFn = vi
+      .fn()
       .mockResolvedValueOnce({ command: 'scan' })
       .mockResolvedValueOnce({ folder: 'Mission' });
 
@@ -293,7 +297,8 @@ describe('Interactive', () => {
   });
 
   it('workflow 선택 시 workflowId 옵션과 함께 반환한다', async () => {
-    const prompt: PromptFn = vi.fn()
+    const prompt: PromptFn = vi
+      .fn()
       .mockResolvedValueOnce({ command: 'workflow' })
       .mockResolvedValueOnce({ workflowId: 'weeklyDigest' });
 

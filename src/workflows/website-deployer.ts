@@ -14,13 +14,38 @@ import type {
 const VERCEL_API = 'https://api.vercel.com';
 
 const CATEGORY_KEYWORDS: Record<Exclude<SiteCategory, 'uncategorized'>, string[]> = {
-  'ai-tools': ['ai', 'gpt', 'llm', 'claude', 'openai', '인공지능', '에이전트', 'chatgpt', 'prompt', '프롬프트'],
-  platform: ['vercel', 'github', 'docker', 'aws', 'gcp', 'ci/cd', 'deploy', '배포', 'actions', 'kubernetes'],
+  'ai-tools': [
+    'ai',
+    'gpt',
+    'llm',
+    'claude',
+    'openai',
+    '인공지능',
+    '에이전트',
+    'chatgpt',
+    'prompt',
+    '프롬프트',
+  ],
+  platform: [
+    'vercel',
+    'github',
+    'docker',
+    'aws',
+    'gcp',
+    'ci/cd',
+    'deploy',
+    '배포',
+    'actions',
+    'kubernetes',
+  ],
   insights: ['회고', '인사이트', 'insight', '성장', '배움', 'retrospect', '학습', '경험', '정리'],
 };
 
 // fetch 타입 (테스트 주입용)
-type FetchFn = (url: string, options?: RequestInit) => Promise<{ ok: boolean; status?: number; json(): Promise<unknown> }>;
+type FetchFn = (
+  url: string,
+  options?: RequestInit
+) => Promise<{ ok: boolean; status?: number; json(): Promise<unknown> }>;
 
 // ── WebsiteDeployer 클래스 ────────────────────────────────────────────
 
@@ -36,9 +61,7 @@ export class WebsiteDeployer {
   // ── Subtask 2: 사이트 빌드 ────────────────────────────────────────
 
   async buildSite(sourceFolder: string): Promise<BuildResult> {
-    const files = (fs.readdirSync(sourceFolder) as string[]).filter((f) =>
-      f.endsWith('.md')
-    );
+    const files = (fs.readdirSync(sourceFolder) as string[]).filter((f) => f.endsWith('.md'));
 
     const pages: SitePage[] = files.map((fileName) => {
       const filePath = path.join(sourceFolder, fileName);
@@ -100,7 +123,9 @@ export class WebsiteDeployer {
 
     if (!response.ok) {
       const err = (await response.json()) as { error?: string };
-      throw new Error(`Vercel 배포 실패 (${response.status ?? 'unknown'}): ${err.error ?? '알 수 없는 오류'}`);
+      throw new Error(
+        `Vercel 배포 실패 (${response.status ?? 'unknown'}): ${err.error ?? '알 수 없는 오류'}`
+      );
     }
 
     const data = (await response.json()) as {
@@ -195,10 +220,7 @@ export class WebsiteDeployer {
 
   // ── Subtask 3: 카테고리 분류 (static) ────────────────────────────
 
-  static classifyCategory(
-    frontmatterCategory: string | undefined,
-    title: string
-  ): SiteCategory {
+  static classifyCategory(frontmatterCategory: string | undefined, title: string): SiteCategory {
     if (frontmatterCategory) {
       const valid: SiteCategory[] = ['ai-tools', 'platform', 'insights', 'uncategorized'];
       if (valid.includes(frontmatterCategory as SiteCategory)) {

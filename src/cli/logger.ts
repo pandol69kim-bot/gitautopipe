@@ -43,6 +43,4 @@ export class Logger {
   }
 }
 
-export const logger = new Logger(
-  (process.env['LOG_LEVEL'] as LogLevel | undefined) ?? 'info'
-);
+export const logger = new Logger((process.env['LOG_LEVEL'] as LogLevel | undefined) ?? 'info');

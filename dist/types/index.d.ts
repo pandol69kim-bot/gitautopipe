@@ -1,4 +1,10 @@
 export * from './vault';
 export * from './github';
 export * from './claude';
+export * from './report';
+export * from './linkedin';
+export * from './notion';
+export * from './deployer';
+export * from './workflow';
+export * from './security';
 //# sourceMappingURL=index.d.ts.map

@@ -75,9 +75,7 @@ describe('WebsiteDeployer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.mocked(fs.readdirSync).mockReturnValue(
-      sampleMarkdownFiles.map((f) => f.name) as never
-    );
+    vi.mocked(fs.readdirSync).mockReturnValue(sampleMarkdownFiles.map((f) => f.name) as never);
     vi.mocked(fs.readFileSync).mockImplementation((filePath: unknown) => {
       const name = String(filePath).split(/[\\/]/).pop() ?? '';
       return sampleMarkdownFiles.find((f) => f.name === name)?.content ?? '';
@@ -151,7 +149,9 @@ describe('WebsiteDeployer', () => {
     });
 
     it('category 없고 제목에 AI/GPT 키워드가 있으면 ai-tools로 분류한다', () => {
-      expect(WebsiteDeployer.classifyCategory(undefined, 'ChatGPT 프롬프트 작성법')).toBe('ai-tools');
+      expect(WebsiteDeployer.classifyCategory(undefined, 'ChatGPT 프롬프트 작성법')).toBe(
+        'ai-tools'
+      );
       expect(WebsiteDeployer.classifyCategory(undefined, 'AI 에이전트 구축')).toBe('ai-tools');
     });
 
@@ -198,7 +198,9 @@ describe('WebsiteDeployer', () => {
     });
 
     it('일반 단락을 <p>로 감싼다', () => {
-      expect(WebsiteDeployer.markdownToHtml('일반 텍스트입니다.')).toContain('<p>일반 텍스트입니다.</p>');
+      expect(WebsiteDeployer.markdownToHtml('일반 텍스트입니다.')).toContain(
+        '<p>일반 텍스트입니다.</p>'
+      );
     });
 
     it('빈 줄은 건너뛴다', () => {
@@ -242,7 +244,11 @@ describe('WebsiteDeployer', () => {
     });
 
     it('Vercel API 실패 시 에러를 던진다', async () => {
-      mockFetch.mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({ error: 'Forbidden' }) });
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: 'Forbidden' }),
+      });
       await expect(deployer.deployToVercel('/tmp/build')).rejects.toThrow();
     });
   });

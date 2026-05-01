@@ -194,9 +194,9 @@ class ClaudeAnalyzer {
         while (start < text.length) {
             const end = Math.min(start + maxChunkSize, text.length);
             chunks.push(text.slice(start, end));
-            start = end - overlap;
-            if (start >= text.length)
+            if (end >= text.length)
                 break;
+            start = end - overlap;
         }
         return chunks;
     }

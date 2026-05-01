@@ -40,7 +40,8 @@ const TONE_DESCRIPTIONS: Record<LinkedInTone, string> = {
 };
 
 const PROMPTS = {
-  generateDraft: (mission: MissionContent) => `
+  generateDraft: (mission: MissionContent) =>
+    `
 당신은 LinkedIn 콘텐츠 전문가입니다.
 아래 Mission 학습 내용을 바탕으로 LinkedIn 게시물 초안을 작성해주세요.
 
@@ -70,7 +71,8 @@ ${mission.body}
 [독자 참여 유도 질문 또는 행동 촉구]
 `.trim(),
 
-  applyTone: (draft: string, tone: LinkedInTone) => `
+  applyTone: (draft: string, tone: LinkedInTone) =>
+    `
 다음 LinkedIn 게시물을 "${TONE_DESCRIPTIONS[tone]}" 스타일로 다시 작성해주세요.
 원본 메시지의 핵심 내용은 유지하되, 어조와 표현만 변경하세요.
 
@@ -134,11 +136,7 @@ export class LinkedInContentGenerator {
   // ── Subtask 5: 플랫폼 포맷팅 & 파일명 생성 ───────────────────────
 
   async formatForPlatform(post: LinkedInPost, mission: MissionContent): Promise<FormattedPost> {
-    const parts = [
-      post.headline,
-      '',
-      post.body,
-    ];
+    const parts = [post.headline, '', post.body];
 
     if (post.callToAction) {
       parts.push('', post.callToAction);
@@ -167,10 +165,12 @@ export class LinkedInContentGenerator {
     const result: string[] = [];
 
     for (const kw of keywords) {
-      const tag = '#' + kw
-        .split(/\s+/)
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join('');
+      const tag =
+        '#' +
+        kw
+          .split(/\s+/)
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join('');
 
       if (!seen.has(tag)) {
         seen.add(tag);
@@ -207,7 +207,9 @@ export class LinkedInContentGenerator {
       }
     }
 
-    throw new Error(`LinkedIn 생성 실패 (${this.config.maxRetries}회 재시도): ${lastError?.message}`);
+    throw new Error(
+      `LinkedIn 생성 실패 (${this.config.maxRetries}회 재시도): ${lastError?.message}`
+    );
   }
 
   private extractSection(text: string, sectionTitle: string): string {

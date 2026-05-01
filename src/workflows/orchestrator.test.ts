@@ -12,7 +12,11 @@ function makeStep(id: string, fn?: (ctx: WorkflowContext) => Promise<unknown>): 
   };
 }
 
-function makeWorkflow(id: string, steps: WorkflowStep[], overrides: Partial<Workflow> = {}): Workflow {
+function makeWorkflow(
+  id: string,
+  steps: WorkflowStep[],
+  overrides: Partial<Workflow> = {}
+): Workflow {
   return {
     id,
     name: `Workflow ${id}`,
@@ -73,9 +77,15 @@ describe('WorkflowOrchestrator', () => {
 
     it('모든 스텝을 순서대로 실행한다', async () => {
       const order: string[] = [];
-      const s1 = makeStep('s1', async () => { order.push('s1'); });
-      const s2 = makeStep('s2', async () => { order.push('s2'); });
-      const s3 = makeStep('s3', async () => { order.push('s3'); });
+      const s1 = makeStep('s1', async () => {
+        order.push('s1');
+      });
+      const s2 = makeStep('s2', async () => {
+        order.push('s2');
+      });
+      const s3 = makeStep('s3', async () => {
+        order.push('s3');
+      });
 
       orchestrator.registerWorkflow(makeWorkflow('wf-order', [s1, s2, s3]));
       await orchestrator.executeWorkflow('wf-order');
@@ -84,7 +94,9 @@ describe('WorkflowOrchestrator', () => {
 
     it('각 스텝에 WorkflowContext를 전달한다', async () => {
       let capturedCtx: WorkflowContext | undefined;
-      const step = makeStep('s1', async (ctx) => { capturedCtx = ctx; });
+      const step = makeStep('s1', async (ctx) => {
+        capturedCtx = ctx;
+      });
 
       orchestrator.registerWorkflow(makeWorkflow('wf-ctx', [step]));
       await orchestrator.executeWorkflow('wf-ctx', { source: 'test' });
@@ -156,7 +168,9 @@ describe('WorkflowOrchestrator', () => {
 
   describe('errorHandling - stop', () => {
     it('스텝 실패 시 status가 failed이다', async () => {
-      const failStep = makeStep('fail', async () => { throw new Error('스텝 실패'); });
+      const failStep = makeStep('fail', async () => {
+        throw new Error('스텝 실패');
+      });
       const nextStep = makeStep('next');
       const wf = makeWorkflow('wf-fail', [failStep, nextStep], {
         errorHandling: { strategy: 'stop' },
@@ -169,8 +183,12 @@ describe('WorkflowOrchestrator', () => {
 
     it('stop 전략에서 실패한 스텝 이후 스텝은 실행되지 않는다', async () => {
       const executed: string[] = [];
-      const failStep = makeStep('fail', async () => { throw new Error('fail'); });
-      const nextStep = makeStep('next', async () => { executed.push('next'); });
+      const failStep = makeStep('fail', async () => {
+        throw new Error('fail');
+      });
+      const nextStep = makeStep('next', async () => {
+        executed.push('next');
+      });
 
       orchestrator.registerWorkflow(
         makeWorkflow('wf-stop', [failStep, nextStep], { errorHandling: { strategy: 'stop' } })
@@ -180,7 +198,9 @@ describe('WorkflowOrchestrator', () => {
     });
 
     it('실패한 스텝의 error가 stepResults에 기록된다', async () => {
-      const failStep = makeStep('fail', async () => { throw new Error('오류 메시지'); });
+      const failStep = makeStep('fail', async () => {
+        throw new Error('오류 메시지');
+      });
       orchestrator.registerWorkflow(makeWorkflow('wf-err', [failStep]));
       const result = await orchestrator.executeWorkflow('wf-err');
 
@@ -194,8 +214,12 @@ describe('WorkflowOrchestrator', () => {
   describe('errorHandling - continue', () => {
     it('continue 전략에서 스텝 실패 후 다음 스텝이 실행된다', async () => {
       const executed: string[] = [];
-      const failStep = makeStep('fail', async () => { throw new Error('fail'); });
-      const nextStep = makeStep('next', async () => { executed.push('next'); });
+      const failStep = makeStep('fail', async () => {
+        throw new Error('fail');
+      });
+      const nextStep = makeStep('next', async () => {
+        executed.push('next');
+      });
 
       orchestrator.registerWorkflow(
         makeWorkflow('wf-cont', [failStep, nextStep], { errorHandling: { strategy: 'continue' } })

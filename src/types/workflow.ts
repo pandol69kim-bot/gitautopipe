@@ -5,8 +5,8 @@ export type ErrorStrategy = 'stop' | 'continue' | 'retry';
 
 export interface WorkflowTrigger {
   type: TriggerType;
-  event?: string;   // event 타입일 때 이벤트 이름
-  cron?: string;    // cron 타입일 때 cron 표현식
+  event?: string; // event 타입일 때 이벤트 이름
+  cron?: string; // cron 타입일 때 cron 표현식
 }
 
 export interface WorkflowContext {

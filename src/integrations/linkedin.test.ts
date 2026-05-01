@@ -45,10 +45,7 @@ describe('LinkedInContentGenerator', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    generator = new LinkedInContentGenerator(
-      { apiKey: 'test-key' },
-      makeClient(mockLLMPost)
-    );
+    generator = new LinkedInContentGenerator({ apiKey: 'test-key' }, makeClient(mockLLMPost));
   });
 
   // ── Subtask 2: generateDraft ───────────────────────────────────────

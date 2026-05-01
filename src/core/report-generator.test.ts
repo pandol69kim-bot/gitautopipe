@@ -151,9 +151,27 @@ describe('ReportGenerator', () => {
 
   describe('generateTeamOverview', () => {
     const history: AnalysisHistory[] = [
-      { weekNumber: 1, keywords: ['JS', 'React'], summary: 'week1', participationRate: 80, analyzedAt: new Date() },
-      { weekNumber: 2, keywords: ['TS', 'Node'], summary: 'week2', participationRate: 90, analyzedAt: new Date() },
-      { weekNumber: 3, keywords: ['React', 'Next'], summary: 'week3', participationRate: 70, analyzedAt: new Date() },
+      {
+        weekNumber: 1,
+        keywords: ['JS', 'React'],
+        summary: 'week1',
+        participationRate: 80,
+        analyzedAt: new Date(),
+      },
+      {
+        weekNumber: 2,
+        keywords: ['TS', 'Node'],
+        summary: 'week2',
+        participationRate: 90,
+        analyzedAt: new Date(),
+      },
+      {
+        weekNumber: 3,
+        keywords: ['React', 'Next'],
+        summary: 'week3',
+        participationRate: 70,
+        analyzedAt: new Date(),
+      },
     ];
 
     it('type이 team인 Report를 반환한다', async () => {

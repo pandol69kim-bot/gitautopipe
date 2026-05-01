@@ -11,10 +11,7 @@ import type {
 } from '../types/report';
 
 // ClaudeAnalyzer의 공개 인터페이스만 의존
-type Analyzer = Pick<
-  ClaudeAnalyzer,
-  'generateSummary' | 'extractKeywords' | 'identifyTrends'
->;
+type Analyzer = Pick<ClaudeAnalyzer, 'generateSummary' | 'extractKeywords' | 'identifyTrends'>;
 
 export class ReportGenerator {
   private readonly analyzer: Analyzer;
@@ -54,7 +51,9 @@ export class ReportGenerator {
         title: '핵심 키워드',
         content: keywords
           .slice(0, 10)
-          .map((k) => `- **${k.keyword}** (빈도: ${k.frequency}, 관련성: ${k.relevance.toFixed(2)})`)
+          .map(
+            (k) => `- **${k.keyword}** (빈도: ${k.frequency}, 관련성: ${k.relevance.toFixed(2)})`
+          )
           .join('\n'),
       },
       {
@@ -226,8 +225,7 @@ export class ReportGenerator {
     const tagsYaml = metadata.tags.map((t) => `  - ${t}`).join('\n');
     const keywordsYaml = metadata.topKeywords.map((k) => `  - ${k}`).join('\n');
 
-    const weekLine =
-      metadata.weekNumber !== undefined ? `week: ${metadata.weekNumber}\n` : '';
+    const weekLine = metadata.weekNumber !== undefined ? `week: ${metadata.weekNumber}\n` : '';
     const memberLine = metadata.memberId ? `member: ${metadata.memberId}\n` : '';
 
     const frontmatter = [
