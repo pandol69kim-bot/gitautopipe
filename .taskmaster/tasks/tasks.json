@@ -433,7 +433,7 @@
           "2",
           "4"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -441,7 +441,7 @@
             "description": "Report, ReportSection, ReportMetadata 인터페이스를 정의합니다.",
             "dependencies": [],
             "details": "TypeScript로 Report, ReportSection, ReportMetadata 인터페이스와 관련 유틸 타입을 src/core/types/report.ts에 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "타입 검증 컴파일 테스트 및 인터페이스 속성 누락 여부 확인",
             "parentId": "undefined"
           },
@@ -453,7 +453,7 @@
               1
             ],
             "details": "src/core/ReportGenerator.ts에 generateWeeklyReport, generateMemberReport, generateTeamOverview, saveReport 메서드 시그니처와 기본 반환값 또는 예외 처리를 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "클래스 인스턴스 생성 및 각 메서드 호출 시 Promise 반환 확인",
             "parentId": "undefined"
           },
@@ -465,7 +465,7 @@
               2
             ],
             "details": "templates/weekly.md 파일에 frontmatter와 섹션 플레이스홀더를 정의하고, generateWeeklyReport 내부에서 Task2, Task4 결과를 바인딩하여 완전한 마크다운을 생성하도록 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "생성된 마크다운에 필수 frontmatter, 주차별 요약 섹션 포함 여부 자동 검증",
             "parentId": "undefined"
           },
@@ -477,7 +477,7 @@
               2
             ],
             "details": "generateMemberReport 메서드에서 회원 ID별 참여 이력 조회, 키워드 추출, 템플릿 바인딩을 수행하고, 마크다운 파일 형태로 반환하도록 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "샘플 memberId로 실행 시 섹션 수, 키워드 리스트 유무, 파일 생성 성공 확인",
             "parentId": "undefined"
           },
@@ -489,7 +489,7 @@
               2
             ],
             "details": "generateTeamOverview 메서드에서 주간 및 전체 데이터 집계를 수행하고, 트렌드 분석 결과를 마크다운으로 포맷하여 반환하도록 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "팀 전체 데이터로 실행 시 트렌드 키워드 및 요약 섹션 존재 여부 검증",
             "parentId": "undefined"
           },
@@ -503,7 +503,7 @@
               5
             ],
             "details": "saveReport 호출 전 frontmatter(date, tags, 링크)를 자동 삽입하고, 기존 파일을 파싱해 섹션별 변동 사항을 diff하여 ‘변화 비교’ 섹션을 추가하도록 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "동일 주차 재생성 시 frontmatter 업데이트 및 변화 비교 섹션 삽입 여부 검증",
             "parentId": "undefined"
           }
@@ -523,7 +523,7 @@
           "2",
           "4"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -531,7 +531,7 @@
             "description": "LinkedInPost 및 FormattedPost, 톤 스타일, MissionContent 타입 등 정의",
             "dependencies": [],
             "details": "TypeScript에서 LinkedInPost, FormattedPost, 'professional'|'casual'|'thought-leader' tone 타입 및 MissionContent 인터페이스 정의",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "타입스크립트 컴파일 테스트",
             "parentId": "undefined"
           },
@@ -543,7 +543,7 @@
               1
             ],
             "details": "LinkedInContentGenerator 클래스를 생성하고 각 메서드를 Promise<LinkedInPost> 및 Promise<string> 리턴하는 스텁으로 작성",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "메서드 존재 여부 및 반환 타입 확인",
             "parentId": "undefined"
           },
@@ -555,7 +555,7 @@
               2
             ],
             "details": "각 톤별 프롬프트 템플릿을 설계하고 applyTone 메서드에서 AI 호출을 통해 스타일을 적용하도록 구현",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "각 톤 스타일별 출력 차이 및 일관성 검증",
             "parentId": "undefined"
           },
@@ -567,7 +567,7 @@
               2
             ],
             "details": "addHashtags 메서드에서 입력 키워드를 분석하여 AI로부터 관련 해시태그를 추천받고 '#태그' 형식으로 반환하도록 구현",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "추천 해시태그 형식(#태그) 및 키워드 연관성 테스트",
             "parentId": "undefined"
           },
@@ -581,7 +581,7 @@
               4
             ],
             "details": "formatForPlatform에서 headline, body, hashtags를 합치고 문자 수 3000자 이하 검증 후 `{날짜}_{멤버}_{주제}.md` 형식으로 LinkedIn 폴더에 저장",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "문자수 제한 준수, 파일명 형식 및 저장 위치 검증",
             "parentId": "undefined"
           }
@@ -601,7 +601,7 @@
           "1",
           "2"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -609,7 +609,7 @@
             "description": "NotionMCPConnector 클래스의 메서드 시그니처와 반환 타입을 정의합니다.",
             "dependencies": [],
             "details": "fetchMeetings, syncToObsidian, syncFromObsidian, resolveConflicts 메서드 시그니처를 TypeScript 인터페이스로 설계합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "인터페이스 컴파일 검증",
             "parentId": "undefined"
           },
@@ -621,7 +621,7 @@
               1
             ],
             "details": "환경 변수에서 NOTION_TOKEN을 불러와 @notionhq/client를 초기화하고, API 호출용 래퍼 메서드를 작성합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "토큰 유효성 확인 테스트 및 API 호출 모킹",
             "parentId": "undefined"
           },
@@ -634,7 +634,7 @@
               2
             ],
             "details": "Notion 블록 객체를 순회하며 각 블록 유형별로 적절한 마크다운 문자열로 변환하는 함수와 유틸리티를 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "각 블록 유형별 출력 마크다운 스냅샷 테스트",
             "parentId": "undefined"
           },
@@ -647,7 +647,7 @@
               2
             ],
             "details": "마크다운 AST 파서를 이용해 헤딩, 리스트, 코드 블록, 체크박스를 Notion 블록 구조로 매핑하는 변환기 모듈을 작성합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "마크다운 예제 파일을 Notion 블록으로 변환 후 구조 검증 테스트",
             "parentId": "undefined"
           },
@@ -660,7 +660,7 @@
               2
             ],
             "details": "로컬 JSON 파일 또는 SQLite DB에 동기화 메타데이터를 저장하고 CRUD할 수 있는 함수와 인터페이스를 작성합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "메타데이터 저장 및 조회 유닛 테스트",
             "parentId": "undefined"
           },
@@ -674,7 +674,7 @@
               5
             ],
             "details": "로컬과 원격의 최종 수정 시간을 비교하고, 충돌 발생 시 MergeResult 구조체로 충돌 항목을 반환하는 함수를 작성합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "동시 수정 시나리오 유닛 테스트",
             "parentId": "undefined"
           },
@@ -689,7 +689,7 @@
               6
             ],
             "details": "fetchMeetings 호출 후 변환기 적용, 로컬 파일 쓰기 또는 Notion 업데이트, 메타데이터 갱신 순서의 제어 로직을 작성합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "모의 Notion API와 로컬 파일 시스템을 사용한 통합 테스트",
             "parentId": "undefined"
           },
@@ -701,7 +701,7 @@
               7
             ],
             "details": "axios-retry 또는 자체 재시도 로직을 도입해 백오프와 최대 재시도 횟수를 설정하고, 전체 시나리오 통합 테스트를 구성합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "네트워크 오류를 모킹하여 재시도 동작 및 전체 동기화 시나리오 테스트",
             "parentId": "undefined"
           }
@@ -721,7 +721,7 @@
           "2",
           "3"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -729,7 +729,7 @@
             "description": "정적 사이트 생성(Astro/Next.js SSG)을 위한 프로젝트 구조를 초기화하고 개발 환경을 구성합니다.",
             "dependencies": [],
             "details": "Astro 또는 Next.js SSG 프로젝트 초기화, src 폴더 구조 생성, 필수 의존성 설치(npm/PNPM), 환경 변수(.env) 설정",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "디렉터리 구조와 주요 파일 생성 여부 확인, 의존성 설치 후 빌드 명령 실행 성공 검증",
             "parentId": "undefined"
           },
@@ -741,7 +741,7 @@
               1
             ],
             "details": "마크다운 파서 설정(remakdown-it 등), frontmatter 파싱, HTML 템플릿 머지, 변환 결과를 public/output 디렉터리에 저장",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "샘플 마크다운 파일을 입력해 HTML 출력물 생성 및 템플릿 적용 여부 확인",
             "parentId": "undefined"
           },
@@ -753,7 +753,7 @@
               2
             ],
             "details": "frontmatter 또는 파일명 기반 카테고리 추출, 분류 규칙 구현, 파일 메타데이터에 카테고리 태그 추가",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "다양한 샘플 콘텐츠로 분류 정확도 테스트, 카테고리별 출력 파일 목록 검증",
             "parentId": "undefined"
           },
@@ -765,7 +765,7 @@
               2
             ],
             "details": "검색 인덱스(JSON) 생성, Lunr.js 또는 Fuse.js 연동, 검색 UI 컴포넌트 개발 및 결과 렌더링",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "검색 인덱스 로딩 테스트, 키워드 입력 시 결과 필터링 정확도 확인",
             "parentId": "undefined"
           },
@@ -777,7 +777,7 @@
               1
             ],
             "details": "Vercel API 토큰 환경 변수 설정, buildSite()와 deployToVercel() 구현, API 요청 및 응답 처리 로직 작성",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "모의(buildOutput) 데이터를 이용한 API 호출 시뮬레이션, 실제 Vercel 프로젝트에 배포 트리거 확인",
             "parentId": "undefined"
           },
@@ -789,7 +789,7 @@
               5
             ],
             "details": "getDeploymentStatus()로 배포 상태 폴링, 에러 조건 감지 시 rollback() 호출, 롤백 완료 후 상태 리포트",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "성공/실패 시나리오로 상태 폴링 테스트, 강제 오류 발생 시 롤백 동작 검증",
             "parentId": "undefined"
           },
@@ -801,7 +801,7 @@
               5
             ],
             "details": "알림 메시지 포맷 정의, Slack/Discord 웹훅 URL 환경 변수 설정, 배포 후 notifyWebhook() 함수 호출",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "배포 시뮬레이션 후 웹훅 엔드포인트에 예상 메시지 전송 여부 확인",
             "parentId": "undefined"
           }
@@ -825,7 +825,7 @@
           "7",
           "8"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -833,7 +833,7 @@
             "description": "워크플로우와 단계 정의를 위한 TypeScript 인터페이스 설계",
             "dependencies": [],
             "details": "Workflow와 WorkflowStep, Trigger, ErrorStrategy 인터페이스 구조를 명세하고 각 필드 타입과 제약조건을 정의합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "인터페이스 타입 테스트 및 잘못된 구조에 대한 컴파일 오류 확인",
             "parentId": "undefined"
           },
@@ -845,7 +845,7 @@
               1
             ],
             "details": "registerWorkflow, executeWorkflow, scheduleWorkflow, getExecutionHistory 메서드 시그니처와 기본 로깅 기능을 포함한 클래스 뼈대 코드를 작성합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "클래스 메서드 호출 시 에러 없이 스켈레톤이 로드되는지 단위 테스트",
             "parentId": "undefined"
           },
@@ -858,7 +858,7 @@
               2
             ],
             "details": "EventEmitter 인스턴스를 생성하고 Workflow 트리거 등록, 발화, 리스너 관리를 위한 메서드를 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "가상 이벤트를 발화하여 등록된 콜백이 정상 호출되는지 확인",
             "parentId": "undefined"
           },
@@ -871,7 +871,7 @@
               2
             ],
             "details": "node-cron 또는 유사 라이브러리를 사용해 scheduleWorkflow 호출 시 지정된 cron 표현식으로 작업이 주기 실행되도록 설정합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "단위 테스트로 cron 표현식 파싱과 가짜 시간 진행 시 스케줄러 발화 확인",
             "parentId": "undefined"
           },
@@ -884,7 +884,7 @@
               3
             ],
             "details": "Workflow 객체에 id 'onMissionUpdate', 단계에 파일 감지, 분석, LinkedInContentGenerator 호출을 포함해 등록합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "가상 Mission 변경 이벤트 발생 시 end-to-end 실행 성공 확인",
             "parentId": "undefined"
           },
@@ -897,7 +897,7 @@
               3
             ],
             "details": "Workflow 객체에 id 'onMeetingSync', Notion 데이터 가져오기, ReportGenerator 호출 단계를 정의하고 등록합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "가상 MeetingSync 이벤트 시 보고서 생성 및 저장 확인",
             "parentId": "undefined"
           },
@@ -910,7 +910,7 @@
               3
             ],
             "details": "Workflow 객체에 id 'onSkillUpdate', 변경 파일 동기화, 배포 스크립트 호출 단계를 포함해 등록합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "가상 Skill 변경 시 Vercel deploy 명령어가 호출되는지 확인",
             "parentId": "undefined"
           },
@@ -924,7 +924,7 @@
               4
             ],
             "details": "Workflow 객체에 id 'weeklyDigest', ReportGenerator 주간 보고서 생성 단계 정의 후 scheduleWorkflow로 매주 금요일 배치합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "가짜 시간 시뮬레이션으로 주간 작업이 정확히 주기 실행되는지 확인",
             "parentId": "undefined"
           },
@@ -936,7 +936,7 @@
               2
             ],
             "details": "MongoDB 또는 파일 시스템에 Execution 기록 저장, getExecutionHistory API와 대시보드 뷰 렌더러를 개발합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "실행 로그가 저장되고 getExecutionHistory 호출 시 올바른 데이터를 반환하는지 검증",
             "parentId": "undefined"
           },
@@ -950,7 +950,7 @@
               9
             ],
             "details": "ErrorStrategy에 따라 재시도 횟수, 지연 시간 설정 후 실패 시 Slack 또는 이메일 알림을 발송하도록 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "인위적 에러 발생 시 재시도 로직 동작 및 알림 채널 전송 확인",
             "parentId": "undefined"
           }
@@ -969,7 +969,7 @@
         "dependencies": [
           "9"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
