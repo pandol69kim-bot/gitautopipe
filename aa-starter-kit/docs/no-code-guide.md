@@ -118,6 +118,7 @@ npx ts-node aa-starter-kit/scripts/setup.ts
 터미널에 입력:
 
 ```
+# 프로젝트 루트에서 실행하세요. vault/ 폴더 안에서 실행하면 안 됩니다.
 npx ts-node src/cli/index.ts status
 ```
 
@@ -136,7 +137,7 @@ weeklyDigest    true        0
 ### 미션 기록 후 LinkedIn 초안 자동 생성
 
 1. Obsidian에서 `vault/Mission/` 에 오늘 미션 작성 및 저장
-2. 터미널에 입력:
+2. 프로젝트 루트 터미널에서 입력:
    ```
    npx ts-node src/cli/index.ts workflow onMissionUpdate
    ```

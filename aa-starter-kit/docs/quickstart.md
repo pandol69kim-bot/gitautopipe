@@ -73,6 +73,9 @@ npx ts-node aa-starter-kit/scripts/setup.ts
 ## 5단계: 첫 번째 실행
 
 ```bash
+# 아래 명령은 프로젝트 루트에서 실행
+# vault/ 폴더 안에서 실행하면 src/cli/index.ts를 찾지 못합니다.
+
 # 시스템 상태 확인
 npm run dev -- status
 
@@ -91,6 +94,8 @@ schedules  1개 (weeklyDigest: 매주 월요일 09:00)
 ## 6단계: 첫 번째 워크플로우 실행
 
 ```bash
+# 아래 명령도 프로젝트 루트에서 실행
+
 # 미션 업데이트 워크플로우 테스트
 npx ts-node src/cli/index.ts workflow onMissionUpdate
 

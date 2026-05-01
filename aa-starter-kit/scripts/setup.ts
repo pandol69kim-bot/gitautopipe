@@ -8,7 +8,9 @@ import fs from 'fs';
 import path from 'path';
 
 const VAULT_FOLDERS = ['Mission', 'Meetings', 'Skills', 'Insights', 'Analysis', 'Archive'];
-const TEMPLATE_DIR = path.join(__dirname, '..', 'templates');
+const currentFilePath = fs.realpathSync(process.argv[1]);
+const currentDirPath = path.dirname(currentFilePath);
+const TEMPLATE_DIR = path.join(currentDirPath, '..', 'templates');
 
 function ensureDir(dirPath: string): void {
   if (!fs.existsSync(dirPath)) {
@@ -40,7 +42,7 @@ function copyTemplates(vaultRoot: string): void {
 }
 
 function copyEnvExample(projectRoot: string): void {
-  const src = path.join(__dirname, '..', '.env.example');
+  const src = path.join(currentDirPath, '..', '.env.example');
   const dest = path.join(projectRoot, '.env');
   if (!fs.existsSync(dest)) {
     fs.copyFileSync(src, dest);
@@ -87,7 +89,8 @@ function main(): void {
   console.log('\n다음 단계:');
   console.log('  1. .env 파일을 열어 API 키를 입력하세요.');
   console.log('  2. selfish-club.config.json에서 GitHub 정보를 설정하세요.');
-  console.log('  3. npm install 후 npm run dev로 실행하세요.');
+  console.log('  3. 저장소 루트에서 npm install 후 npm run dev -- status 로 확인하세요.');
+  console.log('     참고: vault/ 폴더 안이 아니라 프로젝트 루트에서 실행해야 합니다.');
   console.log('\n자세한 내용은 docs/quickstart.md를 참고하세요.\n');
 }
 

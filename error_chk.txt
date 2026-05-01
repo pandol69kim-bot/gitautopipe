@@ -1,0 +1,32 @@
+\vault>npx ts-node src/cli/index.ts status
+node:internal/modules/cjs/loader:1424
+  throw err;
+  ^
+
+Error: Cannot find module './index.ts'
+Require stack:
+- D:\TM_PROJECT_셀피시\vault\src\cli\imaginaryUncacheableRequireResolveScript
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)
+    at require.resolve (node:internal/modules/helpers:163:19)
+    at requireResolveNonCached (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:549:16)
+    at getProjectSearchDir (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:519:40)
+    at phase3 (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:267:27)
+    at bootstrap (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:47:30)
+    at main (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:33:12)
+    at Object.<anonymous> (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:579:5)
+    at Module._compile (node:internal/modules/cjs/loader:1761:14)
+    at Object..js (node:internal/modules/cjs/loader:1893:10) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'D:\\TM_PROJECT_셀피시\\vault\\src\\cli\\imaginaryUncacheableRequireResolveScript'
+  ]
+}
+
+Node.js v24.13.0
+
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+workflows       [object Object],[object Object],[object Object],[object Object]
+schedules       1
+timestamp       2026-05-01T08:26:04.704Z
+
+D:\TM_PROJECT_셀피시\vault>

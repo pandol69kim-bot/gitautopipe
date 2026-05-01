@@ -31,8 +31,10 @@ cd selfishclub-codex
 npm install
 cp .env.example .env   # API 키 입력
 npx ts-node aa-starter-kit/scripts/setup.ts
-npx ts-node src/cli/index.ts status
+npm run dev -- status
 ```
+
+CLI 명령은 `vault/` 폴더가 아니라 저장소 루트에서 실행해야 합니다.
 
 자세한 내용은 [빠른 시작 가이드](./docs/quickstart.md)를 참고하세요.
 
