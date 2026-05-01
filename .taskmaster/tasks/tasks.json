@@ -977,7 +977,7 @@
             "description": "Commander.js를 사용해 기본 CLI 구조와 글로벌 옵션을 설정합니다.",
             "dependencies": [],
             "details": "프로젝트에 Commander.js 설치 후 프로그램 이름(selfish-club)과 버전, 글로벌 옵션(-v, --help)을 등록하고 기본 실행 핸들러를 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "CLI 실행 시 버전 및 도움말 출력 확인",
             "parentId": "undefined"
           },
@@ -989,7 +989,7 @@
               1
             ],
             "details": "각 커맨드에 대해 옵션(folder, target, week 등)을 설정하고 내부 로직에서 Task 9 Orchestrator API를 호출해 동작하도록 구현합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "올바른 인자 입력 시 정상 실행, 잘못된 인자 입력 시 에러 메시지 확인",
             "parentId": "undefined"
           },
@@ -1001,7 +1001,7 @@
               1
             ],
             "details": "메인 메뉴에서 실행할 커맨드 목록을 선택하고, 추가 옵션에 대해 단계별 질문을 제공한 후 선택값으로 해당 커맨드를 내부 호출합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "프롬프트 흐름에 따라 올바른 커맨드가 실행되는지 수동 또는 자동화 테스트",
             "parentId": "undefined"
           },
@@ -1013,7 +1013,7 @@
               2
             ],
             "details": "--output 옵션으로 포맷을 선택할 수 있도록 설정하고, table은 console.table, json은 JSON.stringify, minimal은 축약 텍스트로 렌더링 로직을 작성합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "각 포맷별로 출력값 구조와 내용이 사양과 일치하는지 비교 검증",
             "parentId": "undefined"
           },
@@ -1025,7 +1025,7 @@
               1
             ],
             "details": "프로그램 시작 시 설정 파일 경로를 확인하고, 존재하지 않으면 기본 템플릿으로 생성합니다. 저장 시 스키마 기반 유효성 검사를 적용합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "설정 파일 읽기/쓰기 및 스키마 유효성 검사 시나리오 테스트",
             "parentId": "undefined"
           },
@@ -1038,7 +1038,7 @@
               2
             ],
             "details": "winston 또는 debug 모듈을 도입해 로그 레벨을 환경 변수 또는 옵션으로 설정하고, Commander.js 도움말 템플릿을 커스터마이징해 상세 설명을 추가합니다.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "로그 레벨별 출력 여부 확인, --help 실행 시 모든 옵션 설명이 표시되는지 검증",
             "parentId": "undefined"
           }
