@@ -1,6 +1,24 @@
+import * as path from 'path';
 import type { WorkflowOrchestrator } from '../workflows/orchestrator';
 import type { OutputFormat } from './formatter';
 import { format } from './formatter';
+import { VaultScanner } from '../core/vault-scanner';
+import type { FolderType } from '../types/vault';
+
+function createVaultScannerFromEnv(): VaultScanner {
+  const basePath = path.resolve(process.env['VAULT_PATH'] ?? './vault');
+  return new VaultScanner({
+    basePath,
+    folders: {
+      mission: process.env['VAULT_FOLDER_MISSION'] ?? 'mission',
+      meetings: process.env['VAULT_FOLDER_MEETINGS'] ?? 'meetings',
+      skillInsight: process.env['VAULT_FOLDER_SKILL_INSIGHT'] ?? 'skillInsight',
+      sharing: process.env['VAULT_FOLDER_SHARING'] ?? 'sharing',
+      analysis: process.env['VAULT_FOLDER_ANALYSIS'] ?? 'analysis',
+      linkedin: process.env['VAULT_FOLDER_LINKEDIN'] ?? 'linkedin',
+    },
+  });
+}
 
 export interface CommandDeps {
   orchestrator: WorkflowOrchestrator;
@@ -29,9 +47,29 @@ export interface WorkflowRunOptions {
 }
 
 export async function runScan(opts: ScanOptions, deps: CommandDeps): Promise<string> {
+  const scanner = createVaultScannerFromEnv();
+  const folderTypes: FolderType[] = [
+    'mission',
+    'meetings',
+    'skillInsight',
+    'sharing',
+    'analysis',
+    'linkedin',
+  ];
+  const targets = opts.folder ? [opts.folder as FolderType] : folderTypes;
+
+  const counts: Record<string, number> = {};
+  for (const folderType of targets) {
+    const files = await scanner.scanFolder(folderType);
+    counts[folderType] = files.length;
+  }
+
+  const total = Object.values(counts).reduce((s, n) => s + n, 0);
   const result = {
     action: 'scan',
     folder: opts.folder ?? 'all',
+    files: counts,
+    total,
     status: 'completed',
     timestamp: new Date().toISOString(),
   };

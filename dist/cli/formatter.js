@@ -22,10 +22,17 @@ function formatTable(data) {
     }
     if (typeof data === 'object' && data !== null) {
         return Object.entries(data)
-            .map(([k, v]) => `${k}\t${String(v)}`)
+            .map(([k, v]) => `${k}\t${serializeValue(v)}`)
             .join('\n');
     }
     return String(data);
+}
+function serializeValue(v) {
+    if (v === null || v === undefined)
+        return '';
+    if (typeof v === 'object')
+        return JSON.stringify(v);
+    return String(v);
 }
 function formatMinimal(data) {
     if (Array.isArray(data)) {
@@ -33,7 +40,7 @@ function formatMinimal(data) {
     }
     if (typeof data === 'object' && data !== null) {
         return Object.entries(data)
-            .map(([k, v]) => `${k}: ${String(v)}`)
+            .map(([k, v]) => `${k}: ${serializeValue(v)}`)
             .join(', ');
     }
     return String(data);

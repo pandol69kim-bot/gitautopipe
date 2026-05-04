@@ -334,3 +334,79 @@ const fs=require('fs'); const data=JSON.parse(fs.readFileSync('.taskmaster/tasks
 
 npx vitest run src/security/security.test.ts
 
+
+
+
+
+==
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && node -e "
+const fs = require('fs');
+const path = require('path');
+
+const checks = [];
+
+// 1. vault 폴더 존재 여부
+const vaultPath = path.resolve('./vault');
+checks.push({ name: 'vault 폴더 존재', ok: fs.existsSync(vaultPath), detail: vaultPath });
+
+// 2. 서브폴더 확인
+const subfolders = ['mission', 'meetings', 'skillInsight', 'sharing', 'analysis', 'linkedin'];
+for (const f of subfolders) {
+  const p = path.join(vaultPath, f);
+  checks.push({ name: 'subfolder: ' + f, ok: fs.existsSync(p), detail: p });
+}
+
+// 3. VAULT_PATH 환경변수
+require('dotenv').config();
+checks.push({ name: 'VAULT_PATH 환경변수', ok: !!process.env.VAULT_PATH, detail: process.env.VAULT_PATH || '(없음)' });
+
+// 4. runScan이 VaultScanner 실제 사용 여부
+const cmdSrc = fs.readFileSync('./src/cli/commands.ts', 'utf-8');
+checks.push({ name: 'runScan → VaultScanner 연결', ok: cmdSrc.includes('VaultScanner'), detail: cmdSrc.includes('VaultScanner') ? '연결됨' : '미연결 (mock)' });
+
+console.log('\nObsidian Vault 연결 진단');
+console.log('='.repeat(40));
+for (const c of checks) {
+  console.log((c.ok ? '[PASS]' : '[FAIL]') + ' ' + c.name + ': ' + c.detail);
+}
+" 2>&1
+
+
+
+mkdir -p "D:\TM_PROJECT_셀피시\코드엑스개발\vault\mission" "D:\TM_PROJECT_셀피시\코드엑스개발\vault\meetings" "D:\TM_PROJECT_셀피시\코드엑스개발\vault\skillInsight" "D:\TM_PROJECT_셀피시\코드엑스개발\vault\sharing" "D:\TM_PROJECT_셀피시\코드엑스개발\vault\analysis" "D:\TM_PROJECT_셀피시\코드엑스개발\vault\linkedin" 2>&1
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && node ./dist/cli/index.js scan 2>&1
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && npm run build 2>&1 && node ./dist/cli/index.js scan 2>&1
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && node -e "
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
+
+const checks = [];
+const vaultPath = path.resolve(process.env.VAULT_PATH ?? './vault');
+checks.push({ name: 'vault 폴더 존재', ok: fs.existsSync(vaultPath), detail: vaultPath });
+
+const subfolders = ['mission', 'meetings', 'skillInsight', 'sharing', 'analysis', 'linkedin'];
+for (const f of subfolders) {
+  const p = path.join(vaultPath, f);
+  checks.push({ name: 'subfolder: ' + f, ok: fs.existsSync(p), detail: p });
+}
+
+checks.push({ name: 'VAULT_PATH 환경변수', ok: !!process.env.VAULT_PATH, detail: process.env.VAULT_PATH });
+const cmdSrc = fs.readFileSync('./src/cli/commands.ts', 'utf-8');
+checks.push({ name: 'runScan → VaultScanner 연결', ok: cmdSrc.includes('VaultScanner'), detail: cmdSrc.includes('VaultScanner') ? '연결됨' : '미연결' });
+
+console.log('\nObsidian Vault 연결 진단');
+console.log('='.repeat(40));
+for (const c of checks) {
+  console.log((c.ok ? '[PASS]' : '[FAIL]') + ' ' + c.name + ': ' + c.detail);
+}
+const passed = checks.filter(c => c.ok).length;
+console.log('\n결과: ' + passed + '/' + checks.length + ' 통과');
+" 2>&1
+

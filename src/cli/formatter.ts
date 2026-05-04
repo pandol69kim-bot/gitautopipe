@@ -23,10 +23,16 @@ function formatTable(data: unknown): string {
   }
   if (typeof data === 'object' && data !== null) {
     return Object.entries(data as Record<string, unknown>)
-      .map(([k, v]) => `${k}\t${String(v)}`)
+      .map(([k, v]) => `${k}\t${serializeValue(v)}`)
       .join('\n');
   }
   return String(data);
+}
+
+function serializeValue(v: unknown): string {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
 }
 
 function formatMinimal(data: unknown): string {
@@ -35,7 +41,7 @@ function formatMinimal(data: unknown): string {
   }
   if (typeof data === 'object' && data !== null) {
     return Object.entries(data as Record<string, unknown>)
-      .map(([k, v]) => `${k}: ${String(v)}`)
+      .map(([k, v]) => `${k}: ${serializeValue(v)}`)
       .join(', ');
   }
   return String(data);
