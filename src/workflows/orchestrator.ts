@@ -10,7 +10,12 @@ import type {
   ExecutionResult,
   ErrorHandlingConfig,
 } from '../types/workflow';
+import * as path from 'path';
+import { Client as NotionSdkClient } from '@notionhq/client';
 import { GitHubSync } from '../integrations/github';
+import { NotionMCPConnector } from '../integrations/notion';
+import type { NotionPage } from '../types/notion';
+import type { NotionClient as INotionClient } from '../integrations/notion';
 
 function createGitHubSyncFromEnv(): GitHubSync {
   const token = process.env['GITHUB_TOKEN'] ?? process.env['GITHUB_API_KEY'];
@@ -24,6 +29,30 @@ function createGitHubSyncFromEnv(): GitHubSync {
   }
 
   return new GitHubSync({ owner, repo, branch, token, localRepoPath });
+}
+
+function createNotionConnectorFromEnv(): {
+  connector: NotionMCPConnector;
+  databaseId: string;
+  obsidianPath: string;
+} {
+  const token = process.env['NOTION_TOKEN'];
+  const databaseId = process.env['NOTION_DATABASE_ID'];
+  const obsidianPath = path.resolve(
+    process.env['NOTION_OBSIDIAN_PATH'] ?? path.join(process.cwd(), 'vault', 'meetings')
+  );
+
+  if (!token) {
+    throw new Error('NOTION_TOKEN 환경변수가 필요합니다.');
+  }
+  if (!databaseId) {
+    throw new Error('NOTION_DATABASE_ID 환경변수가 필요합니다.');
+  }
+
+  const client = new NotionSdkClient({ auth: token }) as unknown as INotionClient;
+  const connector = new NotionMCPConnector({ token, defaultDatabaseId: databaseId }, client);
+
+  return { connector, databaseId, obsidianPath };
 }
 
 interface ScheduleEntry {
@@ -260,6 +289,48 @@ export class WorkflowOrchestrator {
         },
       ],
       triggers: [{ type: 'event', event: 'github:sync' }],
+      errorHandling: { strategy: 'stop', notifyOnFailure: true },
+    });
+
+    // onNotionSync: notion:sync 이벤트 → Notion DB 조회 → Obsidian 마크다운 저장
+    this.registerWorkflow({
+      id: 'onNotionSync',
+      name: 'Notion 동기화',
+      steps: [
+        {
+          id: 'notion-fetch',
+          name: 'Notion DB 미팅 페이지 조회',
+          execute: async (ctx: WorkflowContext) => {
+            const { connector, databaseId } = createNotionConnectorFromEnv();
+            const pages = await connector.fetchMeetings(databaseId);
+            ctx.payload = { ...ctx.payload, pages };
+            return { fetched: pages.length, titles: pages.map((p) => p.title) };
+          },
+        },
+        {
+          id: 'notion-sync-obsidian',
+          name: 'Notion → Obsidian 마크다운 저장',
+          execute: async (ctx: WorkflowContext) => {
+            const { connector, obsidianPath } = createNotionConnectorFromEnv();
+            const pages = ctx.payload?.['pages'] as NotionPage[] | undefined;
+
+            if (!pages || pages.length === 0) {
+              return { message: '동기화할 페이지 없음' };
+            }
+
+            await Promise.all(
+              pages.map((page) => {
+                const safeName = page.title.replace(/[/\\:*?"<>|]/g, '_');
+                const targetPath = path.join(obsidianPath, `${safeName}.md`);
+                return connector.syncToObsidian(page, targetPath);
+              })
+            );
+
+            return { synced: pages.length };
+          },
+        },
+      ],
+      triggers: [{ type: 'event', event: 'notion:sync' }],
       errorHandling: { strategy: 'stop', notifyOnFailure: true },
     });
 

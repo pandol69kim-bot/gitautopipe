@@ -46,7 +46,7 @@ async function runInteractive(prompt) {
                     type: 'list',
                     name: 'workflowId',
                     message: '실행할 워크플로우:',
-                    choices: ['onMissionUpdate', 'onMeetingSync', 'onSkillUpdate', 'weeklyDigest'],
+                    choices: ['onGitHubSync', 'onNotionSync', 'onMissionUpdate', 'onMeetingSync', 'onSkillUpdate', 'weeklyDigest'],
                 },
             ]));
             return { command: 'workflow', options: { workflowId } };

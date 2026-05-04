@@ -66,7 +66,14 @@ export async function runInteractive(prompt: PromptFn): Promise<InteractiveResul
           type: 'list',
           name: 'workflowId',
           message: '실행할 워크플로우:',
-          choices: ['onMissionUpdate', 'onMeetingSync', 'onSkillUpdate', 'weeklyDigest'],
+          choices: [
+            'onGitHubSync',
+            'onNotionSync',
+            'onMissionUpdate',
+            'onMeetingSync',
+            'onSkillUpdate',
+            'weeklyDigest',
+          ],
         },
       ])) as { workflowId: string };
       return { command: 'workflow', options: { workflowId } };

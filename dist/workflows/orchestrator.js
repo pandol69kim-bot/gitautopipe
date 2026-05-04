@@ -1,9 +1,45 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkflowOrchestrator = void 0;
 const events_1 = require("events");
 const crypto_1 = require("crypto");
+const path = __importStar(require("path"));
+const client_1 = require("@notionhq/client");
 const github_1 = require("../integrations/github");
+const notion_1 = require("../integrations/notion");
 function createGitHubSyncFromEnv() {
     const token = process.env['GITHUB_TOKEN'] ?? process.env['GITHUB_API_KEY'];
     const owner = process.env['GITHUB_OWNER'];
@@ -14,6 +50,20 @@ function createGitHubSyncFromEnv() {
         throw new Error('GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO 환경변수가 필요합니다.');
     }
     return new github_1.GitHubSync({ owner, repo, branch, token, localRepoPath });
+}
+function createNotionConnectorFromEnv() {
+    const token = process.env['NOTION_TOKEN'];
+    const databaseId = process.env['NOTION_DATABASE_ID'];
+    const obsidianPath = path.resolve(process.env['NOTION_OBSIDIAN_PATH'] ?? path.join(process.cwd(), 'vault', 'meetings'));
+    if (!token) {
+        throw new Error('NOTION_TOKEN 환경변수가 필요합니다.');
+    }
+    if (!databaseId) {
+        throw new Error('NOTION_DATABASE_ID 환경변수가 필요합니다.');
+    }
+    const client = new client_1.Client({ auth: token });
+    const connector = new notion_1.NotionMCPConnector({ token, defaultDatabaseId: databaseId }, client);
+    return { connector, databaseId, obsidianPath };
 }
 // ── WorkflowOrchestrator 클래스 ───────────────────────────────────────
 class WorkflowOrchestrator {
@@ -199,6 +249,42 @@ class WorkflowOrchestrator {
                 },
             ],
             triggers: [{ type: 'event', event: 'github:sync' }],
+            errorHandling: { strategy: 'stop', notifyOnFailure: true },
+        });
+        // onNotionSync: notion:sync 이벤트 → Notion DB 조회 → Obsidian 마크다운 저장
+        this.registerWorkflow({
+            id: 'onNotionSync',
+            name: 'Notion 동기화',
+            steps: [
+                {
+                    id: 'notion-fetch',
+                    name: 'Notion DB 미팅 페이지 조회',
+                    execute: async (ctx) => {
+                        const { connector, databaseId } = createNotionConnectorFromEnv();
+                        const pages = await connector.fetchMeetings(databaseId);
+                        ctx.payload = { ...ctx.payload, pages };
+                        return { fetched: pages.length, titles: pages.map((p) => p.title) };
+                    },
+                },
+                {
+                    id: 'notion-sync-obsidian',
+                    name: 'Notion → Obsidian 마크다운 저장',
+                    execute: async (ctx) => {
+                        const { connector, obsidianPath } = createNotionConnectorFromEnv();
+                        const pages = ctx.payload?.['pages'];
+                        if (!pages || pages.length === 0) {
+                            return { message: '동기화할 페이지 없음' };
+                        }
+                        await Promise.all(pages.map((page) => {
+                            const safeName = page.title.replace(/[/\\:*?"<>|]/g, '_');
+                            const targetPath = path.join(obsidianPath, `${safeName}.md`);
+                            return connector.syncToObsidian(page, targetPath);
+                        }));
+                        return { synced: pages.length };
+                    },
+                },
+            ],
+            triggers: [{ type: 'event', event: 'notion:sync' }],
             errorHandling: { strategy: 'stop', notifyOnFailure: true },
         });
         // onMissionUpdate: Mission 파일 변경 → 분석 → LinkedIn 초안

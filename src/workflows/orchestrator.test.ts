@@ -309,7 +309,26 @@ describe('WorkflowOrchestrator', () => {
     it('onGitHubSync는 3개의 스텝을 갖는다', () => {
       const wf = orchestrator.getWorkflow('onGitHubSync')!;
       expect(wf.steps).toHaveLength(3);
-      expect(wf.steps.map((s) => s.id)).toEqual(['github-pull', 'github-status', 'github-commit-push']);
+      expect(wf.steps.map((s) => s.id)).toEqual([
+        'github-pull',
+        'github-status',
+        'github-commit-push',
+      ]);
+    });
+
+    it('onNotionSync 워크플로우가 등록된다', () => {
+      expect(orchestrator.getWorkflow('onNotionSync')).toBeDefined();
+    });
+
+    it('onNotionSync는 notion:sync 이벤트 트리거를 갖는다', () => {
+      const wf = orchestrator.getWorkflow('onNotionSync')!;
+      expect(wf.triggers.some((t) => t.type === 'event' && t.event === 'notion:sync')).toBe(true);
+    });
+
+    it('onNotionSync는 2개의 스텝을 갖는다', () => {
+      const wf = orchestrator.getWorkflow('onNotionSync')!;
+      expect(wf.steps).toHaveLength(2);
+      expect(wf.steps.map((s) => s.id)).toEqual(['notion-fetch', 'notion-sync-obsidian']);
     });
 
     it('onMissionUpdate 워크플로우가 등록된다', () => {
