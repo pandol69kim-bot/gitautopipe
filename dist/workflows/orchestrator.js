@@ -3,6 +3,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkflowOrchestrator = void 0;
 const events_1 = require("events");
 const crypto_1 = require("crypto");
+const github_1 = require("../integrations/github");
+function createGitHubSyncFromEnv() {
+    const token = process.env['GITHUB_TOKEN'] ?? process.env['GITHUB_API_KEY'];
+    const owner = process.env['GITHUB_OWNER'];
+    const repo = process.env['GITHUB_REPO'];
+    const branch = process.env['GITHUB_BRANCH'] ?? 'main';
+    const localRepoPath = process.env['GITHUB_LOCAL_PATH'] ?? process.cwd();
+    if (!token || !owner || !repo) {
+        throw new Error('GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO 환경변수가 필요합니다.');
+    }
+    return new github_1.GitHubSync({ owner, repo, branch, token, localRepoPath });
+}
 // ── WorkflowOrchestrator 클래스 ───────────────────────────────────────
 class WorkflowOrchestrator {
     workflows = new Map();
@@ -134,6 +146,61 @@ class WorkflowOrchestrator {
     }
     // ── Subtask 5~8: 사전 정의 워크플로우 ────────────────────────────
     registerPredefinedWorkflows() {
+        // onGitHubSync: github:sync 이벤트 → pull → status 확인 → commit & push
+        this.registerWorkflow({
+            id: 'onGitHubSync',
+            name: 'GitHub 동기화',
+            steps: [
+                {
+                    id: 'github-pull',
+                    name: '원격 최신화 (pull)',
+                    execute: async (_ctx) => {
+                        const sync = createGitHubSyncFromEnv();
+                        await sync.pull();
+                        return { message: 'pull 완료' };
+                    },
+                },
+                {
+                    id: 'github-status',
+                    name: '변경 파일 확인',
+                    execute: async (_ctx) => {
+                        const sync = createGitHubSyncFromEnv();
+                        const status = await sync.getStatus();
+                        return {
+                            modified: status.modified,
+                            created: status.created,
+                            deleted: status.deleted,
+                            total: status.modified.length + status.created.length + status.deleted.length,
+                        };
+                    },
+                },
+                {
+                    id: 'github-commit-push',
+                    name: '커밋 및 푸시',
+                    execute: async (_ctx) => {
+                        const sync = createGitHubSyncFromEnv();
+                        const status = await sync.getStatus();
+                        const allChanged = [...status.modified, ...status.created, ...status.deleted];
+                        if (allChanged.length === 0) {
+                            return { message: '변경 사항 없음 — 커밋 생략' };
+                        }
+                        const files = allChanged.map((f) => ({
+                            filePath: f,
+                            relativePath: f,
+                            folderType: 'mission',
+                            changeType: 'modify',
+                        }));
+                        const message = github_1.GitHubSync.buildCommitMessage({
+                            type: 'generic',
+                            description: `sync: ${new Date().toISOString()}`,
+                        });
+                        return sync.commitAndPush(files, message);
+                    },
+                },
+            ],
+            triggers: [{ type: 'event', event: 'github:sync' }],
+            errorHandling: { strategy: 'stop', notifyOnFailure: true },
+        });
         // onMissionUpdate: Mission 파일 변경 → 분석 → LinkedIn 초안
         this.registerWorkflow({
             id: 'onMissionUpdate',

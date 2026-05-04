@@ -297,6 +297,21 @@ describe('WorkflowOrchestrator', () => {
   // ── Subtask 5~8: 사전 정의 워크플로우 ────────────────────────────
 
   describe('predefined workflows', () => {
+    it('onGitHubSync 워크플로우가 등록된다', () => {
+      expect(orchestrator.getWorkflow('onGitHubSync')).toBeDefined();
+    });
+
+    it('onGitHubSync는 github:sync 이벤트 트리거를 갖는다', () => {
+      const wf = orchestrator.getWorkflow('onGitHubSync')!;
+      expect(wf.triggers.some((t) => t.type === 'event' && t.event === 'github:sync')).toBe(true);
+    });
+
+    it('onGitHubSync는 3개의 스텝을 갖는다', () => {
+      const wf = orchestrator.getWorkflow('onGitHubSync')!;
+      expect(wf.steps).toHaveLength(3);
+      expect(wf.steps.map((s) => s.id)).toEqual(['github-pull', 'github-status', 'github-commit-push']);
+    });
+
     it('onMissionUpdate 워크플로우가 등록된다', () => {
       expect(orchestrator.getWorkflow('onMissionUpdate')).toBeDefined();
     });
