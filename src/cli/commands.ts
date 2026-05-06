@@ -11,6 +11,8 @@ import { Client as NotionSdkClient } from '@notionhq/client';
 import { NotionMCPConnector, normalizeNotionId } from '../integrations/notion';
 import type { NotionClient } from '../integrations/notion';
 import { syncNotionBidirectional } from '../integrations/notion-sync';
+import { ConfigManager } from './config-manager';
+import { validateCronExpression } from '../workflows/cron';
 
 interface NotionApiErrorLike {
   code?: string;
@@ -46,6 +48,7 @@ function createVaultScannerFromEnv(): VaultScanner {
 export interface CommandDeps {
   orchestrator: WorkflowOrchestrator;
   outputFormat: OutputFormat;
+  configManager?: ConfigManager;
 }
 
 export interface ScanOptions {
@@ -71,6 +74,23 @@ export interface WorkflowRunOptions {
 
 export interface NotionCheckOptions {
   id?: string;
+}
+
+export interface ScheduleAddOptions {
+  workflowId: string;
+  cron: string;
+}
+
+export interface ScheduleRemoveOptions {
+  workflowId: string;
+}
+
+export interface ScheduleRunDueOptions {
+  at?: string;
+}
+
+export interface ScheduleStartOptions {
+  intervalSeconds?: number;
 }
 
 export async function runScan(opts: ScanOptions, deps: CommandDeps): Promise<string> {
@@ -458,6 +478,145 @@ export async function runWorkflow(opts: WorkflowRunOptions, deps: CommandDeps): 
   return format(execution, deps.outputFormat);
 }
 
+export function runScheduleList(deps: CommandDeps): string {
+  return format(
+    {
+      action: 'schedule-list',
+      schedules: deps.orchestrator.getSchedules().map((schedule) => ({
+        workflowId: schedule.workflowId,
+        cron: schedule.cron,
+        registeredAt: schedule.registeredAt.toISOString(),
+      })),
+      timestamp: new Date().toISOString(),
+    },
+    deps.outputFormat
+  );
+}
+
+export function runScheduleAdd(opts: ScheduleAddOptions, deps: CommandDeps): string {
+  if (!deps.configManager) {
+    throw new Error('configManager is required for schedule management.');
+  }
+
+  validateCronExpression(opts.cron);
+  deps.orchestrator.scheduleWorkflow(opts.workflowId, opts.cron);
+  deps.configManager.setWorkflowSchedule(opts.workflowId, opts.cron);
+
+  return format(
+    {
+      action: 'schedule-add',
+      workflowId: opts.workflowId,
+      cron: opts.cron,
+      status: 'scheduled',
+      timestamp: new Date().toISOString(),
+    },
+    deps.outputFormat
+  );
+}
+
+export function runScheduleRemove(opts: ScheduleRemoveOptions, deps: CommandDeps): string {
+  if (!deps.configManager) {
+    throw new Error('configManager is required for schedule management.');
+  }
+
+  const removed = deps.configManager.removeWorkflowSchedule(opts.workflowId);
+  const unscheduled = deps.orchestrator.unscheduleWorkflow(opts.workflowId);
+
+  return format(
+    {
+      action: 'schedule-remove',
+      workflowId: opts.workflowId,
+      removed,
+      unscheduled,
+      timestamp: new Date().toISOString(),
+    },
+    deps.outputFormat
+  );
+}
+
+export async function runScheduleRunDue(
+  opts: ScheduleRunDueOptions,
+  deps: CommandDeps
+): Promise<string> {
+  const at = parseScheduleDate(opts.at);
+  const executions = await deps.orchestrator.runDueSchedules(at);
+
+  return format(
+    {
+      action: 'schedule-run-due',
+      requestedAt: at.toISOString(),
+      dueCount: executions.length,
+      executions,
+      timestamp: new Date().toISOString(),
+    },
+    deps.outputFormat
+  );
+}
+
+export async function runScheduleStart(
+  opts: ScheduleStartOptions,
+  deps: CommandDeps
+): Promise<string> {
+  const intervalSeconds = opts.intervalSeconds ?? 60;
+  if (!Number.isFinite(intervalSeconds) || intervalSeconds <= 0) {
+    throw new Error(`intervalSeconds는 1 이상의 숫자여야 합니다: ${intervalSeconds}`);
+  }
+
+  const intervalMs = intervalSeconds * 1000;
+  let isTickRunning = false;
+
+  const tick = async () => {
+    if (isTickRunning) {
+      return;
+    }
+
+    isTickRunning = true;
+    try {
+      const executions = await deps.orchestrator.runDueSchedules(new Date());
+      if (executions.length > 0) {
+        console.log(
+          format(
+            {
+              action: 'schedule-tick',
+              dueCount: executions.length,
+              executions,
+              timestamp: new Date().toISOString(),
+            },
+            deps.outputFormat
+          )
+        );
+      }
+    } finally {
+      isTickRunning = false;
+    }
+  };
+
+  await tick();
+  const timer = setInterval(() => {
+    void tick();
+  }, intervalMs);
+
+  const stop = () => {
+    clearInterval(timer);
+    process.off('SIGINT', stop);
+    process.off('SIGTERM', stop);
+  };
+
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
+
+  return format(
+    {
+      action: 'schedule-start',
+      status: 'running',
+      intervalSeconds,
+      schedules: deps.orchestrator.getSchedules().length,
+      timestamp: new Date().toISOString(),
+    },
+    deps.outputFormat
+  );
+}
+
 export async function runNotionCheck(
   opts: NotionCheckOptions,
   deps: CommandDeps
@@ -544,10 +703,55 @@ export function runStatus(deps: CommandDeps): string {
     registered: !!deps.orchestrator.getWorkflow(id),
     historyCount: deps.orchestrator.getExecutionHistory(id).length,
   }));
+  const defaultSchedules = predefined
+    .map((id) => deps.orchestrator.getWorkflow(id))
+    .filter((workflow): workflow is NonNullable<typeof workflow> => Boolean(workflow))
+    .flatMap((workflow) =>
+      workflow.triggers
+        .filter((trigger) => trigger.type === 'cron' && Boolean(trigger.cron))
+        .map((trigger) => ({
+          workflowId: workflow.id,
+          cron: trigger.cron as string,
+          source: 'default' as const,
+        }))
+    );
+  const configuredSchedules = (deps.configManager?.listWorkflowSchedules() ?? []).map((schedule) => ({
+    ...schedule,
+    source: 'config' as const,
+  }));
+  const defaultScheduleIds = new Set(defaultSchedules.map((schedule) => schedule.workflowId));
+  const configuredScheduleIds = new Set(configuredSchedules.map((schedule) => schedule.workflowId));
   const result = {
     workflows,
     schedules: schedules.length,
+    defaultSchedules,
+    configuredSchedules,
+    effectiveSchedules: schedules.map((schedule) => ({
+      workflowId: schedule.workflowId,
+      cron: schedule.cron,
+      source: defaultScheduleIds.has(schedule.workflowId) && configuredScheduleIds.has(schedule.workflowId)
+        ? 'default+config'
+        : defaultScheduleIds.has(schedule.workflowId)
+          ? 'default'
+          : configuredScheduleIds.has(schedule.workflowId)
+            ? 'config'
+            : 'runtime',
+      registeredAt: schedule.registeredAt.toISOString(),
+    })),
     timestamp: new Date().toISOString(),
   };
   return format(result, deps.outputFormat);
+}
+
+function parseScheduleDate(value: string | undefined): Date {
+  if (!value) {
+    return new Date();
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`잘못된 날짜 형식입니다: ${value}`);
+  }
+
+  return date;
 }

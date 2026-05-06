@@ -28,6 +28,11 @@ const ConfigSchema = zod_1.z.object({
         tone: zod_1.z.enum(['professional', 'casual', 'thought-leader']).default('professional'),
     })
         .optional(),
+    workflows: zod_1.z
+        .object({
+        schedules: zod_1.z.record(zod_1.z.string(), zod_1.z.object({ cron: zod_1.z.string().min(1) })).default({}),
+    })
+        .default({ schedules: {} }),
     logLevel: zod_1.z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 });
 exports.CONFIG_FILENAME = 'selfish-club.config.json';
@@ -37,6 +42,7 @@ const DEFAULT_CONFIG = {
         folders: ['Mission', 'Skills', 'Insights', 'Meetings'],
     },
     github: { owner: '', repo: '', branch: 'main' },
+    workflows: { schedules: {} },
     logLevel: 'info',
 };
 class ConfigManager {
@@ -66,6 +72,41 @@ class ConfigManager {
     }
     getConfigPath() {
         return this.configPath;
+    }
+    listWorkflowSchedules() {
+        const schedules = this.load().workflows.schedules;
+        return Object.entries(schedules).map(([workflowId, entry]) => ({ workflowId, cron: entry.cron }));
+    }
+    setWorkflowSchedule(workflowId, cron) {
+        const config = this.load();
+        const nextConfig = {
+            ...config,
+            workflows: {
+                ...config.workflows,
+                schedules: {
+                    ...config.workflows.schedules,
+                    [workflowId]: { cron },
+                },
+            },
+        };
+        this.save(nextConfig);
+    }
+    removeWorkflowSchedule(workflowId) {
+        const config = this.load();
+        if (!(workflowId in config.workflows.schedules)) {
+            return false;
+        }
+        const nextSchedules = { ...config.workflows.schedules };
+        delete nextSchedules[workflowId];
+        const nextConfig = {
+            ...config,
+            workflows: {
+                ...config.workflows,
+                schedules: nextSchedules,
+            },
+        };
+        this.save(nextConfig);
+        return true;
     }
 }
 exports.ConfigManager = ConfigManager;

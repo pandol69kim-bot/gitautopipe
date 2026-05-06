@@ -7,7 +7,7 @@ async function runInteractive(prompt) {
             type: 'list',
             name: 'command',
             message: '실행할 명령어를 선택하세요:',
-            choices: ['scan', 'sync', 'analyze', 'deploy', 'workflow', 'status', 'exit'],
+            choices: ['scan', 'sync', 'analyze', 'deploy', 'workflow', 'schedule', 'status', 'exit'],
         },
     ]));
     switch (command) {
@@ -57,6 +57,89 @@ async function runInteractive(prompt) {
                 },
             ]));
             return { command: 'workflow', options: { workflowId } };
+        }
+        case 'schedule': {
+            const { operation } = (await prompt([
+                {
+                    type: 'list',
+                    name: 'operation',
+                    message: '스케줄 작업을 선택하세요:',
+                    choices: ['list', 'add', 'remove', 'run-due', 'start'],
+                },
+            ]));
+            switch (operation) {
+                case 'list':
+                    return { command: 'schedule', options: { operation: 'list' } };
+                case 'add': {
+                    const { workflowId, cron } = (await prompt([
+                        {
+                            type: 'list',
+                            name: 'workflowId',
+                            message: '스케줄에 등록할 워크플로우:',
+                            choices: [
+                                'onGitHubSync',
+                                'onNotionSync',
+                                'onMissionUpdate',
+                                'onMeetingSync',
+                                'onSkillUpdate',
+                                'weeklyDigest',
+                            ],
+                        },
+                        {
+                            type: 'input',
+                            name: 'cron',
+                            message: 'cron 표현식 (예: 0 9 * * *):',
+                        },
+                    ]));
+                    return { command: 'schedule', options: { operation: 'add', workflowId, cron } };
+                }
+                case 'remove': {
+                    const { workflowId } = (await prompt([
+                        {
+                            type: 'list',
+                            name: 'workflowId',
+                            message: '스케줄에서 제거할 워크플로우:',
+                            choices: [
+                                'onGitHubSync',
+                                'onNotionSync',
+                                'onMissionUpdate',
+                                'onMeetingSync',
+                                'onSkillUpdate',
+                                'weeklyDigest',
+                            ],
+                        },
+                    ]));
+                    return { command: 'schedule', options: { operation: 'remove', workflowId } };
+                }
+                case 'run-due': {
+                    const { at } = (await prompt([
+                        {
+                            type: 'input',
+                            name: 'at',
+                            message: '기준 시각 ISO 문자열 (비우면 현재 시각):',
+                        },
+                    ]));
+                    return { command: 'schedule', options: { operation: 'run-due', at: at || undefined } };
+                }
+                case 'start': {
+                    const { intervalSeconds } = (await prompt([
+                        {
+                            type: 'input',
+                            name: 'intervalSeconds',
+                            message: '폴링 간격 초 (기본값: 60):',
+                        },
+                    ]));
+                    return {
+                        command: 'schedule',
+                        options: {
+                            operation: 'start',
+                            intervalSeconds: intervalSeconds ? Number(intervalSeconds) : undefined,
+                        },
+                    };
+                }
+                default:
+                    return { command: 'schedule', options: { operation: 'list' } };
+            }
         }
         case 'status':
             return { command: 'status', options: {} };

@@ -2,7 +2,7 @@ import { AuditLogger } from '../security/audit-logger';
 import { RateLimiter } from '../security/rate-limiter';
 import { SecretManager } from '../security/secret-manager';
 import type { UserIdentity } from '../types/security';
-export type CliCommandName = 'scan' | 'sync' | 'analyze' | 'deploy' | 'workflow' | 'status' | 'notion-check' | 'interactive';
+export type CliCommandName = 'scan' | 'sync' | 'analyze' | 'deploy' | 'workflow' | 'schedule' | 'status' | 'notion-check' | 'interactive';
 export interface CliSecurityDeps {
     actor: UserIdentity;
     secretManager: SecretManager;

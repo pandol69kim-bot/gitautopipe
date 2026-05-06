@@ -12,6 +12,11 @@ import {
   runAnalyze,
   runDeploy,
   runWorkflow,
+  runScheduleAdd,
+  runScheduleList,
+  runScheduleRemove,
+  runScheduleRunDue,
+  runScheduleStart,
   runStatus,
   runNotionCheck,
 } from './commands';
@@ -40,6 +45,17 @@ program
     const opts = thisCommand.opts();
     logger.setLevel((opts['logLevel'] as LogLevel) ?? 'info');
     const config = configManager.init();
+    for (const schedule of configManager.listWorkflowSchedules()) {
+      try {
+        orchestrator.scheduleWorkflow(schedule.workflowId, schedule.cron);
+      } catch (error) {
+        logger.warn(
+          error instanceof Error
+            ? `스케줄 로드 실패 (${schedule.workflowId}): ${error.message}`
+            : `스케줄 로드 실패 (${schedule.workflowId})`
+        );
+      }
+    }
     logger.debug(`설정 로드 완료: ${configManager.getConfigPath()}`);
     logger.debug(`logLevel: ${config.logLevel}`);
   });
@@ -51,7 +67,7 @@ program
   .action(async (opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
     const result = await executeCliCommand('scan', opts, async () =>
-      runScan(opts, { orchestrator, outputFormat: output })
+      runScan(opts, { orchestrator, outputFormat: output, configManager })
     );
     console.log(result);
   });
@@ -63,7 +79,7 @@ program
   .action(async (opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
     const result = await executeCliCommand('sync', opts, async () =>
-      runSync(opts, { orchestrator, outputFormat: output })
+      runSync(opts, { orchestrator, outputFormat: output, configManager })
     );
     console.log(result);
   });
@@ -75,7 +91,7 @@ program
   .action(async (opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
     const result = await executeCliCommand('analyze', opts, async () =>
-      runAnalyze(opts, { orchestrator, outputFormat: output })
+      runAnalyze(opts, { orchestrator, outputFormat: output, configManager })
     );
     console.log(result);
   });
@@ -87,7 +103,7 @@ program
   .action(async (opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
     const result = await executeCliCommand('deploy', opts, async () =>
-      runDeploy(opts, { orchestrator, outputFormat: output })
+      runDeploy(opts, { orchestrator, outputFormat: output, configManager })
     );
     console.log(result);
   });
@@ -100,7 +116,76 @@ program
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
     const options = { workflowId };
     const result = await executeCliCommand('workflow', options, async () =>
-      runWorkflow(options, { orchestrator, outputFormat: output })
+      runWorkflow(options, { orchestrator, outputFormat: output, configManager })
+    );
+    console.log(result);
+  });
+
+const scheduleCommand = program.command('schedule').description('워크플로우 스케줄을 관리합니다');
+
+scheduleCommand
+  .command('list')
+  .description('등록된 스케줄을 조회합니다')
+  .action(async (_opts, cmd) => {
+    const output = (cmd.parent?.parent?.opts()['output'] as OutputFormat) ?? 'table';
+    const result = await executeCliCommand('schedule', { operation: 'list' }, async () =>
+      Promise.resolve(runScheduleList({ orchestrator, outputFormat: output, configManager }))
+    );
+    console.log(result);
+  });
+
+scheduleCommand
+  .command('add')
+  .description('워크플로우 스케줄을 등록하거나 갱신합니다')
+  .argument('<workflowId>', '스케줄에 등록할 워크플로우 ID')
+  .requiredOption('--cron <expression>', '5필드 cron 표현식')
+  .action(async (workflowId: string, opts, cmd) => {
+    const output = (cmd.parent?.parent?.opts()['output'] as OutputFormat) ?? 'table';
+    const options = { workflowId, cron: opts.cron as string, operation: 'add' };
+    const result = await executeCliCommand('schedule', options, async () =>
+      Promise.resolve(runScheduleAdd(options, { orchestrator, outputFormat: output, configManager }))
+    );
+    console.log(result);
+  });
+
+scheduleCommand
+  .command('remove')
+  .description('등록된 워크플로우 스케줄을 해제합니다')
+  .argument('<workflowId>', '스케줄에서 제거할 워크플로우 ID')
+  .action(async (workflowId: string, _opts, cmd) => {
+    const output = (cmd.parent?.parent?.opts()['output'] as OutputFormat) ?? 'table';
+    const options = { workflowId, operation: 'remove' };
+    const result = await executeCliCommand('schedule', options, async () =>
+      Promise.resolve(runScheduleRemove(options, { orchestrator, outputFormat: output, configManager }))
+    );
+    console.log(result);
+  });
+
+scheduleCommand
+  .command('run-due')
+  .description('현재 시각 또는 지정 시각 기준으로 실행 대상 스케줄을 즉시 실행합니다')
+  .option('--at <isoDate>', '기준 시각 (ISO 8601)')
+  .action(async (opts, cmd) => {
+    const output = (cmd.parent?.parent?.opts()['output'] as OutputFormat) ?? 'table';
+    const options = { at: opts.at as string | undefined, operation: 'run-due' };
+    const result = await executeCliCommand('schedule', options, async () =>
+      runScheduleRunDue(options, { orchestrator, outputFormat: output, configManager })
+    );
+    console.log(result);
+  });
+
+scheduleCommand
+  .command('start')
+  .description('등록된 스케줄을 주기적으로 확인하며 due 워크플로우를 자동 실행합니다')
+  .option('--interval-seconds <seconds>', '폴링 간격(초)', (value) => parseInt(value, 10), 60)
+  .action(async (opts, cmd) => {
+    const output = (cmd.parent?.parent?.opts()['output'] as OutputFormat) ?? 'table';
+    const options = {
+      intervalSeconds: opts.intervalSeconds as number,
+      operation: 'start',
+    };
+    const result = await executeCliCommand('schedule', options, async () =>
+      runScheduleStart(options, { orchestrator, outputFormat: output, configManager })
     );
     console.log(result);
   });
@@ -111,7 +196,7 @@ program
   .action(async (_opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
     const result = await executeCliCommand('status', {}, async () =>
-      Promise.resolve(runStatus({ orchestrator, outputFormat: output }))
+      Promise.resolve(runStatus({ orchestrator, outputFormat: output, configManager }))
     );
     console.log(result);
   });
@@ -123,7 +208,7 @@ program
   .action(async (opts, cmd) => {
     const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
     const result = await executeCliCommand('notion-check', opts, async () =>
-      runNotionCheck(opts, { orchestrator, outputFormat: output })
+      runNotionCheck(opts, { orchestrator, outputFormat: output, configManager })
     );
     console.log(result);
   });
@@ -143,7 +228,7 @@ program
       return;
     }
 
-    const deps = { orchestrator, outputFormat: output };
+    const deps = { orchestrator, outputFormat: output, configManager };
     let result: string;
     switch (selected.command) {
       case 'scan':
@@ -170,6 +255,24 @@ program
         result = await executeCliCommand('workflow', selected.options, async () =>
           runWorkflow(selected.options, deps)
         );
+        break;
+      case 'schedule':
+        result = await executeCliCommand('schedule', selected.options, async () => {
+          switch (selected.options.operation) {
+            case 'list':
+              return runScheduleList(deps);
+            case 'add':
+              return runScheduleAdd(selected.options, deps);
+            case 'remove':
+              return runScheduleRemove(selected.options, deps);
+            case 'run-due':
+              return runScheduleRunDue(selected.options, deps);
+            case 'start':
+              return runScheduleStart(selected.options, deps);
+            default:
+              return runScheduleList(deps);
+          }
+        });
         break;
       case 'status':
         result = await executeCliCommand('status', selected.options, async () =>
@@ -214,6 +317,8 @@ function buildCommandResource(command: CliCommandName, options: Record<string, u
       return `deploy/${options['preview'] ? 'preview' : 'production'}`;
     case 'workflow':
       return `workflow/${String(options['workflowId'] ?? 'unknown')}`;
+    case 'schedule':
+      return `schedule/${String(options['operation'] ?? 'unknown')}/${String(options['workflowId'] ?? 'all')}`;
     case 'status':
       return 'system/status';
     case 'notion-check':

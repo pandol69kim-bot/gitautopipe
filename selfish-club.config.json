@@ -13,5 +13,12 @@
     "repo": "",
     "branch": "main"
   },
+  "workflows": {
+    "schedules": {
+      "onNotionSync": {
+        "cron": "0 9 * * *"
+      }
+    }
+  },
   "logLevel": "info"
 }

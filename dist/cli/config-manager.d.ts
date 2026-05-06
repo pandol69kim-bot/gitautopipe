@@ -20,6 +20,11 @@ declare const ConfigSchema: z.ZodObject<{
             "thought-leader": "thought-leader";
         }>>;
     }, z.core.$strip>>;
+    workflows: z.ZodDefault<z.ZodObject<{
+        schedules: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodObject<{
+            cron: z.ZodString;
+        }, z.core.$strip>>>;
+    }, z.core.$strip>>;
     logLevel: z.ZodDefault<z.ZodEnum<{
         error: "error";
         debug: "debug";
@@ -29,6 +34,10 @@ declare const ConfigSchema: z.ZodObject<{
 }, z.core.$strip>;
 export type AppConfig = z.infer<typeof ConfigSchema>;
 export declare const CONFIG_FILENAME = "selfish-club.config.json";
+export interface WorkflowScheduleConfig {
+    workflowId: string;
+    cron: string;
+}
 export declare class ConfigManager {
     private configPath;
     constructor(configDir?: string);
@@ -37,6 +46,9 @@ export declare class ConfigManager {
     exists(): boolean;
     init(): AppConfig;
     getConfigPath(): string;
+    listWorkflowSchedules(): WorkflowScheduleConfig[];
+    setWorkflowSchedule(workflowId: string, cron: string): void;
+    removeWorkflowSchedule(workflowId: string): boolean;
 }
 export {};
 //# sourceMappingURL=config-manager.d.ts.map

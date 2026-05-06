@@ -12,6 +12,7 @@ export type CliCommandName =
   | 'analyze'
   | 'deploy'
   | 'workflow'
+  | 'schedule'
   | 'status'
   | 'notion-check'
   | 'interactive';
@@ -138,8 +139,11 @@ export function getRequiredSecretsForCommand(
       return ['VERCEL_TOKEN'];
     case 'workflow': {
       const workflowId = String(options['workflowId'] ?? '');
-      if (workflowId === 'onMeetingSync') {
+      if (workflowId === 'onNotionSync' || workflowId === 'onMeetingSync') {
         return ['NOTION_TOKEN'];
+      }
+      if (workflowId === 'onGitHubSync') {
+        return ['GITHUB_TOKEN'];
       }
       if (workflowId === 'onSkillUpdate') {
         return ['VERCEL_TOKEN'];
@@ -160,6 +164,7 @@ function mapCommandToAction(command: CliCommandName): PermissionAction {
       return 'read';
     case 'sync':
     case 'deploy':
+    case 'schedule':
       return 'manage';
     default:
       return 'write';

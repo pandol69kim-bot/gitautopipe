@@ -15,7 +15,9 @@ export declare class WorkflowOrchestrator {
     executeWorkflow(workflowId: string, payload?: Record<string, unknown>): Promise<ExecutionResult>;
     getExecutionHistory(workflowId: string): Execution[];
     scheduleWorkflow(workflowId: string, cron: string): void;
+    unscheduleWorkflow(workflowId: string): boolean;
     getSchedules(): ScheduleEntry[];
+    runDueSchedules(at?: Date): Promise<ExecutionResult[]>;
     emit(event: string, payload: Record<string, unknown>): Promise<void>;
     private executeStep;
     private sleep;

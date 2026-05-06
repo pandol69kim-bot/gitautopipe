@@ -325,10 +325,10 @@ describe('WorkflowOrchestrator', () => {
       expect(wf.triggers.some((t) => t.type === 'event' && t.event === 'notion:sync')).toBe(true);
     });
 
-    it('onNotionSync는 2개의 스텝을 갖는다', () => {
+    it('onNotionSync는 1개의 스텝을 갖는다', () => {
       const wf = orchestrator.getWorkflow('onNotionSync')!;
-      expect(wf.steps).toHaveLength(2);
-      expect(wf.steps.map((s) => s.id)).toEqual(['notion-fetch', 'notion-sync-obsidian']);
+      expect(wf.steps).toHaveLength(1);
+      expect(wf.steps.map((s) => s.id)).toEqual(['notion-sync-bidirectional']);
     });
 
     it('onMissionUpdate 워크플로우가 등록된다', () => {
@@ -386,6 +386,24 @@ describe('WorkflowOrchestrator', () => {
       const schedules = orchestrator.getSchedules().filter((s) => s.workflowId === 'wf-resched');
       expect(schedules).toHaveLength(1);
       expect(schedules[0].cron).toBe('0 10 * * 1');
+    });
+
+    it('스케줄 해제 시 목록에서 제거된다', () => {
+      const wf = makeWorkflow('wf-unsched', [makeStep('s1')]);
+      orchestrator.registerWorkflow(wf);
+      orchestrator.scheduleWorkflow('wf-unsched', '0 9 * * 1');
+
+      expect(orchestrator.unscheduleWorkflow('wf-unsched')).toBe(true);
+      expect(orchestrator.getSchedules().some((s) => s.workflowId === 'wf-unsched')).toBe(false);
+    });
+
+    it('현재 시각에 해당하는 스케줄만 실행한다', async () => {
+      const wf = makeWorkflow('wf-due', [makeStep('s1')]);
+      orchestrator.registerWorkflow(wf);
+      orchestrator.scheduleWorkflow('wf-due', '0 9 * * 1');
+
+      const results = await orchestrator.runDueSchedules(new Date('2026-05-04T09:00:00'));
+      expect(results.some((result) => result.workflowId === 'wf-due')).toBe(true);
     });
   });
 });

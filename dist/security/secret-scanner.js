@@ -4,7 +4,7 @@ exports.scanTextForSecrets = scanTextForSecrets;
 const SECRET_PATTERNS = [
     { type: 'github-token', pattern: /gh[pousr]_[A-Za-z0-9_]{30,255}|github_pat_[A-Za-z0-9_]{20,255}/g },
     { type: 'anthropic-key', pattern: /sk-ant-[A-Za-z0-9_-]{20,255}/g },
-    { type: 'notion-token', pattern: /secret_[A-Za-z0-9]{20,255}/g },
+    { type: 'notion-token', pattern: /(?:secret_|ntn_)[A-Za-z0-9_-]{20,255}/g },
 ];
 function scanTextForSecrets(text) {
     const findings = [];

@@ -31,6 +31,24 @@ export type InteractiveResult = {
         workflowId: string;
     };
 } | {
+    command: 'schedule';
+    options: {
+        operation: 'list';
+    } | {
+        operation: 'add';
+        workflowId: string;
+        cron: string;
+    } | {
+        operation: 'remove';
+        workflowId: string;
+    } | {
+        operation: 'run-due';
+        at?: string;
+    } | {
+        operation: 'start';
+        intervalSeconds?: number;
+    };
+} | {
     command: 'status';
     options: Record<string, never>;
 } | {

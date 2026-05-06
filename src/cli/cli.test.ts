@@ -193,17 +193,37 @@ describe('ConfigManager', () => {
 
 // ── Commands ──────────────────────────────────────────────────────────────
 
-import { runScan, runSync, runAnalyze, runDeploy, runWorkflow, runStatus } from './commands';
+import {
+  runScan,
+  runSync,
+  runAnalyze,
+  runDeploy,
+  runWorkflow,
+  runScheduleAdd,
+  runScheduleList,
+  runScheduleRemove,
+  runScheduleRunDue,
+  runStatus,
+} from './commands';
 import { WorkflowOrchestrator } from '../workflows/orchestrator';
 
 describe('Commands', () => {
   let orchestrator: WorkflowOrchestrator;
+  let configManager: ConfigManager;
+  let tmpDir: string;
 
   beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'selfish-commands-'));
     orchestrator = new WorkflowOrchestrator();
+    configManager = new ConfigManager(tmpDir);
+    configManager.init();
   });
 
-  const deps = () => ({ orchestrator, outputFormat: 'json' as const });
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  const deps = () => ({ orchestrator, outputFormat: 'json' as const, configManager });
 
   it('runScan: 스캔 결과를 반환한다', async () => {
     const result = await runScan({ folder: 'Mission' }, deps());
@@ -262,6 +282,51 @@ describe('Commands', () => {
     const parsed = JSON.parse(result);
     expect(Array.isArray(parsed.workflows)).toBe(true);
     expect(parsed.schedules).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(parsed.defaultSchedules)).toBe(true);
+    expect(Array.isArray(parsed.configuredSchedules)).toBe(true);
+    expect(Array.isArray(parsed.effectiveSchedules)).toBe(true);
+  });
+
+  it('runScheduleAdd: 워크플로우 스케줄을 등록하고 저장한다', () => {
+    const result = runScheduleAdd({ workflowId: 'onNotionSync', cron: '0 9 * * *' }, deps());
+    const parsed = JSON.parse(result);
+
+    expect(parsed.status).toBe('scheduled');
+    expect(configManager.listWorkflowSchedules()).toContainEqual({
+      workflowId: 'onNotionSync',
+      cron: '0 9 * * *',
+    });
+  });
+
+  it('runScheduleList: 등록된 스케줄 목록을 반환한다', () => {
+    runScheduleAdd({ workflowId: 'onNotionSync', cron: '0 9 * * *' }, deps());
+    const result = runScheduleList(deps());
+    const parsed = JSON.parse(result);
+
+    expect(parsed.action).toBe('schedule-list');
+    expect(parsed.schedules).toHaveLength(2);
+  });
+
+  it('runScheduleRemove: 등록된 스케줄을 해제한다', () => {
+    runScheduleAdd({ workflowId: 'onNotionSync', cron: '0 9 * * *' }, deps());
+    const result = runScheduleRemove({ workflowId: 'onNotionSync' }, deps());
+    const parsed = JSON.parse(result);
+
+    expect(parsed.removed).toBe(true);
+    expect(configManager.listWorkflowSchedules()).not.toContainEqual({
+      workflowId: 'onNotionSync',
+      cron: '0 9 * * *',
+    });
+  });
+
+  it('runScheduleRunDue: 현재 시각에 맞는 스케줄만 실행한다', async () => {
+    runScheduleAdd({ workflowId: 'weeklyDigest', cron: '0 9 * * 1' }, deps());
+    const result = await runScheduleRunDue({ at: '2026-05-04T09:00:00' }, deps());
+    const parsed = JSON.parse(result);
+
+    expect(parsed.action).toBe('schedule-run-due');
+    expect(parsed.dueCount).toBeGreaterThanOrEqual(1);
+    expect(parsed.executions[0]?.workflowId).toBe('weeklyDigest');
   });
 
   it('runStatus: 사전 정의 워크플로우 4개가 포함된다', () => {
@@ -270,6 +335,29 @@ describe('Commands', () => {
     const ids = parsed.workflows.map((w: { id: string }) => w.id);
     expect(ids).toContain('onMissionUpdate');
     expect(ids).toContain('weeklyDigest');
+  });
+
+  it('runStatus: 기본값과 설정값 스케줄을 함께 반환한다', () => {
+    runScheduleAdd({ workflowId: 'onNotionSync', cron: '0 9 * * *' }, deps());
+    const result = runStatus(deps());
+    const parsed = JSON.parse(result);
+
+    expect(parsed.defaultSchedules).toContainEqual({
+      workflowId: 'weeklyDigest',
+      cron: '0 9 * * 1',
+      source: 'default',
+    });
+    expect(parsed.configuredSchedules).toContainEqual({
+      workflowId: 'onNotionSync',
+      cron: '0 9 * * *',
+      source: 'config',
+    });
+    expect(parsed.effectiveSchedules).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ workflowId: 'weeklyDigest', source: 'default' }),
+        expect.objectContaining({ workflowId: 'onNotionSync', source: 'config' }),
+      ])
+    );
   });
 });
 
@@ -305,6 +393,33 @@ describe('Interactive', () => {
     const result = await runInteractive(prompt);
     expect(result.command).toBe('workflow');
     expect((result.options as { workflowId: string }).workflowId).toBe('weeklyDigest');
+  });
+
+  it('schedule list 선택 시 schedule list 옵션을 반환한다', async () => {
+    const prompt: PromptFn = vi
+      .fn()
+      .mockResolvedValueOnce({ command: 'schedule' })
+      .mockResolvedValueOnce({ operation: 'list' });
+
+    const result = await runInteractive(prompt);
+    expect(result.command).toBe('schedule');
+    expect(result.options).toMatchObject({ operation: 'list' });
+  });
+
+  it('schedule add 선택 시 workflowId와 cron을 반환한다', async () => {
+    const prompt: PromptFn = vi
+      .fn()
+      .mockResolvedValueOnce({ command: 'schedule' })
+      .mockResolvedValueOnce({ operation: 'add' })
+      .mockResolvedValueOnce({ workflowId: 'onNotionSync', cron: '0 9 * * *' });
+
+    const result = await runInteractive(prompt);
+    expect(result.command).toBe('schedule');
+    expect(result.options).toMatchObject({
+      operation: 'add',
+      workflowId: 'onNotionSync',
+      cron: '0 9 * * *',
+    });
   });
 
   it('exit 선택 시 exit 명령어를 반환한다', async () => {

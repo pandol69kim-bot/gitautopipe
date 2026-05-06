@@ -23,6 +23,11 @@ const ConfigSchema = z.object({
       tone: z.enum(['professional', 'casual', 'thought-leader']).default('professional'),
     })
     .optional(),
+  workflows: z
+    .object({
+      schedules: z.record(z.string(), z.object({ cron: z.string().min(1) })).default({}),
+    })
+    .default({ schedules: {} }),
   logLevel: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 });
 
@@ -36,8 +41,14 @@ const DEFAULT_CONFIG: AppConfig = {
     folders: ['Mission', 'Skills', 'Insights', 'Meetings'],
   },
   github: { owner: '', repo: '', branch: 'main' },
+  workflows: { schedules: {} },
   logLevel: 'info',
 };
+
+export interface WorkflowScheduleConfig {
+  workflowId: string;
+  cron: string;
+}
 
 export class ConfigManager {
   private configPath: string;
@@ -72,5 +83,47 @@ export class ConfigManager {
 
   getConfigPath(): string {
     return this.configPath;
+  }
+
+  listWorkflowSchedules(): WorkflowScheduleConfig[] {
+    const schedules = this.load().workflows.schedules as Record<string, { cron: string }>;
+    return Object.entries(schedules).map(([workflowId, entry]) => ({ workflowId, cron: entry.cron }));
+  }
+
+  setWorkflowSchedule(workflowId: string, cron: string): void {
+    const config = this.load();
+    const nextConfig: AppConfig = {
+      ...config,
+      workflows: {
+        ...config.workflows,
+        schedules: {
+          ...config.workflows.schedules,
+          [workflowId]: { cron },
+        },
+      },
+    };
+
+    this.save(nextConfig);
+  }
+
+  removeWorkflowSchedule(workflowId: string): boolean {
+    const config = this.load();
+    if (!(workflowId in config.workflows.schedules)) {
+      return false;
+    }
+
+    const nextSchedules = { ...config.workflows.schedules };
+    delete nextSchedules[workflowId];
+
+    const nextConfig: AppConfig = {
+      ...config,
+      workflows: {
+        ...config.workflows,
+        schedules: nextSchedules,
+      },
+    };
+
+    this.save(nextConfig);
+    return true;
   }
 }

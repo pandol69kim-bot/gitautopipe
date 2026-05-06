@@ -16,6 +16,7 @@ import { GitHubSync } from '../integrations/github';
 import { NotionMCPConnector } from '../integrations/notion';
 import type { NotionClient as INotionClient } from '../integrations/notion';
 import { syncNotionBidirectional } from '../integrations/notion-sync';
+import { isCronDue } from './cron';
 
 function createGitHubSyncFromEnv(): GitHubSync {
   const token = process.env['GITHUB_TOKEN'] ?? process.env['GITHUB_API_KEY'];
@@ -156,6 +157,10 @@ export class WorkflowOrchestrator {
   // ── Subtask 4: Cron 스케줄러 ─────────────────────────────────────
 
   scheduleWorkflow(workflowId: string, cron: string): void {
+    if (!this.workflows.has(workflowId)) {
+      throw new Error(`워크플로우를 찾을 수 없습니다: ${workflowId}`);
+    }
+
     this.schedules.set(workflowId, {
       workflowId,
       cron,
@@ -163,8 +168,28 @@ export class WorkflowOrchestrator {
     });
   }
 
+  unscheduleWorkflow(workflowId: string): boolean {
+    return this.schedules.delete(workflowId);
+  }
+
   getSchedules(): ScheduleEntry[] {
     return Array.from(this.schedules.values());
+  }
+
+  async runDueSchedules(at: Date = new Date()): Promise<ExecutionResult[]> {
+    const dueSchedules = this.getSchedules().filter((schedule) => isCronDue(schedule.cron, at));
+    const executions: ExecutionResult[] = [];
+
+    for (const schedule of dueSchedules) {
+      const execution = await this.executeWorkflow(schedule.workflowId, {
+        trigger: 'schedule',
+        cron: schedule.cron,
+        scheduledAt: at.toISOString(),
+      });
+      executions.push(execution);
+    }
+
+    return executions;
   }
 
   // ── Subtask 3: 이벤트 emit ────────────────────────────────────────

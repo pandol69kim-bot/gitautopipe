@@ -42,6 +42,11 @@ exports.mapNotionSyncError = mapNotionSyncError;
 exports.runAnalyze = runAnalyze;
 exports.runDeploy = runDeploy;
 exports.runWorkflow = runWorkflow;
+exports.runScheduleList = runScheduleList;
+exports.runScheduleAdd = runScheduleAdd;
+exports.runScheduleRemove = runScheduleRemove;
+exports.runScheduleRunDue = runScheduleRunDue;
+exports.runScheduleStart = runScheduleStart;
 exports.runNotionCheck = runNotionCheck;
 exports.runStatus = runStatus;
 const path = __importStar(require("path"));
@@ -52,6 +57,7 @@ const github_1 = require("../integrations/github");
 const client_1 = require("@notionhq/client");
 const notion_1 = require("../integrations/notion");
 const notion_sync_1 = require("../integrations/notion-sync");
+const cron_1 = require("../workflows/cron");
 const DEFAULT_GITHUB_SYNC_EXCLUDES = [
     '.claude/',
     '.git/',
@@ -381,6 +387,103 @@ async function runWorkflow(opts, deps) {
     const execution = await deps.orchestrator.executeWorkflow(opts.workflowId, opts.payload);
     return (0, formatter_1.format)(execution, deps.outputFormat);
 }
+function runScheduleList(deps) {
+    return (0, formatter_1.format)({
+        action: 'schedule-list',
+        schedules: deps.orchestrator.getSchedules().map((schedule) => ({
+            workflowId: schedule.workflowId,
+            cron: schedule.cron,
+            registeredAt: schedule.registeredAt.toISOString(),
+        })),
+        timestamp: new Date().toISOString(),
+    }, deps.outputFormat);
+}
+function runScheduleAdd(opts, deps) {
+    if (!deps.configManager) {
+        throw new Error('configManager is required for schedule management.');
+    }
+    (0, cron_1.validateCronExpression)(opts.cron);
+    deps.orchestrator.scheduleWorkflow(opts.workflowId, opts.cron);
+    deps.configManager.setWorkflowSchedule(opts.workflowId, opts.cron);
+    return (0, formatter_1.format)({
+        action: 'schedule-add',
+        workflowId: opts.workflowId,
+        cron: opts.cron,
+        status: 'scheduled',
+        timestamp: new Date().toISOString(),
+    }, deps.outputFormat);
+}
+function runScheduleRemove(opts, deps) {
+    if (!deps.configManager) {
+        throw new Error('configManager is required for schedule management.');
+    }
+    const removed = deps.configManager.removeWorkflowSchedule(opts.workflowId);
+    const unscheduled = deps.orchestrator.unscheduleWorkflow(opts.workflowId);
+    return (0, formatter_1.format)({
+        action: 'schedule-remove',
+        workflowId: opts.workflowId,
+        removed,
+        unscheduled,
+        timestamp: new Date().toISOString(),
+    }, deps.outputFormat);
+}
+async function runScheduleRunDue(opts, deps) {
+    const at = parseScheduleDate(opts.at);
+    const executions = await deps.orchestrator.runDueSchedules(at);
+    return (0, formatter_1.format)({
+        action: 'schedule-run-due',
+        requestedAt: at.toISOString(),
+        dueCount: executions.length,
+        executions,
+        timestamp: new Date().toISOString(),
+    }, deps.outputFormat);
+}
+async function runScheduleStart(opts, deps) {
+    const intervalSeconds = opts.intervalSeconds ?? 60;
+    if (!Number.isFinite(intervalSeconds) || intervalSeconds <= 0) {
+        throw new Error(`intervalSeconds는 1 이상의 숫자여야 합니다: ${intervalSeconds}`);
+    }
+    const intervalMs = intervalSeconds * 1000;
+    let isTickRunning = false;
+    const tick = async () => {
+        if (isTickRunning) {
+            return;
+        }
+        isTickRunning = true;
+        try {
+            const executions = await deps.orchestrator.runDueSchedules(new Date());
+            if (executions.length > 0) {
+                console.log((0, formatter_1.format)({
+                    action: 'schedule-tick',
+                    dueCount: executions.length,
+                    executions,
+                    timestamp: new Date().toISOString(),
+                }, deps.outputFormat));
+            }
+        }
+        finally {
+            isTickRunning = false;
+        }
+    };
+    await tick();
+    const timer = setInterval(() => {
+        void tick();
+    }, intervalMs);
+    const stop = () => {
+        clearInterval(timer);
+        process.off('SIGINT', stop);
+        process.off('SIGTERM', stop);
+    };
+    process.on('SIGINT', stop);
+    process.on('SIGTERM', stop);
+    return (0, formatter_1.format)({
+        action: 'schedule-start',
+        status: 'running',
+        intervalSeconds,
+        schedules: deps.orchestrator.getSchedules().length,
+        timestamp: new Date().toISOString(),
+    }, deps.outputFormat);
+}
 async function runNotionCheck(opts, deps) {
     const token = process.env['NOTION_TOKEN'];
     if (!token) {
@@ -446,8 +549,23 @@ function runStatus(deps) {
     const result = {
         workflows,
         schedules: schedules.length,
+        scheduleEntries: schedules.map((schedule) => ({
+            workflowId: schedule.workflowId,
+            cron: schedule.cron,
+            registeredAt: schedule.registeredAt.toISOString(),
+        })),
         timestamp: new Date().toISOString(),
     };
     return (0, formatter_1.format)(result, deps.outputFormat);
+}
+function parseScheduleDate(value) {
+    if (!value) {
+        return new Date();
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        throw new Error(`잘못된 날짜 형식입니다: ${value}`);
+    }
+    return date;
 }
 //# sourceMappingURL=commands.js.map
