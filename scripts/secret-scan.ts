@@ -3,25 +3,32 @@ import { execSync } from 'child_process';
 
 import { scanTextForSecrets } from '../src/security/secret-scanner';
 
-function getTargetFiles(args: string[]): string[] {
-  if (args.includes('--staged')) {
-    let output = '';
-    try {
-      output = execSync('git diff --cached --name-only --diff-filter=ACM', {
-        encoding: 'utf8',
-      });
-    } catch {
-      console.warn('secret-scan: staged 파일 목록을 가져오지 못했습니다.');
-      return [];
-    }
-
-    return output
+function getGitFileList(command: string, warningMessage: string): string[] {
+  try {
+    return execSync(command, { encoding: 'utf8' })
       .split(/\r?\n/)
       .map((line: string) => line.trim())
       .filter((line: string) => line.length > 0);
+  } catch {
+    console.warn(warningMessage);
+    return [];
+  }
+}
+
+function getTargetFiles(args: string[]): string[] {
+  if (args.includes('--staged')) {
+    return getGitFileList(
+      'git diff --cached --name-only --diff-filter=ACM',
+      'secret-scan: staged 파일 목록을 가져오지 못했습니다.'
+    );
   }
 
-  return args.filter((arg) => !arg.startsWith('--'));
+  const explicitFiles = args.filter((arg) => !arg.startsWith('--'));
+  if (explicitFiles.length > 0) {
+    return explicitFiles;
+  }
+
+  return getGitFileList('git ls-files', 'secret-scan: 추적 중인 파일 목록을 가져오지 못했습니다.');
 }
 
 function isScannableFile(filePath: string): boolean {

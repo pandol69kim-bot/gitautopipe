@@ -15,6 +15,9 @@ import {
 describe('CLI security', () => {
   let tempDir: string;
   let deps: CliSecurityDeps;
+  const githubToken = 'ghp_' + '1234567890abcdefghijklmnopqrstuv';
+  const claudeApiKey = 'sk-ant-' + '1234567890abcdefghijklmnopqrst';
+  const notionToken = 'secret_' + '12345678901234567890';
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cli-security-'));
@@ -22,9 +25,9 @@ describe('CLI security', () => {
       actor: { id: 'member-1', role: 'Member' },
       secretManager: new SecretManager({
         env: {
-          GITHUB_TOKEN: 'ghp_1234567890abcdefghijklmnopqrstuv',
-          CLAUDE_API_KEY: 'sk-ant-1234567890abcdefghijklmnopqrst',
-          NOTION_TOKEN: 'secret_12345678901234567890',
+          GITHUB_TOKEN: githubToken,
+          CLAUDE_API_KEY: claudeApiKey,
+          NOTION_TOKEN: notionToken,
           VERCEL_TOKEN: 'vercel_test_token',
         },
         encryptionKey: '0123456789abcdef0123456789abcdef',

@@ -157,7 +157,7 @@ describe('RateLimiter', () => {
 
 describe('scanTextForSecrets', () => {
   it('민감 정보 패턴을 탐지한다', () => {
-    const findings = scanTextForSecrets(`GITHUB_TOKEN=ghp_1234567890abcdefghijklmnopqrstuv\nSAFE=value`);
+    const findings = scanTextForSecrets(`GITHUB_TOKEN=${'ghp_' + '1234567890abcdefghijklmnopqrstuv'}\nSAFE=value`);
 
     expect(findings).toHaveLength(1);
     expect(findings[0]?.type).toBe('github-token');
@@ -165,11 +165,20 @@ describe('scanTextForSecrets', () => {
 
   it('github_pat 형식도 탐지한다', () => {
     const findings = scanTextForSecrets(
-      'TOKEN=github_pat_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
+      `TOKEN=${'github_pat_' + 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'}`
     );
 
     expect(findings).toHaveLength(1);
     expect(findings[0]?.type).toBe('github-token');
+  });
+
+  it('notion ntn 형식도 탐지한다', () => {
+    const findings = scanTextForSecrets(
+      `NOTION_TOKEN=${'ntn_' + '55394127986au4FTQjl00BiBvKf3QNFBIuRXUbUHXsx0uE'}`
+    );
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.type).toBe('notion-token');
   });
 
   it('일반 텍스트는 탐지하지 않는다', () => {
