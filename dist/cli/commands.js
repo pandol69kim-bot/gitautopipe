@@ -106,10 +106,29 @@ async function runScan(opts, deps) {
     return (0, formatter_1.format)(result, deps.outputFormat);
 }
 function parseFolderType(folder) {
-    if (VAULT_FOLDER_TYPES.includes(folder)) {
-        return folder;
+    const normalized = normalizeFolderInput(folder);
+    const aliases = {
+        mission: ['mission', process.env['VAULT_FOLDER_MISSION'] ?? 'mission'],
+        meetings: ['meetings', process.env['VAULT_FOLDER_MEETINGS'] ?? 'meetings'],
+        skillInsight: [
+            'skillInsight',
+            'skill-insight',
+            'skill insight',
+            process.env['VAULT_FOLDER_SKILL_INSIGHT'] ?? 'skillInsight',
+        ],
+        sharing: ['sharing', process.env['VAULT_FOLDER_SHARING'] ?? 'sharing'],
+        analysis: ['analysis', process.env['VAULT_FOLDER_ANALYSIS'] ?? 'analysis'],
+        linkedin: ['linkedin', 'linkedIn', process.env['VAULT_FOLDER_LINKEDIN'] ?? 'linkedin'],
+    };
+    for (const folderType of VAULT_FOLDER_TYPES) {
+        if (aliases[folderType].some((alias) => normalizeFolderInput(alias) === normalized)) {
+            return folderType;
+        }
     }
     throw new Error(`Invalid scan folder: ${folder}. Allowed folders: ${VAULT_FOLDER_TYPES.join(', ')}`);
+}
+function normalizeFolderInput(folder) {
+    return folder.replace(/[\s_-]/g, '').toLowerCase();
 }
 async function runSync(opts, deps) {
     const target = opts.target ?? 'github';

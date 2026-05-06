@@ -125,13 +125,34 @@ export async function runScan(opts: ScanOptions, deps: CommandDeps): Promise<str
 }
 
 function parseFolderType(folder: string): FolderType {
-  if ((VAULT_FOLDER_TYPES as string[]).includes(folder)) {
-    return folder as FolderType;
+  const normalized = normalizeFolderInput(folder);
+  const aliases: Record<FolderType, string[]> = {
+    mission: ['mission', process.env['VAULT_FOLDER_MISSION'] ?? 'mission'],
+    meetings: ['meetings', process.env['VAULT_FOLDER_MEETINGS'] ?? 'meetings'],
+    skillInsight: [
+      'skillInsight',
+      'skill-insight',
+      'skill insight',
+      process.env['VAULT_FOLDER_SKILL_INSIGHT'] ?? 'skillInsight',
+    ],
+    sharing: ['sharing', process.env['VAULT_FOLDER_SHARING'] ?? 'sharing'],
+    analysis: ['analysis', process.env['VAULT_FOLDER_ANALYSIS'] ?? 'analysis'],
+    linkedin: ['linkedin', 'linkedIn', process.env['VAULT_FOLDER_LINKEDIN'] ?? 'linkedin'],
+  };
+
+  for (const folderType of VAULT_FOLDER_TYPES) {
+    if (aliases[folderType].some((alias) => normalizeFolderInput(alias) === normalized)) {
+      return folderType;
+    }
   }
 
   throw new Error(
     `Invalid scan folder: ${folder}. Allowed folders: ${VAULT_FOLDER_TYPES.join(', ')}`
   );
+}
+
+function normalizeFolderInput(folder: string): string {
+  return folder.replace(/[\s_-]/g, '').toLowerCase();
 }
 
 export async function runSync(opts: SyncOptions, deps: CommandDeps): Promise<string> {
