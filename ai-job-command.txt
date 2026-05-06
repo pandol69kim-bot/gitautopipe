@@ -410,3 +410,7 @@ const passed = checks.filter(c => c.ok).length;
 console.log('\n결과: ' + passed + '/' + checks.length + ' 통과');
 " 2>&1
 
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && git add vault/skillInsight/test2.md && git commit -m "feat: Add test markdown file to skillInsight vault" && git push origin main 2>&1
+
