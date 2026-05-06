@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { ClaudeAnalyzer } from '../integrations/claude';
+import type { AnalysisEngine } from '../types/analysis';
 import type { WeeklyData, AnalysisHistory } from '../types/claude';
 import type {
   Report,
@@ -10,14 +10,11 @@ import type {
   MemberContribution,
 } from '../types/report';
 
-// ClaudeAnalyzer의 공개 인터페이스만 의존
-type Analyzer = Pick<ClaudeAnalyzer, 'generateSummary' | 'extractKeywords' | 'identifyTrends'>;
-
 export class ReportGenerator {
-  private readonly analyzer: Analyzer;
+  private readonly analyzer: AnalysisEngine;
   private readonly config: ReportGeneratorConfig;
 
-  constructor(analyzer: Analyzer, config: ReportGeneratorConfig) {
+  constructor(analyzer: AnalysisEngine, config: ReportGeneratorConfig) {
     this.analyzer = analyzer;
     this.config = config;
   }

@@ -1,4 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WorkflowOrchestrator } from './orchestrator';
 import type { Workflow, WorkflowStep, WorkflowContext } from '../types/workflow';
 
@@ -31,9 +34,16 @@ function makeWorkflow(
 
 describe('WorkflowOrchestrator', () => {
   let orchestrator: WorkflowOrchestrator;
+  let tempDir: string;
 
   beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'workflow-orchestrator-'));
     orchestrator = new WorkflowOrchestrator();
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    vi.unstubAllEnvs();
   });
 
   // ── Subtask 2: 등록 ───────────────────────────────────────────────
@@ -337,6 +347,68 @@ describe('WorkflowOrchestrator', () => {
 
     it('onMeetingSync 워크플로우가 등록된다', () => {
       expect(orchestrator.getWorkflow('onMeetingSync')).toBeDefined();
+    });
+
+    it('meeting:synced 이벤트 시 Analysis 주간 보고서를 생성한다', async () => {
+      const vaultPath = path.join(tempDir, 'vault');
+      const meetingsPath = path.join(vaultPath, 'meetings');
+      const analysisPath = path.join(vaultPath, 'analysis');
+
+      fs.mkdirSync(meetingsPath, { recursive: true });
+      fs.mkdirSync(analysisPath, { recursive: true });
+      fs.writeFileSync(
+        path.join(meetingsPath, 'meeting-1.md'),
+        [
+          '---',
+          'title: 주간 스탠드업',
+          'date: 2026-05-06',
+          'author: alice',
+          '---',
+          '',
+          '# 진행상황',
+          '',
+          '- API 연동 완료',
+          '- 배포 이슈 확인',
+        ].join('\n'),
+        'utf-8'
+      );
+
+      vi.stubEnv('VAULT_PATH', vaultPath);
+      vi.stubEnv('VAULT_FOLDER_MEETINGS', 'meetings');
+      vi.stubEnv('VAULT_FOLDER_ANALYSIS', 'analysis');
+
+      orchestrator = new WorkflowOrchestrator({
+        createAnalysisEngine: () => ({
+          extractKeywords: vi.fn().mockResolvedValue([
+            { keyword: 'API', frequency: 2, relevance: 0.9 },
+            { keyword: '배포', frequency: 1, relevance: 0.7 },
+          ]),
+          generateSummary: vi.fn().mockResolvedValue({
+            weekNumber: 19,
+            highlights: ['API 연동 완료'],
+            summary: '### Week19 하이라이트\n- API 연동 완료',
+            participationRate: 100,
+            topKeywords: ['API', '배포'],
+            markdownOutput: '### Week19 하이라이트\n- API 연동 완료',
+          }),
+          identifyTrends: vi.fn().mockResolvedValue({
+            risingKeywords: ['API'],
+            decliningKeywords: [],
+            consistentThemes: ['배포'],
+            weeklyGrowth: 12,
+            markdownOutput: '### 상승 트렌드\n- API',
+          }),
+        }),
+      });
+
+      await orchestrator.emit('meeting:synced', {});
+
+      const files = fs.readdirSync(analysisPath);
+      expect(files.some((file) => file.includes('weekly_report'))).toBe(true);
+
+      const content = fs.readFileSync(path.join(analysisPath, files[0]), 'utf-8');
+      expect(content).toContain('Week19 활동 보고서');
+      expect(content).toContain('API 연동 완료');
     });
 
     it('onSkillUpdate 워크플로우가 등록된다', () => {

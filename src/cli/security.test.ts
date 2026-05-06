@@ -91,6 +91,10 @@ describe('CLI security', () => {
       'GITHUB_TOKEN',
       'NOTION_TOKEN',
     ]);
+    expect(getRequiredSecretsForCommand('workflow', { workflowId: 'onMeetingSync' })).toEqual([
+      'NOTION_TOKEN',
+      'CLAUDE_API_KEY|ANTHROPIC_API_KEY|OPENAI_API_KEY',
+    ]);
     expect(getRequiredSecretsForCommand('workflow', { workflowId: 'onSkillUpdate' })).toEqual([
       'VERCEL_TOKEN',
     ]);

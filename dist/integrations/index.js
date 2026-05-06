@@ -17,4 +17,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./github"), exports);
 __exportStar(require("./claude"), exports);
 __exportStar(require("./notion"), exports);
+__exportStar(require("./openai"), exports);
+__exportStar(require("./analysis-factory"), exports);
 //# sourceMappingURL=index.js.map

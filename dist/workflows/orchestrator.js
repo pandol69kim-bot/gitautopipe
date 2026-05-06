@@ -38,6 +38,9 @@ const events_1 = require("events");
 const crypto_1 = require("crypto");
 const path = __importStar(require("path"));
 const client_1 = require("@notionhq/client");
+const report_generator_1 = require("../core/report-generator");
+const vault_scanner_1 = require("../core/vault-scanner");
+const analysis_factory_1 = require("../integrations/analysis-factory");
 const github_1 = require("../integrations/github");
 const notion_1 = require("../integrations/notion");
 const notion_sync_1 = require("../integrations/notion-sync");
@@ -73,7 +76,9 @@ class WorkflowOrchestrator {
     history = new Map();
     schedules = new Map();
     emitter = new events_1.EventEmitter();
-    constructor() {
+    deps;
+    constructor(deps = {}) {
+        this.deps = deps;
         this.registerPredefinedWorkflows();
     }
     // ── Subtask 2: 등록 ───────────────────────────────────────────────
@@ -83,7 +88,7 @@ class WorkflowOrchestrator {
             if (trigger.type === 'event' && trigger.event) {
                 this.emitter.removeAllListeners(trigger.event);
                 this.emitter.on(trigger.event, async (payload) => {
-                    await this.executeWorkflow(workflow.id, payload).catch(() => { });
+                    await this.executeWorkflow(workflow.id, payload);
                 });
             }
         }
@@ -318,7 +323,7 @@ class WorkflowOrchestrator {
             steps: [
                 this.makeLogStep('notion-fetch', 'Notion 미팅 데이터 조회'),
                 this.makeLogStep('obsidian-sync', 'Obsidian 동기화'),
-                this.makeLogStep('report-update', 'Analysis 보고서 업데이트'),
+                this.createMeetingReportStep(),
             ],
             triggers: [{ type: 'event', event: 'meeting:synced' }],
             errorHandling: {
@@ -365,6 +370,122 @@ class WorkflowOrchestrator {
             },
         };
     }
+    createMeetingReportStep() {
+        return {
+            id: 'report-update',
+            name: 'Analysis 보고서 업데이트',
+            execute: async (ctx) => {
+                try {
+                    const scanner = this.createVaultScannerFromEnv();
+                    const weeklyData = await this.collectMeetingWeeklyData(scanner, ctx.payload);
+                    if (!weeklyData) {
+                        const skipped = { status: 'skipped', reason: 'meetings-not-found' };
+                        ctx.payload = { ...ctx.payload, report: skipped };
+                        return skipped;
+                    }
+                    const analyzer = this.deps.createAnalysisEngine?.() ?? (0, analysis_factory_1.createAnalysisEngineFromEnv)();
+                    const outputDir = scanner.getFullPath('analysis');
+                    const generator = new report_generator_1.ReportGenerator(analyzer, {
+                        outputDir,
+                        weekNumber: weeklyData.weekNumber,
+                    });
+                    const report = await generator.generateWeeklyReport(weeklyData);
+                    const fileName = generator.generateFileName('weekly', weeklyData.weekNumber);
+                    const outputPath = path.join(outputDir, fileName);
+                    await generator.saveReport(report, outputPath);
+                    const result = {
+                        status: 'generated',
+                        weekNumber: weeklyData.weekNumber,
+                        totalDocuments: weeklyData.documents.length,
+                        reportPath: outputPath,
+                    };
+                    ctx.payload = { ...ctx.payload, report: result };
+                    return result;
+                }
+                catch (error) {
+                    const message = error instanceof Error ? error.message : String(error);
+                    throw new Error(`Analysis 보고서 업데이트 실패: ${message}`);
+                }
+            },
+        };
+    }
+    createVaultScannerFromEnv() {
+        return new vault_scanner_1.VaultScanner({
+            basePath: path.resolve(process.env['VAULT_PATH'] ?? './vault'),
+            folders: {
+                mission: process.env['VAULT_FOLDER_MISSION'] ?? 'mission',
+                meetings: process.env['VAULT_FOLDER_MEETINGS'] ?? 'meetings',
+                skillInsight: process.env['VAULT_FOLDER_SKILL_INSIGHT'] ?? 'skillInsight',
+                sharing: process.env['VAULT_FOLDER_SHARING'] ?? 'sharing',
+                analysis: process.env['VAULT_FOLDER_ANALYSIS'] ?? 'analysis',
+                linkedin: process.env['VAULT_FOLDER_LINKEDIN'] ?? 'linkedin',
+            },
+        });
+    }
+    async collectMeetingWeeklyData(scanner, payload) {
+        const files = await scanner.scanFolder('meetings');
+        if (files.length === 0) {
+            return null;
+        }
+        const candidates = await Promise.all(files.map(async (file) => {
+            const parsed = await scanner.parseMarkdown(file.filePath);
+            const referenceDate = this.resolveMeetingDate(parsed.frontmatter.date, file.modifiedAt);
+            return {
+                document: {
+                    content: parsed.content,
+                    title: parsed.frontmatter.title ?? file.fileName,
+                    date: referenceDate,
+                    author: parsed.frontmatter.author,
+                    folderType: 'meetings',
+                },
+                weekNumber: parsed.frontmatter.week ?? getIsoWeek(referenceDate),
+                weekYear: getIsoWeekYear(referenceDate),
+                timestamp: referenceDate.getTime(),
+            };
+        }));
+        const requestedWeek = typeof payload?.['weekNumber'] === 'number' ? payload['weekNumber'] : undefined;
+        const target = requestedWeek
+            ? candidates.find((candidate) => candidate.weekNumber === requestedWeek)
+            : [...candidates].sort((left, right) => right.timestamp - left.timestamp)[0];
+        if (!target) {
+            return null;
+        }
+        const documents = candidates
+            .filter((candidate) => {
+            return (candidate.weekNumber === target.weekNumber && candidate.weekYear === target.weekYear);
+        })
+            .map((candidate) => candidate.document);
+        const scopedDocuments = documents.length > 0 ? documents : candidates.map((candidate) => candidate.document);
+        const authors = new Set(scopedDocuments
+            .map((document) => document.author)
+            .filter((author) => typeof author === 'string' && author.length > 0));
+        return {
+            weekNumber: target.weekNumber,
+            documents: scopedDocuments,
+            memberCount: authors.size > 0 ? authors.size : undefined,
+        };
+    }
+    resolveMeetingDate(frontmatterDate, fallbackDate) {
+        if (frontmatterDate instanceof Date && !Number.isNaN(frontmatterDate.getTime())) {
+            return frontmatterDate;
+        }
+        return fallbackDate;
+    }
 }
 exports.WorkflowOrchestrator = WorkflowOrchestrator;
+function getIsoWeek(date) {
+    const normalized = toUtcDate(date);
+    normalized.setUTCDate(normalized.getUTCDate() + 4 - (normalized.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(normalized.getUTCFullYear(), 0, 1));
+    const diffDays = Math.floor((normalized.getTime() - yearStart.getTime()) / 86_400_000) + 1;
+    return Math.ceil(diffDays / 7);
+}
+function getIsoWeekYear(date) {
+    const normalized = toUtcDate(date);
+    normalized.setUTCDate(normalized.getUTCDate() + 4 - (normalized.getUTCDay() || 7));
+    return normalized.getUTCFullYear();
+}
+function toUtcDate(date) {
+    return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+}
 //# sourceMappingURL=orchestrator.js.map

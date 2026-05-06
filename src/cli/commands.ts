@@ -30,6 +30,15 @@ const DEFAULT_GITHUB_SYNC_EXCLUDES = [
   'vault/.obsidian/',
 ];
 
+const VAULT_FOLDER_TYPES: FolderType[] = [
+  'mission',
+  'meetings',
+  'skillInsight',
+  'sharing',
+  'analysis',
+  'linkedin',
+];
+
 function createVaultScannerFromEnv(): VaultScanner {
   const basePath = path.resolve(process.env['VAULT_PATH'] ?? './vault');
   return new VaultScanner({
@@ -95,15 +104,7 @@ export interface ScheduleStartOptions {
 
 export async function runScan(opts: ScanOptions, deps: CommandDeps): Promise<string> {
   const scanner = createVaultScannerFromEnv();
-  const folderTypes: FolderType[] = [
-    'mission',
-    'meetings',
-    'skillInsight',
-    'sharing',
-    'analysis',
-    'linkedin',
-  ];
-  const targets = opts.folder ? [opts.folder as FolderType] : folderTypes;
+  const targets = opts.folder ? [parseFolderType(opts.folder)] : VAULT_FOLDER_TYPES;
 
   const counts: Record<string, number> = {};
   for (const folderType of targets) {
@@ -121,6 +122,16 @@ export async function runScan(opts: ScanOptions, deps: CommandDeps): Promise<str
     timestamp: new Date().toISOString(),
   };
   return format(result, deps.outputFormat);
+}
+
+function parseFolderType(folder: string): FolderType {
+  if ((VAULT_FOLDER_TYPES as string[]).includes(folder)) {
+    return folder as FolderType;
+  }
+
+  throw new Error(
+    `Invalid scan folder: ${folder}. Allowed folders: ${VAULT_FOLDER_TYPES.join(', ')}`
+  );
 }
 
 export async function runSync(opts: SyncOptions, deps: CommandDeps): Promise<string> {

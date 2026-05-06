@@ -7,7 +7,7 @@ import type {
   ValidationResult,
 } from '../types/security';
 
-const DEFAULT_REQUIRED_KEYS = ['GITHUB_TOKEN', 'CLAUDE_API_KEY', 'NOTION_TOKEN'];
+const DEFAULT_REQUIRED_KEYS = ['GITHUB_TOKEN', 'OPENAI_API_KEY', 'NOTION_TOKEN'];
 const CIPHER_ALGORITHM = 'aes-256-gcm';
 
 export class SecretManager {

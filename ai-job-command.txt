@@ -414,3 +414,56 @@ console.log('\n결과: ' + passed + '/' + checks.length + ' 통과');
 
 cd "D:\TM_PROJECT_셀피시\코드엑스개발" && git add vault/skillInsight/test2.md && git commit -m "feat: Add test markdown file to skillInsight vault" && git push origin main 2>&1
 
+
+
+
+
+//
+
+
+
+npx ts-node src/cli/index.ts schedule start --interval-seconds 60 --output json
+
+npx vitest run src/cli/cli.test.ts src/workflows/orchestrator.test.ts -t "runSchedule|schedule"
+
+npx ts-node src/cli/index.ts schedule start --interval-seconds 60 --output json
+
+
+// analysis
+
+npx vitest run src/workflows/orchestrator.test.ts -t "meeting:synced 이벤트 시 Analysis 주간 보고서를 생성한다"
+
+
+
+npx vitest run src/integrations/analysis-factory.test.ts src/cli/security.test.ts src/workflows/orchestrator.test.ts -t "ANALYSIS_AI_PROVIDER=openai 이면 OpenAI 분석기를 선택한다|설정이 없으면 Claude 분석기를 기본값으로 선택한다|워크플로우별 필수 시크릿을 계산한다|meeting:synced 이벤트 시 Analysis 주간 보고서를 생성한다"
+
+
+npx vitest run src/workflows/orchestrator.test.ts src/integrations/analysis-factory.test.ts src/cli/security.test.ts -t "meeting:synced 이벤트 시 Analysis 주간 보고서를 생성한다|ANALYSIS_AI_PROVIDER=openai 이면 OpenAI 분석기를 선택한다|설정이 없으면 Claude 분석기를 기본값으로 선택한다|워크플로우별 필수 시크릿을 계산한다"
+
+
+
+const fs=require('fs'); const path=require('path'); const dotenv=require('dotenv'); const envPath=path.join(process.cwd(), '.env'); const parsed=fs.existsSync(envPath)?dotenv.parse(fs.readFileSync(envPath)):{}; const has=(k)=>Boolean((process.env[k]??parsed[k]??'').trim()); const result={ hasDotEnv: fs.existsSync(envPath), notionToken: has('NOTION_TOKEN'), claudeKey: has('CLAUDE_API_KEY')||has('ANTHROPIC_API_KEY'), openAIKey: has('OPENAI_API_KEY'), vaultPath: has('VAULT_PATH'), meetingsFolder: has('VAULT_FOLDER_MEETINGS'), analysisFolder: has('VAULT_FOLDER_ANALYSIS') }; console.log(JSON.stringify(result,null,2));
+
+
+
+
+node -r ts-node/register -r dotenv/config -e "const fs=require('fs'); const path=require('path'); const { WorkflowOrchestrator }=require('./src/workflows/orchestrator'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='claude'; const vaultPath=path.resolve(process.env.VAULT_PATH ?? './vault'); const analysisFolder=process.env.VAULT_FOLDER_ANALYSIS ?? 'analysis'; const analysisPath=path.join(vaultPath, analysisFolder); const orchestrator=new WorkflowOrchestrator(); await orchestrator.emit('meeting:synced', { smokeTest: true, provider: 'claude' }); const history=orchestrator.getExecutionHistory('onMeetingSync'); const latestExecution=history[history.length-1]; const files=fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); return { name, filePath, mtimeMs: fs.statSync(filePath).mtimeMs }; }).sort((a,b)=>b.mtimeMs-a.mtimeMs); const latestFile=files[0]; const preview=latestFile ? fs.readFileSync(latestFile.filePath,'utf-8').split(/\r?\n/).slice(0,8) : []; console.log(JSON.stringify({ provider:'claude', status: latestExecution?.status, latestStepStatuses: latestExecution?.stepResults?.map((step)=>({ stepId: step.stepId, status: step.status })), reportPath: latestFile?.filePath, preview }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+
+
+
+node -r ts-node/register -r dotenv/config -e "const { WorkflowOrchestrator }=require('./src/workflows/orchestrator'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='claude'; const orchestrator=new WorkflowOrchestrator(); await orchestrator.emit('meeting:synced', { smokeTest: true, provider: 'claude' }); const history=orchestrator.getExecutionHistory('onMeetingSync'); const latestExecution=history[history.length-1]; console.log(JSON.stringify({ provider:'claude', status: latestExecution?.status, stepResults: latestExecution?.stepResults?.map((step)=>({ stepId: step.stepId, status: step.status, error: step.error ?? null })) }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+
+
+
+node -r ts-node/register -r dotenv/config -e "const fs=require('fs'); const path=require('path'); const { WorkflowOrchestrator }=require('./src/workflows/orchestrator'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='openai'; const vaultPath=path.resolve(process.env.VAULT_PATH ?? './vault'); const analysisFolder=process.env.VAULT_FOLDER_ANALYSIS ?? 'analysis'; const analysisPath=path.join(vaultPath, analysisFolder); const before=new Map(fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); return [filePath, fs.statSync(filePath).mtimeMs]; })); const orchestrator=new WorkflowOrchestrator(); await orchestrator.emit('meeting:synced', { smokeTest: true, provider: 'openai' }); const history=orchestrator.getExecutionHistory('onMeetingSync'); const latestExecution=history[history.length-1]; const files=fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); return { name, filePath, mtimeMs: fs.statSync(filePath).mtimeMs, changed: (before.get(filePath) ?? 0) !== fs.statSync(filePath).mtimeMs }; }).sort((a,b)=>b.mtimeMs-a.mtimeMs); const latestFile=files[0]; const preview=latestFile ? fs.readFileSync(latestFile.filePath,'utf-8').split(/\r?\n/).slice(0,12) : []; console.log(JSON.stringify({ provider:'openai', status: latestExecution?.status, stepResults: latestExecution?.stepResults?.map((step)=>({ stepId: step.stepId, status: step.status, error: step.error ?? null })), reportPath: latestFile?.filePath, reportChanged: latestFile?.changed ?? false, preview }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+
+
+
+
+node -r ts-node/register -r dotenv/config -e "const fs=require('fs'); const path=require('path'); const { WorkflowOrchestrator }=require('./src/workflows/orchestrator'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='openai'; const vaultPath=path.resolve(process.env.VAULT_PATH ?? './vault'); const analysisFolder=process.env.VAULT_FOLDER_ANALYSIS ?? 'analysis'; const analysisPath=path.join(vaultPath, analysisFolder); const before=new Map(fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); return [filePath, fs.statSync(filePath).mtimeMs]; })); const orchestrator=new WorkflowOrchestrator(); await orchestrator.emit('meeting:synced', { smokeTest: true, provider: 'openai' }); const history=orchestrator.getExecutionHistory('onMeetingSync'); const latestExecution=history[history.length-1]; const files=fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); const stat=fs.statSync(filePath); return { name, filePath, mtimeMs: stat.mtimeMs, changed: (before.get(filePath) ?? 0) !== stat.mtimeMs }; }).sort((a,b)=>b.mtimeMs-a.mtimeMs); const latestFile=files[0]; const preview=latestFile ? fs.readFileSync(latestFile.filePath,'utf-8').split(/\r?\n/).slice(0,12) : []; console.log(JSON.stringify({ provider:'openai', status: latestExecution?.status, stepResults: latestExecution?.stepResults?.map((step)=>({ stepId: step.stepId, status: step.status, error: step.error ?? null })), reportPath: latestFile?.filePath, reportChanged: latestFile?.changed ?? false, preview }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+
+
+
+
+node -r ts-node/register -r dotenv/config -e "const { VaultScanner }=require('./src/core/vault-scanner'); const { createAnalysisEngineFromEnv }=require('./src/integrations/analysis-factory'); const path=require('path'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='openai'; const scanner=new VaultScanner({ basePath: path.resolve(process.env.VAULT_PATH ?? './vault'), folders: { mission: process.env.VAULT_FOLDER_MISSION ?? 'mission', meetings: process.env.VAULT_FOLDER_MEETINGS ?? 'meetings', skillInsight: process.env.VAULT_FOLDER_SKILL_INSIGHT ?? 'skillInsight', sharing: process.env.VAULT_FOLDER_SHARING ?? 'sharing', analysis: process.env.VAULT_FOLDER_ANALYSIS ?? 'analysis', linkedin: process.env.VAULT_FOLDER_LINKEDIN ?? 'linkedin' } }); const files=await scanner.scanFolder('meetings'); const picked=files.slice(0,1); const documents=[]; for (const file of picked){ const parsed=await scanner.parseMarkdown(file.filePath); documents.push({ content: parsed.content, title: parsed.frontmatter.title ?? file.fileName, date: parsed.frontmatter.date, author: parsed.frontmatter.author, folderType: 'meetings' }); } const analyzer=createAnalysisEngineFromEnv(); const summary=await analyzer.generateSummary({ weekNumber: 19, documents, memberCount: 1 }); const keywords=await analyzer.extractKeywords(documents); const trends=await analyzer.identifyTrends([{ weekNumber: 19, keywords: Array.isArray(keywords) ? keywords.map((k)=>k.keyword) : [], summary: typeof summary.summary === 'string' ? summary.summary : '', participationRate: summary.participationRate, analyzedAt: new Date() }]); console.log(JSON.stringify({ summaryType: typeof summary, summaryKeys: summary && typeof summary === 'object' ? Object.keys(summary) : [], summaryPreview: { weekNumber: summary.weekNumber, highlightsType: Array.isArray(summary.highlights) ? 'array' : typeof summary.highlights, topKeywordsType: Array.isArray(summary.topKeywords) ? 'array' : typeof summary.topKeywords }, keywordsType: Array.isArray(keywords) ? 'array' : typeof keywords, keywordCount: Array.isArray(keywords) ? keywords.length : -1, trendKeys: trends && typeof trends === 'object' ? Object.keys(trends) : [], trendPreview: { risingKeywordsType: Array.isArray(trends.risingKeywords) ? 'array' : typeof trends.risingKeywords, consistentThemesType: Array.isArray(trends.consistentThemes) ? 'array' : typeof trends.consistentThemes } }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+

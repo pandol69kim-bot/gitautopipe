@@ -12,7 +12,7 @@ import { scanTextForSecrets } from './secret-scanner';
 describe('SecretManager', () => {
   const env = {
     GITHUB_TOKEN: 'ghp_test_token',
-    CLAUDE_API_KEY: 'sk-ant-test-key',
+    OPENAI_API_KEY: 'sk-openai-test-key',
     NOTION_TOKEN: 'ntn_test_token',
   };
 
@@ -23,7 +23,7 @@ describe('SecretManager', () => {
     const validation = await manager.validateSecrets();
 
     expect(secrets.GITHUB_TOKEN).toBe('ghp_test_token');
-    expect(secrets.CLAUDE_API_KEY).toBe('sk-ant-test-key');
+    expect(secrets.OPENAI_API_KEY).toBe('sk-openai-test-key');
     expect(validation.isValid).toBe(true);
     expect(validation.missingKeys).toEqual([]);
   });

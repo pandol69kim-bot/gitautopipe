@@ -139,8 +139,11 @@ export function getRequiredSecretsForCommand(
       return ['VERCEL_TOKEN'];
     case 'workflow': {
       const workflowId = String(options['workflowId'] ?? '');
-      if (workflowId === 'onNotionSync' || workflowId === 'onMeetingSync') {
+      if (workflowId === 'onNotionSync') {
         return ['NOTION_TOKEN'];
+      }
+      if (workflowId === 'onMeetingSync') {
+        return ['NOTION_TOKEN', 'CLAUDE_API_KEY|ANTHROPIC_API_KEY|OPENAI_API_KEY'];
       }
       if (workflowId === 'onGitHubSync') {
         return ['GITHUB_TOKEN'];

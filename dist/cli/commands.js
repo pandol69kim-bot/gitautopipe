@@ -64,6 +64,14 @@ const DEFAULT_GITHUB_SYNC_EXCLUDES = [
     'node_modules/',
     'vault/.obsidian/',
 ];
+const VAULT_FOLDER_TYPES = [
+    'mission',
+    'meetings',
+    'skillInsight',
+    'sharing',
+    'analysis',
+    'linkedin',
+];
 function createVaultScannerFromEnv() {
     const basePath = path.resolve(process.env['VAULT_PATH'] ?? './vault');
     return new vault_scanner_1.VaultScanner({
@@ -80,15 +88,7 @@ function createVaultScannerFromEnv() {
 }
 async function runScan(opts, deps) {
     const scanner = createVaultScannerFromEnv();
-    const folderTypes = [
-        'mission',
-        'meetings',
-        'skillInsight',
-        'sharing',
-        'analysis',
-        'linkedin',
-    ];
-    const targets = opts.folder ? [opts.folder] : folderTypes;
+    const targets = opts.folder ? [parseFolderType(opts.folder)] : VAULT_FOLDER_TYPES;
     const counts = {};
     for (const folderType of targets) {
         const files = await scanner.scanFolder(folderType);
@@ -104,6 +104,12 @@ async function runScan(opts, deps) {
         timestamp: new Date().toISOString(),
     };
     return (0, formatter_1.format)(result, deps.outputFormat);
+}
+function parseFolderType(folder) {
+    if (VAULT_FOLDER_TYPES.includes(folder)) {
+        return folder;
+    }
+    throw new Error(`Invalid scan folder: ${folder}. Allowed folders: ${VAULT_FOLDER_TYPES.join(', ')}`);
 }
 async function runSync(opts, deps) {
     const target = opts.target ?? 'github';
@@ -546,12 +552,37 @@ function runStatus(deps) {
         registered: !!deps.orchestrator.getWorkflow(id),
         historyCount: deps.orchestrator.getExecutionHistory(id).length,
     }));
+    const defaultSchedules = predefined
+        .map((id) => deps.orchestrator.getWorkflow(id))
+        .filter((workflow) => Boolean(workflow))
+        .flatMap((workflow) => workflow.triggers
+        .filter((trigger) => trigger.type === 'cron' && Boolean(trigger.cron))
+        .map((trigger) => ({
+        workflowId: workflow.id,
+        cron: trigger.cron,
+        source: 'default',
+    })));
+    const configuredSchedules = (deps.configManager?.listWorkflowSchedules() ?? []).map((schedule) => ({
+        ...schedule,
+        source: 'config',
+    }));
+    const defaultScheduleIds = new Set(defaultSchedules.map((schedule) => schedule.workflowId));
+    const configuredScheduleIds = new Set(configuredSchedules.map((schedule) => schedule.workflowId));
     const result = {
         workflows,
         schedules: schedules.length,
-        scheduleEntries: schedules.map((schedule) => ({
+        defaultSchedules,
+        configuredSchedules,
+        effectiveSchedules: schedules.map((schedule) => ({
             workflowId: schedule.workflowId,
             cron: schedule.cron,
+            source: defaultScheduleIds.has(schedule.workflowId) && configuredScheduleIds.has(schedule.workflowId)
+                ? 'default+config'
+                : defaultScheduleIds.has(schedule.workflowId)
+                    ? 'default'
+                    : configuredScheduleIds.has(schedule.workflowId)
+                        ? 'config'
+                        : 'runtime',
             registeredAt: schedule.registeredAt.toISOString(),
         })),
         timestamp: new Date().toISOString(),
