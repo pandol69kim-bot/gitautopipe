@@ -54,4 +54,5 @@ export interface MergeResult {
 export interface NotionConnectorConfig {
   token: string;
   defaultDatabaseId?: string;
+  titlePropertyName?: string;
 }

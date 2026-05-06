@@ -161,7 +161,11 @@ async function runNotionSync() {
     const meetingsFolder = process.env['VAULT_FOLDER_MEETINGS'] ?? 'meetings';
     const configuredMeetingsPath = process.env['NOTION_OBSIDIAN_PATH'];
     const vaultBasePath = path.resolve(process.env['VAULT_PATH'] ?? './vault');
-    const connector = new notion_1.NotionMCPConnector({ token, defaultDatabaseId: databaseId }, new client_1.Client({ auth: token }));
+    const connector = new notion_1.NotionMCPConnector({
+        token,
+        defaultDatabaseId: databaseId,
+        titlePropertyName: process.env['NOTION_TITLE_PROPERTY'],
+    }, new client_1.Client({ auth: token }));
     try {
         return await (0, notion_sync_1.syncNotionBidirectional)({
             connector,
@@ -179,6 +183,18 @@ async function runNotionSync() {
 }
 function mapNotionSyncError(error, databaseId) {
     const notionError = error;
+    if (notionError?.code === 'validation_error' &&
+        notionError.message?.includes('Name is not a property that exists')) {
+        return new Error([
+            'Notion title 속성명이 현재 코드의 기본값과 일치하지 않습니다.',
+            'DB의 title 속성명을 자동 탐지하도록 구성되어 있으니 최신 빌드로 다시 실행하세요.',
+            '계속 실패하면 .env에 NOTION_TITLE_PROPERTY=<실제 title 속성명>을 지정하세요.',
+            `database_id=${databaseId}`,
+            notionError.request_id ? `request_id=${notionError.request_id}` : undefined,
+        ]
+            .filter(Boolean)
+            .join(' '));
+    }
     if (notionError?.code !== 'object_not_found') {
         return error instanceof Error ? error : new Error(String(error));
     }

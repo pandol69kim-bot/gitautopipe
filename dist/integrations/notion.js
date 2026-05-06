@@ -83,15 +83,12 @@ class NotionMCPConnector {
             ? frontmatter['notionId'].trim()
             : undefined;
         const blocks = this.markdownToBlocks(content);
+        const titleProperties = await this.buildTitleProperties(databaseId, title);
         if (notionId) {
             try {
                 await this.client.pages.update({
                     page_id: notionId,
-                    properties: {
-                        Name: {
-                            title: [{ text: { content: title } }],
-                        },
-                    },
+                    properties: titleProperties,
                 });
                 await this.replacePageChildren(notionId, blocks);
                 return { pageId: notionId, action: 'updated' };
@@ -103,11 +100,7 @@ class NotionMCPConnector {
         const parentId = await this.resolveParentId(databaseId);
         const page = await this.client.pages.create({
             parent: { data_source_id: parentId },
-            properties: {
-                Name: {
-                    title: [{ text: { content: title } }],
-                },
-            },
+            properties: titleProperties,
         });
         if (blocks.length > 0) {
             await this.client.blocks.children.append({
@@ -228,6 +221,54 @@ class NotionMCPConnector {
             return databaseId;
         }
     }
+    async buildTitleProperties(databaseId, title) {
+        const titlePropertyName = await this.resolveTitlePropertyName(databaseId);
+        return {
+            [titlePropertyName]: {
+                title: [{ text: { content: title } }],
+            },
+        };
+    }
+    async resolveTitlePropertyName(databaseId) {
+        const configured = this.config.titlePropertyName?.trim();
+        if (configured) {
+            return configured;
+        }
+        const normalizedId = normalizeNotionId(databaseId);
+        const schema = await this.retrievePropertySchema(normalizedId);
+        const titleEntry = Object.entries(schema).find(([, property]) => property?.type === 'title');
+        return titleEntry?.[0] ?? 'Name';
+    }
+    async retrievePropertySchema(databaseId) {
+        if (this.client.databases?.retrieve) {
+            try {
+                const database = await this.client.databases.retrieve({ database_id: databaseId });
+                if (database.properties) {
+                    return database.properties;
+                }
+                const dataSourceId = database.data_sources?.[0]?.id;
+                if (dataSourceId && this.client.dataSources?.retrieve) {
+                    const dataSource = await this.client.dataSources.retrieve({
+                        data_source_id: normalizeNotionId(dataSourceId),
+                    });
+                    return dataSource.properties ?? {};
+                }
+            }
+            catch {
+                // Try the configured ID as a data source below.
+            }
+        }
+        if (this.client.dataSources?.retrieve) {
+            try {
+                const dataSource = await this.client.dataSources.retrieve({ data_source_id: databaseId });
+                return dataSource.properties ?? {};
+            }
+            catch {
+                return {};
+            }
+        }
+        return {};
+    }
     async replacePageChildren(pageId, blocks) {
         const existingBlocks = await this.client.blocks.children.list({ block_id: pageId });
         if (this.client.blocks.delete) {
@@ -316,8 +357,15 @@ class NotionMCPConnector {
         return raw;
     }
     extractTitle(properties) {
-        const name = properties['Name'];
-        return name?.title?.[0]?.plain_text ?? '제목 없음';
+        const titleProperty = Object.values(properties).find((property) => {
+            const candidate = property;
+            return candidate?.type === 'title' || Array.isArray(candidate?.title);
+        });
+        const title = titleProperty?.title
+            ?.map((item) => item.plain_text ?? '')
+            .join('')
+            .trim();
+        return title && title.length > 0 ? title : '제목 없음';
     }
     static extractPlainText(richText) {
         return richText.map((rt) => rt.plain_text).join('');

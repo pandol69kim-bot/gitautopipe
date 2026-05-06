@@ -234,10 +234,13 @@ describe('NotionMCPConnector', () => {
     });
 
     it('pages.create를 databaseId로 호출한다', async () => {
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        sampleMarkdownContent.replace('notionId: page-001\n', '')
+      );
       await connector.syncFromObsidian(sampleMarkdownFile, 'db-001');
       expect(mockNotionClient.pages.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          parent: { database_id: 'db-001' },
+          parent: { data_source_id: 'db-001' },
         })
       );
     });

@@ -37,5 +37,6 @@ export interface MergeResult {
 export interface NotionConnectorConfig {
     token: string;
     defaultDatabaseId?: string;
+    titlePropertyName?: string;
 }
 //# sourceMappingURL=notion.d.ts.map

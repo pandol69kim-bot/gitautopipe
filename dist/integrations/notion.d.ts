@@ -16,6 +16,7 @@ export interface NotionClient {
             data_sources?: Array<{
                 id: string;
             }>;
+            properties?: Record<string, RawNotionPropertySchema>;
         }>;
     };
     dataSources?: {
@@ -25,6 +26,12 @@ export interface NotionClient {
         }): Promise<{
             results: RawNotionPage[];
             has_more: boolean;
+        }>;
+        retrieve?(params: {
+            data_source_id: string;
+        }): Promise<{
+            id: string;
+            properties?: Record<string, RawNotionPropertySchema>;
         }>;
     };
     pages: {
@@ -64,6 +71,12 @@ interface RawBlock {
     has_children: boolean;
     [key: string]: unknown;
 }
+interface RawNotionPropertySchema {
+    id?: string;
+    name?: string;
+    type?: string;
+    [key: string]: unknown;
+}
 export declare class NotionMCPConnector {
     private readonly config;
     private readonly client;
@@ -81,6 +94,9 @@ export declare class NotionMCPConnector {
     private queryDatabase;
     private resolveParentId;
     private resolveDataSourceId;
+    private buildTitleProperties;
+    private resolveTitlePropertyName;
+    private retrievePropertySchema;
     private replacePageChildren;
     private writeBackNotionId;
     private markdownToBlocks;

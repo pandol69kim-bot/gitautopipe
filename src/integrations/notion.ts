@@ -21,12 +21,17 @@ export interface NotionClient {
     retrieve?(params: { database_id: string }): Promise<{
       id: string;
       data_sources?: Array<{ id: string }>;
+      properties?: Record<string, RawNotionPropertySchema>;
     }>;
   };
   dataSources?: {
     query?(params: { data_source_id: string; [k: string]: unknown }): Promise<{
       results: RawNotionPage[];
       has_more: boolean;
+    }>;
+    retrieve?(params: { data_source_id: string }): Promise<{
+      id: string;
+      properties?: Record<string, RawNotionPropertySchema>;
     }>;
   };
   pages: {
@@ -54,6 +59,13 @@ interface RawBlock {
   id: string;
   type: string;
   has_children: boolean;
+  [key: string]: unknown;
+}
+
+interface RawNotionPropertySchema {
+  id?: string;
+  name?: string;
+  type?: string;
   [key: string]: unknown;
 }
 
@@ -117,16 +129,13 @@ export class NotionMCPConnector {
         ? frontmatter['notionId'].trim()
         : undefined;
     const blocks = this.markdownToBlocks(content);
+    const titleProperties = await this.buildTitleProperties(databaseId, title);
 
     if (notionId) {
       try {
         await this.client.pages.update({
           page_id: notionId,
-          properties: {
-            Name: {
-              title: [{ text: { content: title } }],
-            },
-          },
+          properties: titleProperties,
         });
 
         await this.replacePageChildren(notionId, blocks);
@@ -140,11 +149,7 @@ export class NotionMCPConnector {
     const parentId = await this.resolveParentId(databaseId);
     const page = await this.client.pages.create({
       parent: { data_source_id: parentId },
-      properties: {
-        Name: {
-          title: [{ text: { content: title } }],
-        },
-      },
+      properties: titleProperties,
     });
 
     if (blocks.length > 0) {
@@ -294,6 +299,62 @@ export class NotionMCPConnector {
     }
   }
 
+  private async buildTitleProperties(
+    databaseId: string,
+    title: string
+  ): Promise<Record<string, unknown>> {
+    const titlePropertyName = await this.resolveTitlePropertyName(databaseId);
+    return {
+      [titlePropertyName]: {
+        title: [{ text: { content: title } }],
+      },
+    };
+  }
+
+  private async resolveTitlePropertyName(databaseId: string): Promise<string> {
+    const configured = this.config.titlePropertyName?.trim();
+    if (configured) {
+      return configured;
+    }
+
+    const normalizedId = normalizeNotionId(databaseId);
+    const schema = await this.retrievePropertySchema(normalizedId);
+    const titleEntry = Object.entries(schema).find(([, property]) => property?.type === 'title');
+    return titleEntry?.[0] ?? 'Name';
+  }
+
+  private async retrievePropertySchema(databaseId: string): Promise<Record<string, RawNotionPropertySchema>> {
+    if (this.client.databases?.retrieve) {
+      try {
+        const database = await this.client.databases.retrieve({ database_id: databaseId });
+        if (database.properties) {
+          return database.properties;
+        }
+
+        const dataSourceId = database.data_sources?.[0]?.id;
+        if (dataSourceId && this.client.dataSources?.retrieve) {
+          const dataSource = await this.client.dataSources.retrieve({
+            data_source_id: normalizeNotionId(dataSourceId),
+          });
+          return dataSource.properties ?? {};
+        }
+      } catch {
+        // Try the configured ID as a data source below.
+      }
+    }
+
+    if (this.client.dataSources?.retrieve) {
+      try {
+        const dataSource = await this.client.dataSources.retrieve({ data_source_id: databaseId });
+        return dataSource.properties ?? {};
+      } catch {
+        return {};
+      }
+    }
+
+    return {};
+  }
+
   private async replacePageChildren(pageId: string, blocks: unknown[]): Promise<void> {
     const existingBlocks = await this.client.blocks.children.list({ block_id: pageId });
 
@@ -396,8 +457,17 @@ export class NotionMCPConnector {
   }
 
   private extractTitle(properties: Record<string, unknown>): string {
-    const name = properties['Name'] as { title?: Array<{ plain_text: string }> } | undefined;
-    return name?.title?.[0]?.plain_text ?? '제목 없음';
+    const titleProperty = Object.values(properties).find((property) => {
+      const candidate = property as { type?: string; title?: unknown };
+      return candidate?.type === 'title' || Array.isArray(candidate?.title);
+    }) as { title?: Array<{ plain_text?: string }> } | undefined;
+
+    const title = titleProperty?.title
+      ?.map((item) => item.plain_text ?? '')
+      .join('')
+      .trim();
+
+    return title && title.length > 0 ? title : '제목 없음';
   }
 
   static extractPlainText(richText: NotionRichText[]): string {
