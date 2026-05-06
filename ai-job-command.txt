@@ -532,3 +532,17 @@ npx vitest run src/workflows/orchestrator.test.ts src/cli/security.test.ts -t "w
 
 npx vitest run src/workflows/orchestrator.test.ts src/cli/security.test.ts -t "weeklyDigest 실행 시 주간 보고서를 생성하고 GitHub 커밋 단계를 건너뛸 수 있다|워크플로우별 필수 시크릿을 계산한다"
 
+
+
+$oldToken=$env:GITHUB_TOKEN; $oldOwner=$env:GITHUB_OWNER; $oldRepo=$env:GITHUB_REPO; try { Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue; Remove-Item Env:GITHUB_OWNER -ErrorAction SilentlyContinue; Remove-Item Env:GITHUB_REPO -ErrorAction SilentlyContinue; node ./dist/cli/index.js workflow weeklyDigest -o json } finally { if ($null -ne $oldToken) { $env:GITHUB_TOKEN=$oldToken } else { Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue }; if ($null -ne $oldOwner) { $env:GITHUB_OWNER=$oldOwner } else { Remove-Item Env:GITHUB_OWNER -ErrorAction SilentlyContinue }; if ($null -ne $oldRepo) { $env:GITHUB_REPO=$oldRepo } else { Remove-Item Env:GITHUB_REPO -ErrorAction SilentlyContinue } }
+
+
+
+
+npx vitest run src/workflows/orchestrator.test.ts -t "weeklyDigest 실행 시 주간 보고서를 생성하고 GitHub 커밋 단계를 건너뛸 수 있다|weeklyDigest 실행 시 webhook이 있으면 실제 알림 payload를 전송한다"
+
+
+
+node ./dist/cli/index.js workflow onNotionSync -o json
+
+

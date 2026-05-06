@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "meetings/Meeting_2026_05_06.md",
+                "file": "meetings/Meeting_2026_05_05.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Meeting_2026_05_06"
+              "title": "Meeting_2026_05_05"
             }
           }
         ],
@@ -109,7 +109,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "meetings/Meeting_2026_05_06.md",
+                "file": "meetings/Meeting_2026_05_05.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -119,7 +119,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Meeting_2026_05_06 의 백링크"
+              "title": "Meeting_2026_05_05 의 백링크"
             }
           },
           {
@@ -128,12 +128,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "meetings/Meeting_2026_05_06.md",
+                "file": "meetings/Meeting_2026_05_05.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Meeting_2026_05_06 의 나가는 링크"
+              "title": "Meeting_2026_05_05 의 나가는 링크"
             }
           },
           {
@@ -171,13 +171,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "meetings/Meeting_2026_05_06.md",
+                "file": "meetings/Meeting_2026_05_05.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Meeting_2026_05_06 의 개요"
+              "title": "Meeting_2026_05_05 의 개요"
             }
           }
         ]
@@ -200,10 +200,14 @@
   },
   "active": "4d0af79ba9e9c5b9",
   "lastOpenFiles": [
-    "analysis/2026-19_weekly_report.md",
-    "analysis/2026-19_weekly_report.md_bk",
-    "meetings/Meeting_2026_05_06-2.md",
     "meetings/Meeting_2026_05_06.md",
+    "meetings/Meeting_2026_05_05.md",
+    "sharing/test.md",
+    "meetings/Meeting_2026_05_06-2.md",
+    "analysis/2026-19_weekly_report.md",
+    "analysis/2026-19_weekly_report.md_bk2",
+    "analysis/2026-19_weekly_report.md_bk",
+    "analysis/test.md",
     "meetings/Meeting_2026_05_04.md",
     "meetings/Meeting_2026_05_04-358ce5bf-5072-814a-8261-d6c34291868e.md",
     "meetings/{{meeting_title}} 타이틀 수정.md",
@@ -223,8 +227,6 @@
     "meetings/미팅 2026-05-07 엔지니어링 싱크.md",
     "meetings/미팅 2026-05-07 스프린트 플래닝.md",
     "meetings/미팅 2026-05-07 디자인 리뷰.md",
-    "meetings/미팅 2026-05-06 회고(Retro).md",
-    "meetings/미팅 2026-05-06 프로젝트 킥오프.md",
-    "meetings/미팅 2026-05-06 주간 스탠드업.md"
+    "meetings/미팅 2026-05-06 회고(Retro).md"
   ]
 }

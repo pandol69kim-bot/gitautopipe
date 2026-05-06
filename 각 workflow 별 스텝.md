@@ -111,7 +111,7 @@
    - 설명: GitHub 환경 변수가 준비되어 있으면 생성된 보고서를 커밋/푸시하고, 없으면 skip
 4. `digest-notify`
    - 이름: 다이제스트 알림 전송
-   - 설명: 보고서 경로와 GitHub 처리 상태를 기준으로 알림용 요약 정보를 정리
+   - 설명: `WEEKLY_DIGEST_WEBHOOK_URL`이 설정되어 있으면 Slack/Discord 호환 webhook으로 실제 알림을 전송하고, 없으면 skip
 
 ### 실행 흐름
 
