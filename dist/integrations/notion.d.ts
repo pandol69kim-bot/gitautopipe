@@ -1,9 +1,26 @@
 import type { NotionPage, NotionBlock, NotionRichText, SyncMetadata, MergeResult, NotionConnectorConfig } from '../types/notion';
 import type { MarkdownFile } from '../types/vault';
 export interface NotionClient {
-    databases: {
-        query(params: {
+    databases?: {
+        query?(params: {
             database_id: string;
+            [k: string]: unknown;
+        }): Promise<{
+            results: RawNotionPage[];
+            has_more: boolean;
+        }>;
+        retrieve?(params: {
+            database_id: string;
+        }): Promise<{
+            id: string;
+            data_sources?: Array<{
+                id: string;
+            }>;
+        }>;
+    };
+    dataSources?: {
+        query?(params: {
+            data_source_id: string;
             [k: string]: unknown;
         }): Promise<{
             results: RawNotionPage[];
@@ -17,6 +34,9 @@ export interface NotionClient {
         update(params: unknown): Promise<void>;
     };
     blocks: {
+        delete?(params: {
+            block_id: string;
+        }): Promise<void>;
         children: {
             list(params: {
                 block_id: string;
@@ -50,11 +70,19 @@ export declare class NotionMCPConnector {
     constructor(config: NotionConnectorConfig, client: NotionClient);
     fetchMeetings(databaseId: string): Promise<NotionPage[]>;
     syncToObsidian(notionPage: NotionPage, targetPath: string): Promise<void>;
-    syncFromObsidian(markdownFile: MarkdownFile, databaseId: string): Promise<void>;
+    syncFromObsidian(markdownFile: MarkdownFile, databaseId: string): Promise<{
+        pageId: string;
+        action: 'created' | 'updated';
+    }>;
     buildSyncMetadata(notionPage: NotionPage, obsidianPath: string): SyncMetadata;
     resolveConflicts(local: MarkdownFile, remote: NotionPage): Promise<MergeResult>;
     static blockToMarkdown(block: NotionBlock): string;
     private buildMarkdownFromPage;
+    private queryDatabase;
+    private resolveParentId;
+    private resolveDataSourceId;
+    private replacePageChildren;
+    private writeBackNotionId;
     private markdownToBlocks;
     private makeHeadingBlock;
     private makeParagraphBlock;
@@ -65,5 +93,6 @@ export declare class NotionMCPConnector {
     private extractTitle;
     static extractPlainText(richText: NotionRichText[]): string;
 }
+export declare function normalizeNotionId(value: string): string;
 export {};
 //# sourceMappingURL=notion.d.ts.map

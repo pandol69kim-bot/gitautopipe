@@ -13,8 +13,18 @@ import type { MarkdownFile } from '../types/vault';
 
 // Notion 클라이언트 최소 인터페이스 (테스트 주입용)
 export interface NotionClient {
-  databases: {
-    query(params: { database_id: string; [k: string]: unknown }): Promise<{
+  databases?: {
+    query?(params: { database_id: string; [k: string]: unknown }): Promise<{
+      results: RawNotionPage[];
+      has_more: boolean;
+    }>;
+    retrieve?(params: { database_id: string }): Promise<{
+      id: string;
+      data_sources?: Array<{ id: string }>;
+    }>;
+  };
+  dataSources?: {
+    query?(params: { data_source_id: string; [k: string]: unknown }): Promise<{
       results: RawNotionPage[];
       has_more: boolean;
     }>;
@@ -24,6 +34,7 @@ export interface NotionClient {
     update(params: unknown): Promise<void>;
   };
   blocks: {
+    delete?(params: { block_id: string }): Promise<void>;
     children: {
       list(params: { block_id: string }): Promise<{ results: RawBlock[]; has_more: boolean }>;
       append(params: { block_id: string; children: unknown[] }): Promise<void>;
@@ -60,7 +71,7 @@ export class NotionMCPConnector {
   // ── Subtask 2: Notion DB에서 미팅 페이지 목록 가져오기 ────────────
 
   async fetchMeetings(databaseId: string): Promise<NotionPage[]> {
-    const response = await this.client.databases.query({ database_id: databaseId });
+    const response = await this.queryDatabase(databaseId);
 
     const pages = await Promise.all(
       response.results.map(async (raw) => {
@@ -94,26 +105,57 @@ export class NotionMCPConnector {
 
   // ── Subtask 4: Obsidian → Notion 역변환 + 업로드 ─────────────────
 
-  async syncFromObsidian(markdownFile: MarkdownFile, databaseId: string): Promise<void> {
+  async syncFromObsidian(
+    markdownFile: MarkdownFile,
+    databaseId: string
+  ): Promise<{ pageId: string; action: 'created' | 'updated' }> {
     const raw = fs.readFileSync(markdownFile.filePath, 'utf-8') as string;
     const { data: frontmatter, content } = matter(raw);
+    const title = String(frontmatter['title'] ?? markdownFile.fileName.replace(/\.md$/i, ''));
+    const notionId =
+      typeof frontmatter['notionId'] === 'string' && frontmatter['notionId'].trim().length > 0
+        ? frontmatter['notionId'].trim()
+        : undefined;
+    const blocks = this.markdownToBlocks(content);
 
+    if (notionId) {
+      try {
+        await this.client.pages.update({
+          page_id: notionId,
+          properties: {
+            Name: {
+              title: [{ text: { content: title } }],
+            },
+          },
+        });
+
+        await this.replacePageChildren(notionId, blocks);
+
+        return { pageId: notionId, action: 'updated' };
+      } catch {
+        // Fall back to create when the stored notionId no longer resolves.
+      }
+    }
+
+    const parentId = await this.resolveParentId(databaseId);
     const page = await this.client.pages.create({
-      parent: { database_id: databaseId },
+      parent: { data_source_id: parentId },
       properties: {
         Name: {
-          title: [{ text: { content: frontmatter.title ?? markdownFile.fileName } }],
+          title: [{ text: { content: title } }],
         },
       },
     });
 
-    const blocks = this.markdownToBlocks(content);
     if (blocks.length > 0) {
       await this.client.blocks.children.append({
         block_id: page.id,
         children: blocks,
       });
     }
+
+    this.writeBackNotionId(markdownFile.filePath, frontmatter, content, page.id);
+    return { pageId: page.id, action: 'created' };
   }
 
   // ── Subtask 5: 동기화 메타데이터 빌드 ───────────────────────────
@@ -211,6 +253,77 @@ export class NotionMCPConnector {
     return `${frontmatter}\n\n${body}\n`;
   }
 
+  private async queryDatabase(databaseId: string): Promise<{
+    results: RawNotionPage[];
+    has_more: boolean;
+  }> {
+    const normalizedId = normalizeNotionId(databaseId);
+
+    if (this.client.dataSources?.query) {
+      const dataSourceId = await this.resolveDataSourceId(normalizedId);
+      return this.client.dataSources.query({ data_source_id: dataSourceId });
+    }
+
+    if (this.client.databases?.query) {
+      return this.client.databases.query({ database_id: normalizedId });
+    }
+
+    throw new Error('Notion client does not support dataSources.query or databases.query.');
+  }
+
+  private async resolveParentId(databaseId: string): Promise<string> {
+    const normalizedId = normalizeNotionId(databaseId);
+    if (this.client.dataSources?.query) {
+      return this.resolveDataSourceId(normalizedId);
+    }
+
+    return normalizedId;
+  }
+
+  private async resolveDataSourceId(databaseId: string): Promise<string> {
+    if (!this.client.databases?.retrieve) {
+      return databaseId;
+    }
+
+    try {
+      const database = await this.client.databases.retrieve({ database_id: databaseId });
+      const dataSourceId = database.data_sources?.[0]?.id;
+      return dataSourceId ? normalizeNotionId(dataSourceId) : databaseId;
+    } catch {
+      return databaseId;
+    }
+  }
+
+  private async replacePageChildren(pageId: string, blocks: unknown[]): Promise<void> {
+    const existingBlocks = await this.client.blocks.children.list({ block_id: pageId });
+
+    if (this.client.blocks.delete) {
+      await Promise.all(
+        existingBlocks.results.map((block) => this.client.blocks.delete!({ block_id: block.id }))
+      );
+    }
+
+    if (blocks.length === 0) {
+      return;
+    }
+
+    await this.client.blocks.children.append({
+      block_id: pageId,
+      children: blocks,
+    });
+  }
+
+  private writeBackNotionId(
+    filePath: string,
+    frontmatter: Record<string, unknown>,
+    content: string,
+    notionId: string
+  ): void {
+    const nextFrontmatter = { ...frontmatter, notionId };
+    const nextContent = matter.stringify(content.trimStart(), nextFrontmatter);
+    fs.writeFileSync(filePath, nextContent, 'utf-8');
+  }
+
   private markdownToBlocks(content: string): unknown[] {
     const lines = content.split('\n');
     const blocks: unknown[] = [];
@@ -290,4 +403,17 @@ export class NotionMCPConnector {
   static extractPlainText(richText: NotionRichText[]): string {
     return richText.map((rt) => rt.plain_text).join('');
   }
+}
+
+export function normalizeNotionId(value: string): string {
+  const trimmed = value.trim();
+  const urlMatch = trimmed.match(/([0-9a-fA-F]{32}|[0-9a-fA-F-]{36})(?:\?|$)/);
+  const rawId = urlMatch?.[1] ?? trimmed;
+  const compact = rawId.replace(/-/g, '');
+
+  if (/^[0-9a-fA-F]{32}$/.test(compact)) {
+    return `${compact.slice(0, 8)}-${compact.slice(8, 12)}-${compact.slice(12, 16)}-${compact.slice(16, 20)}-${compact.slice(20)}`.toLowerCase();
+  }
+
+  return rawId;
 }

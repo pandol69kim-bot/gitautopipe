@@ -1,32 +1,33 @@
-\vault>npx ts-node src/cli/index.ts status
-node:internal/modules/cjs/loader:1424
-  throw err;
-  ^
+D:\TM_PROJECT_셀피시\코드엑스개발>node ./dist/cli/index.js sync --target notion
+◇ injected env (28) from .env // tip: ⌘ suppress logs { quiet: true }
+@notionhq/client warn: request fail {
+  code: 'object_not_found',
+  message: 'Could not find database with ID: 356ce5bf-5072-808c-b2f3-ed6c2913e96f. Make sure the relevant pages and databases are shared with your integration "gitautopipe".',
+  attempt: 0,
+  requestId: '6ed34e84-74ae-4876-8f20-b2ef61900fba'
+}
+D:\TM_PROJECT_셀피시\코드엑스개발\node_modules\@notionhq\client\build\src\errors.js:215
+        return new APIResponseError({
+               ^
 
-Error: Cannot find module './index.ts'
-Require stack:
-- D:\TM_PROJECT_셀피시\vault\src\cli\imaginaryUncacheableRequireResolveScript
-    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)
-    at require.resolve (node:internal/modules/helpers:163:19)
-    at requireResolveNonCached (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:549:16)
-    at getProjectSearchDir (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:519:40)
-    at phase3 (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:267:27)
-    at bootstrap (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:47:30)
-    at main (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:33:12)
-    at Object.<anonymous> (C:\Users\codelab\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\dist\bin.js:579:5)
-    at Module._compile (node:internal/modules/cjs/loader:1761:14)
-    at Object..js (node:internal/modules/cjs/loader:1893:10) {
-  code: 'MODULE_NOT_FOUND',
-  requireStack: [
-    'D:\\TM_PROJECT_셀피시\\vault\\src\\cli\\imaginaryUncacheableRequireResolveScript'
-  ]
+APIResponseError: Could not find database with ID: 356ce5bf-5072-808c-b2f3-ed6c2913e96f. Make sure the relevant pages and databases are shared with your integration "gitautopipe".
+    at buildRequestError (D:\TM_PROJECT_셀피시\코드엑스개발\node_modules\@notionhq\client\build\src\errors.js:215:16)
+    at Client.executeSingleRequest (D:\TM_PROJECT_셀피시\코드엑스개발\node_modules\@notionhq\client\build\src\Client.js:858:50)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Client.executeWithRetry (D:\TM_PROJECT_셀피시\코드엑스개발\node_modules\@notionhq\client\build\src\Client.js:816:24)
+    at async NotionMCPConnector.fetchMeetings (D:\TM_PROJECT_셀피시\코드엑스개발\dist\integrations\notion.js:53:26)
+    at async Promise.all (index 0)
+    at async syncNotionBidirectional (D:\TM_PROJECT_셀피시\코드엑스개발\dist\integrations\notion-sync.js:58:39)
+    at async runSync (D:\TM_PROJECT_셀피시\코드엑스개발\dist\cli\commands.js:116:29)
+    at async executeSecuredCommand (D:\TM_PROJECT_셀피시\코드엑스개발\dist\cli\security.js:61:24)
+    at async Command.<anonymous> (D:\TM_PROJECT_셀피시\코드엑스개발\dist\cli\index.js:50:20) {
+  code: 'object_not_found',
+  status: 404,
+  headers: Headers {},
+  body: '{"object":"error","status":404,"code":"object_not_found","message":"Could not find database with ID: 356ce5bf-5072-808c-b2f3-ed6c2913e96f. Make sure the relevant pages and databases are shared with your integration \\"gitautopipe\\".","additional_data":{"integration_id":"352aa2a4-2201-81f7-aa90-0027ebabff17"},"request_id":"6ed34e84-74ae-4876-8f20-b2ef61900fba"}',
+  additional_data: { integration_id: '352aa2a4-2201-81f7-aa90-0027ebabff17' },
+  request_id: '6ed34e84-74ae-4876-8f20-b2ef61900fba'
 }
 
 Node.js v24.13.0
-
-◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
-workflows       [object Object],[object Object],[object Object],[object Object]
-schedules       1
-timestamp       2026-05-01T08:26:04.704Z
-
-D:\TM_PROJECT_셀피시\vault>
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76

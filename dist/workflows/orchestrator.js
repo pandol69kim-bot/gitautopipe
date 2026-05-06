@@ -40,6 +40,7 @@ const path = __importStar(require("path"));
 const client_1 = require("@notionhq/client");
 const github_1 = require("../integrations/github");
 const notion_1 = require("../integrations/notion");
+const notion_sync_1 = require("../integrations/notion-sync");
 function createGitHubSyncFromEnv() {
     const token = process.env['GITHUB_TOKEN'] ?? process.env['GITHUB_API_KEY'];
     const owner = process.env['GITHUB_OWNER'];
@@ -251,36 +252,27 @@ class WorkflowOrchestrator {
             triggers: [{ type: 'event', event: 'github:sync' }],
             errorHandling: { strategy: 'stop', notifyOnFailure: true },
         });
-        // onNotionSync: notion:sync 이벤트 → Notion DB 조회 → Obsidian 마크다운 저장
+        // onNotionSync: notion:sync 이벤트 → Notion/Obsidian 양방향 동기화
         this.registerWorkflow({
             id: 'onNotionSync',
             name: 'Notion 동기화',
             steps: [
                 {
-                    id: 'notion-fetch',
-                    name: 'Notion DB 미팅 페이지 조회',
+                    id: 'notion-sync-bidirectional',
+                    name: 'Notion-Obsidian 양방향 동기화',
                     execute: async (ctx) => {
-                        const { connector, databaseId } = createNotionConnectorFromEnv();
-                        const pages = await connector.fetchMeetings(databaseId);
-                        ctx.payload = { ...ctx.payload, pages };
-                        return { fetched: pages.length, titles: pages.map((p) => p.title) };
-                    },
-                },
-                {
-                    id: 'notion-sync-obsidian',
-                    name: 'Notion → Obsidian 마크다운 저장',
-                    execute: async (ctx) => {
-                        const { connector, obsidianPath } = createNotionConnectorFromEnv();
-                        const pages = ctx.payload?.['pages'];
-                        if (!pages || pages.length === 0) {
-                            return { message: '동기화할 페이지 없음' };
-                        }
-                        await Promise.all(pages.map((page) => {
-                            const safeName = page.title.replace(/[/\\:*?"<>|]/g, '_');
-                            const targetPath = path.join(obsidianPath, `${safeName}.md`);
-                            return connector.syncToObsidian(page, targetPath);
-                        }));
-                        return { synced: pages.length };
+                        const { connector, databaseId, obsidianPath } = createNotionConnectorFromEnv();
+                        const summary = await (0, notion_sync_1.syncNotionBidirectional)({
+                            connector,
+                            databaseId,
+                            paths: {
+                                vaultBasePath: path.resolve(process.env['VAULT_PATH'] ?? './vault'),
+                                meetingsFolder: process.env['VAULT_FOLDER_MEETINGS'] ?? 'meetings',
+                                meetingsPath: obsidianPath,
+                            },
+                        });
+                        ctx.payload = { ...ctx.payload, summary };
+                        return summary;
                     },
                 },
             ],

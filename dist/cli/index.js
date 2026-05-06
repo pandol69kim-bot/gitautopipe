@@ -21,9 +21,9 @@ const orchestrator = new orchestrator_1.WorkflowOrchestrator();
 const securityDeps = (0, security_1.createCliSecurityDeps)();
 program
     .name('selfish-club')
-    .description('셀피시 클럽 AI 에이전트 협업 시스템 CLI')
+    .description('셀피시 클럽 AI 에이전트 작업 시스템 CLI')
     .version('1.0.0')
-    .option('-o, --output <format>', '출력 포맷 (table|json|minimal)', 'table')
+    .option('-o, --output <format>', '출력 형식 (table|json|minimal)', 'table')
     .option('--log-level <level>', '로그 레벨 (debug|info|warn|error)', 'info')
     .hook('preAction', (thisCommand) => {
     const opts = thisCommand.opts();
@@ -87,6 +87,15 @@ program
     console.log(result);
 });
 program
+    .command('notion-check')
+    .description('Validate a Notion database or data source ID')
+    .option('--id <id>', 'Database or data source ID or URL')
+    .action(async (opts, cmd) => {
+    const output = cmd.parent?.opts()['output'] ?? 'table';
+    const result = await executeCliCommand('notion-check', opts, async () => (0, commands_1.runNotionCheck)(opts, { orchestrator, outputFormat: output }));
+    console.log(result);
+});
+program
     .command('interactive')
     .alias('i')
     .description('인터랙티브 모드로 실행합니다')
@@ -146,6 +155,8 @@ function buildCommandResource(command, options) {
             return `workflow/${String(options['workflowId'] ?? 'unknown')}`;
         case 'status':
             return 'system/status';
+        case 'notion-check':
+            return `notion/check/${String(options['id'] ?? process.env['NOTION_DATABASE_ID'] ?? 'env')}`;
         case 'interactive':
             return 'cli/interactive';
     }

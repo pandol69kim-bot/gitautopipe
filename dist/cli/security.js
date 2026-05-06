@@ -94,6 +94,8 @@ function getRequiredSecretsForCommand(command, options = {}) {
             }
             return ['GITHUB_TOKEN'];
         }
+        case 'notion-check':
+            return ['NOTION_TOKEN'];
         case 'analyze':
             return ['CLAUDE_API_KEY|ANTHROPIC_API_KEY'];
         case 'deploy':
@@ -115,6 +117,7 @@ function getRequiredSecretsForCommand(command, options = {}) {
 function mapCommandToAction(command) {
     switch (command) {
         case 'status':
+        case 'notion-check':
         case 'scan':
         case 'interactive':
             return 'read';

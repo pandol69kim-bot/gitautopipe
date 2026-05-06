@@ -38,15 +38,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runScan = runScan;
 exports.runSync = runSync;
+exports.mapNotionSyncError = mapNotionSyncError;
 exports.runAnalyze = runAnalyze;
 exports.runDeploy = runDeploy;
 exports.runWorkflow = runWorkflow;
+exports.runNotionCheck = runNotionCheck;
 exports.runStatus = runStatus;
 const path = __importStar(require("path"));
 const simple_git_1 = __importDefault(require("simple-git"));
 const formatter_1 = require("./formatter");
 const vault_scanner_1 = require("../core/vault-scanner");
 const github_1 = require("../integrations/github");
+const client_1 = require("@notionhq/client");
+const notion_1 = require("../integrations/notion");
+const notion_sync_1 = require("../integrations/notion-sync");
 const DEFAULT_GITHUB_SYNC_EXCLUDES = [
     '.claude/',
     '.git/',
@@ -109,6 +114,32 @@ async function runSync(opts, deps) {
         };
         return (0, formatter_1.format)(result, deps.outputFormat);
     }
+    if (target === 'notion') {
+        const syncSummary = await runNotionSync();
+        return (0, formatter_1.format)({
+            action: 'sync',
+            target,
+            status: 'completed',
+            ...syncSummary,
+            timestamp: new Date().toISOString(),
+        }, deps.outputFormat);
+    }
+    if (target === 'all') {
+        const [notion, github] = await Promise.all([runNotionSync(), runGitHubSync()]);
+        return (0, formatter_1.format)({
+            action: 'sync',
+            target,
+            status: notion ? (github.success ? 'completed' : 'failed') : 'failed',
+            notion,
+            github: {
+                status: github.success ? 'completed' : 'failed',
+                commit: github.commit,
+                conflicts: github.conflicts,
+                error: github.error,
+            },
+            timestamp: new Date().toISOString(),
+        }, deps.outputFormat);
+    }
     await deps.orchestrator.emit(`${target}:sync`, { target });
     const result = {
         action: 'sync',
@@ -117,6 +148,115 @@ async function runSync(opts, deps) {
         timestamp: new Date().toISOString(),
     };
     return (0, formatter_1.format)(result, deps.outputFormat);
+}
+async function runNotionSync() {
+    const token = process.env['NOTION_TOKEN'];
+    const databaseId = process.env['NOTION_DATABASE_ID'];
+    if (!token) {
+        throw new Error('NOTION_TOKEN is required.');
+    }
+    if (!databaseId) {
+        throw new Error('NOTION_DATABASE_ID is required.');
+    }
+    const meetingsFolder = process.env['VAULT_FOLDER_MEETINGS'] ?? 'meetings';
+    const configuredMeetingsPath = process.env['NOTION_OBSIDIAN_PATH'];
+    const vaultBasePath = path.resolve(process.env['VAULT_PATH'] ?? './vault');
+    const connector = new notion_1.NotionMCPConnector({ token, defaultDatabaseId: databaseId }, new client_1.Client({ auth: token }));
+    try {
+        return await (0, notion_sync_1.syncNotionBidirectional)({
+            connector,
+            databaseId,
+            paths: {
+                vaultBasePath,
+                meetingsFolder,
+                meetingsPath: configuredMeetingsPath ? path.resolve(configuredMeetingsPath) : undefined,
+            },
+        });
+    }
+    catch (error) {
+        throw mapNotionSyncError(error, databaseId);
+    }
+}
+function mapNotionSyncError(error, databaseId) {
+    const notionError = error;
+    if (notionError?.code !== 'object_not_found') {
+        return error instanceof Error ? error : new Error(String(error));
+    }
+    const integrationId = notionError.additional_data?.integration_id;
+    const requestId = notionError.request_id;
+    const details = [
+        `Notion 데이터베이스에 접근할 수 없습니다: ${databaseId}`,
+        '확인 사항: 1) 해당 데이터베이스 또는 상위 페이지를 integration "gitautopipe"와 공유했는지, 2) NOTION_DATABASE_ID가 실제 대상 ID와 일치하는지 확인하세요.',
+    ];
+    if (integrationId) {
+        details.push(`integration_id=${integrationId}`);
+    }
+    if (requestId) {
+        details.push(`request_id=${requestId}`);
+    }
+    return new Error(details.join(' '));
+}
+async function runNotionProbe(operation) {
+    try {
+        const data = await operation();
+        return { ok: true, data };
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            const apiError = error;
+            return {
+                ok: false,
+                error: {
+                    code: apiError.code,
+                    message: apiError.message,
+                    status: apiError.status,
+                },
+            };
+        }
+        return {
+            ok: false,
+            error: {
+                message: String(error),
+            },
+        };
+    }
+}
+function extractNotionTitle(title) {
+    return Array.isArray(title) ? title.map((item) => item.plain_text ?? '').join('').trim() : undefined;
+}
+function extractDataSourceTitle(response) {
+    const dataSource = response;
+    if (typeof dataSource.name === 'string' && dataSource.name.trim().length > 0) {
+        return dataSource.name;
+    }
+    return extractNotionTitle(dataSource.title);
+}
+function buildNotionDiagnosis(params) {
+    const guidance = [];
+    if (params.rawId !== params.normalizedId) {
+        guidance.push(`Normalized NOTION_DATABASE_ID to ${params.normalizedId}.`);
+    }
+    if (params.databaseCheck.ok && params.dataSourceChecks.some((check) => check.ok)) {
+        guidance.push('At least one reachable data source was found for the configured target.');
+        return { status: 'ok', guidance };
+    }
+    if (params.databaseCheck.error?.code === 'object_not_found') {
+        guidance.push('The database is not shared with the integration, or the configured ID points to the wrong object.');
+    }
+    if (params.dataSourceChecks.some((check) => check.error?.code === 'object_not_found')) {
+        guidance.push('The data source is not reachable. Check Add connections / Share in Notion and confirm the ID is correct.');
+    }
+    if (params.databaseCheck.error?.code === 'invalid_request_url') {
+        guidance.push('The configured value is not a valid Notion database URL or ID.');
+    }
+    if (params.databaseCheck.ok && params.dataSourceChecks.every((check) => !check.ok)) {
+        guidance.push('The database is reachable, but no linked data source is reachable. This usually means the integration is not connected to the data source layer yet.');
+        return { status: 'warning', guidance };
+    }
+    if (guidance.length === 0) {
+        guidance.push('Check the NOTION_DATABASE_ID value and verify the target is shared with the integration.');
+    }
+    return { status: 'failed', guidance };
 }
 async function runGitHubSync() {
     const cwd = process.cwd();
@@ -224,6 +364,60 @@ async function runDeploy(opts, deps) {
 async function runWorkflow(opts, deps) {
     const execution = await deps.orchestrator.executeWorkflow(opts.workflowId, opts.payload);
     return (0, formatter_1.format)(execution, deps.outputFormat);
+}
+async function runNotionCheck(opts, deps) {
+    const token = process.env['NOTION_TOKEN'];
+    if (!token) {
+        throw new Error('NOTION_TOKEN is required.');
+    }
+    const rawId = opts.id ?? process.env['NOTION_DATABASE_ID'];
+    if (!rawId) {
+        throw new Error('NOTION_DATABASE_ID is required.');
+    }
+    const normalizedId = (0, notion_1.normalizeNotionId)(rawId);
+    const client = new client_1.Client({ auth: token });
+    const databaseCheck = await runNotionProbe(async () => {
+        const response = await client.databases.retrieve({ database_id: normalizedId });
+        const database = response;
+        return {
+            id: database.id,
+            title: extractNotionTitle(database.title),
+            dataSourceIds: (database.data_sources ?? [])
+                .map((item) => item.id)
+                .filter((value) => typeof value === 'string' && value.length > 0),
+        };
+    });
+    const candidateIds = Array.from(new Set([normalizedId, ...(databaseCheck.data?.dataSourceIds ?? [])]));
+    const dataSourceChecks = await Promise.all(candidateIds.map(async (targetId) => {
+        const probe = await runNotionProbe(async () => {
+            const response = await client.dataSources.retrieve({ data_source_id: targetId });
+            return {
+                id: response.id,
+                title: extractDataSourceTitle(response),
+                parent: 'parent' in response ? response.parent : undefined,
+            };
+        });
+        return {
+            targetId,
+            ...probe,
+        };
+    }));
+    const diagnosis = buildNotionDiagnosis({
+        rawId,
+        normalizedId,
+        databaseCheck,
+        dataSourceChecks,
+    });
+    return (0, formatter_1.format)({
+        action: 'notion-check',
+        status: diagnosis.status,
+        rawId,
+        normalizedId,
+        databaseCheck,
+        dataSourceChecks,
+        guidance: diagnosis.guidance,
+        timestamp: new Date().toISOString(),
+    }, deps.outputFormat);
 }
 function runStatus(deps) {
     const schedules = deps.orchestrator.getSchedules();

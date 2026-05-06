@@ -20,6 +20,7 @@
     "test:all": "npm test && npm run test:claude",
     "test:watch": "vitest",
     "test:api": "ts-node scripts/api-smoke-test.ts",
+    "notion:check-access": "ts-node scripts/notion-access-check.ts",
     "security:scan": "ts-node scripts/secret-scan.ts"
   },
   "keywords": [],

@@ -6,7 +6,15 @@ import { ConfigManager } from './config-manager';
 import { logger } from './logger';
 import type { LogLevel } from './logger';
 import type { OutputFormat } from './formatter';
-import { runScan, runSync, runAnalyze, runDeploy, runWorkflow, runStatus } from './commands';
+import {
+  runScan,
+  runSync,
+  runAnalyze,
+  runDeploy,
+  runWorkflow,
+  runStatus,
+  runNotionCheck,
+} from './commands';
 import { runInteractive } from './interactive';
 import {
   createCliSecurityDeps,
@@ -24,9 +32,9 @@ const securityDeps = createCliSecurityDeps();
 
 program
   .name('selfish-club')
-  .description('셀피시 클럽 AI 에이전트 협업 시스템 CLI')
+  .description('셀피시 클럽 AI 에이전트 작업 시스템 CLI')
   .version('1.0.0')
-  .option('-o, --output <format>', '출력 포맷 (table|json|minimal)', 'table')
+  .option('-o, --output <format>', '출력 형식 (table|json|minimal)', 'table')
   .option('--log-level <level>', '로그 레벨 (debug|info|warn|error)', 'info')
   .hook('preAction', (thisCommand) => {
     const opts = thisCommand.opts();
@@ -109,6 +117,18 @@ program
   });
 
 program
+  .command('notion-check')
+  .description('Validate a Notion database or data source ID')
+  .option('--id <id>', 'Database or data source ID or URL')
+  .action(async (opts, cmd) => {
+    const output = (cmd.parent?.opts()['output'] as OutputFormat) ?? 'table';
+    const result = await executeCliCommand('notion-check', opts, async () =>
+      runNotionCheck(opts, { orchestrator, outputFormat: output })
+    );
+    console.log(result);
+  });
+
+program
   .command('interactive')
   .alias('i')
   .description('인터랙티브 모드로 실행합니다')
@@ -122,6 +142,7 @@ program
       logger.info('종료합니다.');
       return;
     }
+
     const deps = { orchestrator, outputFormat: output };
     let result: string;
     switch (selected.command) {
@@ -195,6 +216,8 @@ function buildCommandResource(command: CliCommandName, options: Record<string, u
       return `workflow/${String(options['workflowId'] ?? 'unknown')}`;
     case 'status':
       return 'system/status';
+    case 'notion-check':
+      return `notion/check/${String(options['id'] ?? process.env['NOTION_DATABASE_ID'] ?? 'env')}`;
     case 'interactive':
       return 'cli/interactive';
   }

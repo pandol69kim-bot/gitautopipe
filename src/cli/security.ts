@@ -13,6 +13,7 @@ export type CliCommandName =
   | 'deploy'
   | 'workflow'
   | 'status'
+  | 'notion-check'
   | 'interactive';
 
 export interface CliSecurityDeps {
@@ -129,6 +130,8 @@ export function getRequiredSecretsForCommand(
       }
       return ['GITHUB_TOKEN'];
     }
+    case 'notion-check':
+      return ['NOTION_TOKEN'];
     case 'analyze':
       return ['CLAUDE_API_KEY|ANTHROPIC_API_KEY'];
     case 'deploy':
@@ -151,6 +154,7 @@ export function getRequiredSecretsForCommand(
 function mapCommandToAction(command: CliCommandName): PermissionAction {
   switch (command) {
     case 'status':
+    case 'notion-check':
     case 'scan':
     case 'interactive':
       return 'read';

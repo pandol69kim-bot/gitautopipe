@@ -7,6 +7,19 @@ import { VaultScanner } from '../core/vault-scanner';
 import type { FolderType } from '../types/vault';
 import { GitHubSync } from '../integrations/github';
 import type { ChangedFile, GitHubConfig, SyncResult } from '../types/github';
+import { Client as NotionSdkClient } from '@notionhq/client';
+import { NotionMCPConnector, normalizeNotionId } from '../integrations/notion';
+import type { NotionClient } from '../integrations/notion';
+import { syncNotionBidirectional } from '../integrations/notion-sync';
+
+interface NotionApiErrorLike {
+  code?: string;
+  message?: string;
+  request_id?: string;
+  additional_data?: {
+    integration_id?: string;
+  };
+}
 
 const DEFAULT_GITHUB_SYNC_EXCLUDES = [
   '.claude/',
@@ -56,6 +69,10 @@ export interface WorkflowRunOptions {
   payload?: Record<string, unknown>;
 }
 
+export interface NotionCheckOptions {
+  id?: string;
+}
+
 export async function runScan(opts: ScanOptions, deps: CommandDeps): Promise<string> {
   const scanner = createVaultScannerFromEnv();
   const folderTypes: FolderType[] = [
@@ -103,6 +120,40 @@ export async function runSync(opts: SyncOptions, deps: CommandDeps): Promise<str
     return format(result, deps.outputFormat);
   }
 
+  if (target === 'notion') {
+    const syncSummary = await runNotionSync();
+    return format(
+      {
+        action: 'sync',
+        target,
+        status: 'completed',
+        ...syncSummary,
+        timestamp: new Date().toISOString(),
+      },
+      deps.outputFormat
+    );
+  }
+
+  if (target === 'all') {
+    const [notion, github] = await Promise.all([runNotionSync(), runGitHubSync()]);
+    return format(
+      {
+        action: 'sync',
+        target,
+        status: notion ? (github.success ? 'completed' : 'failed') : 'failed',
+        notion,
+        github: {
+          status: github.success ? 'completed' : 'failed',
+          commit: github.commit,
+          conflicts: github.conflicts,
+          error: github.error,
+        },
+        timestamp: new Date().toISOString(),
+      },
+      deps.outputFormat
+    );
+  }
+
   await deps.orchestrator.emit(`${target}:sync`, { target });
   const result = {
     action: 'sync',
@@ -111,6 +162,160 @@ export async function runSync(opts: SyncOptions, deps: CommandDeps): Promise<str
     timestamp: new Date().toISOString(),
   };
   return format(result, deps.outputFormat);
+}
+
+async function runNotionSync(): Promise<Awaited<ReturnType<typeof syncNotionBidirectional>>> {
+  const token = process.env['NOTION_TOKEN'];
+  const databaseId = process.env['NOTION_DATABASE_ID'];
+  if (!token) {
+    throw new Error('NOTION_TOKEN is required.');
+  }
+  if (!databaseId) {
+    throw new Error('NOTION_DATABASE_ID is required.');
+  }
+
+  const meetingsFolder = process.env['VAULT_FOLDER_MEETINGS'] ?? 'meetings';
+  const configuredMeetingsPath = process.env['NOTION_OBSIDIAN_PATH'];
+  const vaultBasePath = path.resolve(process.env['VAULT_PATH'] ?? './vault');
+
+  const connector = new NotionMCPConnector(
+    { token, defaultDatabaseId: databaseId },
+    new NotionSdkClient({ auth: token }) as unknown as NotionClient
+  );
+
+  try {
+    return await syncNotionBidirectional({
+      connector,
+      databaseId,
+      paths: {
+        vaultBasePath,
+        meetingsFolder,
+        meetingsPath: configuredMeetingsPath ? path.resolve(configuredMeetingsPath) : undefined,
+      },
+    });
+  } catch (error) {
+    throw mapNotionSyncError(error, databaseId);
+  }
+}
+
+export function mapNotionSyncError(error: unknown, databaseId: string): Error {
+  const notionError = error as NotionApiErrorLike;
+  if (notionError?.code !== 'object_not_found') {
+    return error instanceof Error ? error : new Error(String(error));
+  }
+
+  const integrationId = notionError.additional_data?.integration_id;
+  const requestId = notionError.request_id;
+  const details = [
+    `Notion 데이터베이스에 접근할 수 없습니다: ${databaseId}`,
+    '확인 사항: 1) 해당 데이터베이스 또는 상위 페이지를 integration "gitautopipe"와 공유했는지, 2) NOTION_DATABASE_ID가 실제 대상 ID와 일치하는지 확인하세요.',
+  ];
+
+  if (integrationId) {
+    details.push(`integration_id=${integrationId}`);
+  }
+  if (requestId) {
+    details.push(`request_id=${requestId}`);
+  }
+
+  return new Error(details.join(' '));
+}
+
+async function runNotionProbe<T>(
+  operation: () => Promise<T>
+): Promise<{ ok: boolean; data?: T; error?: { code?: string; message: string; status?: number } }> {
+  try {
+    const data = await operation();
+    return { ok: true, data };
+  } catch (error) {
+    if (error instanceof Error) {
+      const apiError = error as Error & { code?: string; status?: number };
+      return {
+        ok: false,
+        error: {
+          code: apiError.code,
+          message: apiError.message,
+          status: apiError.status,
+        },
+      };
+    }
+
+    return {
+      ok: false,
+      error: {
+        message: String(error),
+      },
+    };
+  }
+}
+
+function extractNotionTitle(
+  title: Array<{ plain_text?: string }> | undefined
+): string | undefined {
+  return Array.isArray(title) ? title.map((item) => item.plain_text ?? '').join('').trim() : undefined;
+}
+
+function extractDataSourceTitle(response: unknown): string | undefined {
+  const dataSource = response as {
+    title?: Array<{ plain_text?: string }>;
+    name?: string;
+  };
+
+  if (typeof dataSource.name === 'string' && dataSource.name.trim().length > 0) {
+    return dataSource.name;
+  }
+
+  return extractNotionTitle(dataSource.title);
+}
+
+function buildNotionDiagnosis(params: {
+  rawId: string;
+  normalizedId: string;
+  databaseCheck: {
+    ok: boolean;
+    data?: { id: string; title?: string; dataSourceIds: string[] };
+    error?: { code?: string; message: string; status?: number };
+  };
+  dataSourceChecks: Array<{
+    ok: boolean;
+    targetId: string;
+    data?: { id: string; title?: string; parent?: unknown };
+    error?: { code?: string; message: string; status?: number };
+  }>;
+}): { status: 'ok' | 'warning' | 'failed'; guidance: string[] } {
+  const guidance: string[] = [];
+
+  if (params.rawId !== params.normalizedId) {
+    guidance.push(`Normalized NOTION_DATABASE_ID to ${params.normalizedId}.`);
+  }
+
+  if (params.databaseCheck.ok && params.dataSourceChecks.some((check) => check.ok)) {
+    guidance.push('At least one reachable data source was found for the configured target.');
+    return { status: 'ok', guidance };
+  }
+
+  if (params.databaseCheck.error?.code === 'object_not_found') {
+    guidance.push('The database is not shared with the integration, or the configured ID points to the wrong object.');
+  }
+
+  if (params.dataSourceChecks.some((check) => check.error?.code === 'object_not_found')) {
+    guidance.push('The data source is not reachable. Check Add connections / Share in Notion and confirm the ID is correct.');
+  }
+
+  if (params.databaseCheck.error?.code === 'invalid_request_url') {
+    guidance.push('The configured value is not a valid Notion database URL or ID.');
+  }
+
+  if (params.databaseCheck.ok && params.dataSourceChecks.every((check) => !check.ok)) {
+    guidance.push('The database is reachable, but no linked data source is reachable. This usually means the integration is not connected to the data source layer yet.');
+    return { status: 'warning', guidance };
+  }
+
+  if (guidance.length === 0) {
+    guidance.push('Check the NOTION_DATABASE_ID value and verify the target is shared with the integration.');
+  }
+
+  return { status: 'failed', guidance };
 }
 
 async function runGitHubSync(): Promise<SyncResult> {
@@ -230,6 +435,84 @@ export async function runDeploy(opts: DeployOptions, deps: CommandDeps): Promise
 export async function runWorkflow(opts: WorkflowRunOptions, deps: CommandDeps): Promise<string> {
   const execution = await deps.orchestrator.executeWorkflow(opts.workflowId, opts.payload);
   return format(execution, deps.outputFormat);
+}
+
+export async function runNotionCheck(
+  opts: NotionCheckOptions,
+  deps: CommandDeps
+): Promise<string> {
+  const token = process.env['NOTION_TOKEN'];
+  if (!token) {
+    throw new Error('NOTION_TOKEN is required.');
+  }
+
+  const rawId = opts.id ?? process.env['NOTION_DATABASE_ID'];
+  if (!rawId) {
+    throw new Error('NOTION_DATABASE_ID is required.');
+  }
+
+  const normalizedId = normalizeNotionId(rawId);
+  const client = new NotionSdkClient({ auth: token });
+
+  const databaseCheck = await runNotionProbe(async () => {
+    const response = await client.databases.retrieve({ database_id: normalizedId });
+    const database = response as {
+      id: string;
+      title?: Array<{ plain_text?: string }>;
+      data_sources?: Array<{ id?: string }>;
+    };
+
+    return {
+      id: database.id,
+      title: extractNotionTitle(database.title),
+      dataSourceIds: (database.data_sources ?? [])
+        .map((item) => item.id)
+        .filter((value): value is string => typeof value === 'string' && value.length > 0),
+    };
+  });
+
+  const candidateIds = Array.from(
+    new Set([normalizedId, ...(databaseCheck.data?.dataSourceIds ?? [])])
+  );
+
+  const dataSourceChecks = await Promise.all(
+    candidateIds.map(async (targetId) => {
+      const probe = await runNotionProbe(async () => {
+        const response = await client.dataSources.retrieve({ data_source_id: targetId });
+        return {
+          id: response.id,
+          title: extractDataSourceTitle(response),
+          parent: 'parent' in response ? response.parent : undefined,
+        };
+      });
+
+      return {
+        targetId,
+        ...probe,
+      };
+    })
+  );
+
+  const diagnosis = buildNotionDiagnosis({
+    rawId,
+    normalizedId,
+    databaseCheck,
+    dataSourceChecks,
+  });
+
+  return format(
+    {
+      action: 'notion-check',
+      status: diagnosis.status,
+      rawId,
+      normalizedId,
+      databaseCheck,
+      dataSourceChecks,
+      guidance: diagnosis.guidance,
+      timestamp: new Date().toISOString(),
+    },
+    deps.outputFormat
+  );
 }
 
 export function runStatus(deps: CommandDeps): string {
