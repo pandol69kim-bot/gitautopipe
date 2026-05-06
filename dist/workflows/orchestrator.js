@@ -350,10 +350,10 @@ class WorkflowOrchestrator {
             id: 'weeklyDigest',
             name: '주간 다이제스트 생성',
             steps: [
-                this.makeLogStep('vault-scan', '볼트 주간 데이터 수집'),
-                this.makeLogStep('weekly-report', '주간 보고서 생성'),
-                this.makeLogStep('github-commit', 'GitHub 커밋'),
-                this.makeLogStep('digest-notify', '다이제스트 알림 전송'),
+                this.createWeeklyDigestScanStep(),
+                this.createWeeklyDigestReportStep(),
+                this.createWeeklyDigestGitHubCommitStep(),
+                this.createWeeklyDigestNotifyStep(),
             ],
             triggers: [{ type: 'cron', cron: '0 9 * * 1' }],
             errorHandling: { strategy: 'continue', notifyOnFailure: true },
@@ -376,36 +376,139 @@ class WorkflowOrchestrator {
             name: 'Analysis 보고서 업데이트',
             execute: async (ctx) => {
                 try {
-                    const scanner = this.createVaultScannerFromEnv();
-                    const weeklyData = await this.collectMeetingWeeklyData(scanner, ctx.payload);
-                    if (!weeklyData) {
-                        const skipped = { status: 'skipped', reason: 'meetings-not-found' };
-                        ctx.payload = { ...ctx.payload, report: skipped };
-                        return skipped;
-                    }
-                    const analyzer = this.deps.createAnalysisEngine?.() ?? (0, analysis_factory_1.createAnalysisEngineFromEnv)();
-                    const outputDir = scanner.getFullPath('analysis');
-                    const generator = new report_generator_1.ReportGenerator(analyzer, {
-                        outputDir,
-                        weekNumber: weeklyData.weekNumber,
-                    });
-                    const report = await generator.generateWeeklyReport(weeklyData);
-                    const fileName = generator.generateFileName('weekly', weeklyData.weekNumber);
-                    const outputPath = path.join(outputDir, fileName);
-                    await generator.saveReport(report, outputPath);
-                    const result = {
-                        status: 'generated',
-                        weekNumber: weeklyData.weekNumber,
-                        totalDocuments: weeklyData.documents.length,
-                        reportPath: outputPath,
-                    };
-                    ctx.payload = { ...ctx.payload, report: result };
-                    return result;
+                    return await this.generateWeeklyDigestReport(ctx);
                 }
                 catch (error) {
                     const message = error instanceof Error ? error.message : String(error);
                     throw new Error(`Analysis 보고서 업데이트 실패: ${message}`);
                 }
+            },
+        };
+    }
+    createWeeklyDigestScanStep() {
+        return {
+            id: 'vault-scan',
+            name: '볼트 주간 데이터 수집',
+            execute: async (ctx) => {
+                const scanner = this.createVaultScannerFromEnv();
+                const weeklyData = await this.collectMeetingWeeklyData(scanner, ctx.payload);
+                if (!weeklyData) {
+                    const skipped = { status: 'skipped', reason: 'meetings-not-found' };
+                    ctx.payload = { ...ctx.payload, weeklyDigest: { weeklyData: null, scan: skipped } };
+                    return skipped;
+                }
+                const result = {
+                    status: 'collected',
+                    weekNumber: weeklyData.weekNumber,
+                    totalDocuments: weeklyData.documents.length,
+                    memberCount: weeklyData.memberCount ?? 0,
+                };
+                ctx.payload = {
+                    ...ctx.payload,
+                    weeklyDigest: {
+                        ...(this.readWeeklyDigestPayload(ctx.payload) ?? {}),
+                        weeklyData,
+                        scan: result,
+                    },
+                };
+                return result;
+            },
+        };
+    }
+    createWeeklyDigestReportStep() {
+        return {
+            id: 'weekly-report',
+            name: '주간 보고서 생성',
+            execute: async (ctx) => {
+                try {
+                    return await this.generateWeeklyDigestReport(ctx);
+                }
+                catch (error) {
+                    const message = error instanceof Error ? error.message : String(error);
+                    throw new Error(`주간 보고서 생성 실패: ${message}`);
+                }
+            },
+        };
+    }
+    createWeeklyDigestGitHubCommitStep() {
+        return {
+            id: 'github-commit',
+            name: 'GitHub 커밋',
+            execute: async (ctx) => {
+                const weeklyDigest = this.readWeeklyDigestPayload(ctx.payload);
+                const report = weeklyDigest?.report;
+                if (!report || report.status !== 'generated' || !report.reportPath) {
+                    const skipped = { status: 'skipped', reason: 'report-not-generated' };
+                    ctx.payload = {
+                        ...ctx.payload,
+                        weeklyDigest: {
+                            ...(weeklyDigest ?? {}),
+                            github: skipped,
+                        },
+                    };
+                    return skipped;
+                }
+                if (!this.hasGitHubSyncEnv()) {
+                    const skipped = { status: 'skipped', reason: 'github-env-not-configured' };
+                    ctx.payload = {
+                        ...ctx.payload,
+                        weeklyDigest: {
+                            ...(weeklyDigest ?? {}),
+                            github: skipped,
+                        },
+                    };
+                    return skipped;
+                }
+                const sync = this.deps.createGitHubSync?.() ?? createGitHubSyncFromEnv();
+                const relativePath = path.relative(process.env['GITHUB_LOCAL_PATH'] ?? process.cwd(), report.reportPath);
+                const commit = await sync.commitAndPush([
+                    {
+                        filePath: report.reportPath,
+                        relativePath,
+                        folderType: 'analysis',
+                        changeType: 'modify',
+                    },
+                ], github_1.GitHubSync.buildCommitMessage({
+                    type: 'analysis',
+                    period: `week${String(report.weekNumber).padStart(2, '0')}`,
+                }));
+                const result = {
+                    status: 'committed',
+                    sha: commit.sha,
+                    message: commit.message,
+                    filesChanged: commit.filesChanged,
+                };
+                ctx.payload = {
+                    ...ctx.payload,
+                    weeklyDigest: {
+                        ...(weeklyDigest ?? {}),
+                        github: result,
+                    },
+                };
+                return result;
+            },
+        };
+    }
+    createWeeklyDigestNotifyStep() {
+        return {
+            id: 'digest-notify',
+            name: '다이제스트 알림 전송',
+            execute: async (ctx) => {
+                const weeklyDigest = this.readWeeklyDigestPayload(ctx.payload);
+                const result = {
+                    status: 'prepared',
+                    weekNumber: weeklyDigest?.report?.weekNumber ?? weeklyDigest?.scan?.weekNumber ?? null,
+                    reportPath: weeklyDigest?.report?.reportPath ?? null,
+                    githubStatus: weeklyDigest?.github?.status ?? 'skipped',
+                };
+                ctx.payload = {
+                    ...ctx.payload,
+                    weeklyDigest: {
+                        ...(weeklyDigest ?? {}),
+                        notification: result,
+                    },
+                };
+                return result;
             },
         };
     }
@@ -470,6 +573,62 @@ class WorkflowOrchestrator {
             return frontmatterDate;
         }
         return fallbackDate;
+    }
+    async generateWeeklyDigestReport(ctx) {
+        const scanner = this.createVaultScannerFromEnv();
+        const weeklyDigest = this.readWeeklyDigestPayload(ctx.payload);
+        const weeklyData = weeklyDigest?.weeklyData ?? (await this.collectMeetingWeeklyData(scanner, ctx.payload));
+        if (!weeklyData) {
+            const skipped = { status: 'skipped', reason: 'meetings-not-found' };
+            ctx.payload = {
+                ...ctx.payload,
+                weeklyDigest: {
+                    ...(weeklyDigest ?? {}),
+                    weeklyData: null,
+                    report: skipped,
+                },
+                report: skipped,
+            };
+            return skipped;
+        }
+        const analyzer = this.deps.createAnalysisEngine?.() ?? (0, analysis_factory_1.createAnalysisEngineFromEnv)();
+        const outputDir = scanner.getFullPath('analysis');
+        const generator = new report_generator_1.ReportGenerator(analyzer, {
+            outputDir,
+            weekNumber: weeklyData.weekNumber,
+        });
+        const report = await generator.generateWeeklyReport(weeklyData);
+        const fileName = generator.generateFileName('weekly', weeklyData.weekNumber);
+        const outputPath = path.join(outputDir, fileName);
+        await generator.saveReport(report, outputPath);
+        const result = {
+            status: 'generated',
+            weekNumber: weeklyData.weekNumber,
+            totalDocuments: weeklyData.documents.length,
+            reportPath: outputPath,
+        };
+        ctx.payload = {
+            ...ctx.payload,
+            weeklyDigest: {
+                ...(weeklyDigest ?? {}),
+                weeklyData,
+                report: result,
+            },
+            report: result,
+        };
+        return result;
+    }
+    readWeeklyDigestPayload(payload) {
+        const weeklyDigest = payload?.['weeklyDigest'];
+        if (!weeklyDigest || typeof weeklyDigest !== 'object') {
+            return null;
+        }
+        return weeklyDigest;
+    }
+    hasGitHubSyncEnv() {
+        return Boolean((process.env['GITHUB_TOKEN'] ?? process.env['GITHUB_API_KEY']) &&
+            process.env['GITHUB_OWNER'] &&
+            process.env['GITHUB_REPO']);
     }
 }
 exports.WorkflowOrchestrator = WorkflowOrchestrator;

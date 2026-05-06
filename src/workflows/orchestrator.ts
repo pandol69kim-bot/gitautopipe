@@ -69,6 +69,8 @@ interface ScheduleEntry {
 
 interface WorkflowOrchestratorDeps {
   createAnalysisEngine?: () => AnalysisEngine;
+  createGitHubSync?: () => GitHubSync;
+  fetch?: (input: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<{ ok: boolean; status?: number }>;
 }
 
 interface MeetingCandidate {
@@ -412,10 +414,10 @@ export class WorkflowOrchestrator {
       id: 'weeklyDigest',
       name: '주간 다이제스트 생성',
       steps: [
-        this.makeLogStep('vault-scan', '볼트 주간 데이터 수집'),
-        this.makeLogStep('weekly-report', '주간 보고서 생성'),
-        this.makeLogStep('github-commit', 'GitHub 커밋'),
-        this.makeLogStep('digest-notify', '다이제스트 알림 전송'),
+        this.createWeeklyDigestScanStep(),
+        this.createWeeklyDigestReportStep(),
+        this.createWeeklyDigestGitHubCommitStep(),
+        this.createWeeklyDigestNotifyStep(),
       ],
       triggers: [{ type: 'cron', cron: '0 9 * * 1' }],
       errorHandling: { strategy: 'continue', notifyOnFailure: true },
@@ -441,40 +443,188 @@ export class WorkflowOrchestrator {
       name: 'Analysis 보고서 업데이트',
       execute: async (ctx: WorkflowContext) => {
         try {
-          const scanner = this.createVaultScannerFromEnv();
-          const weeklyData = await this.collectMeetingWeeklyData(scanner, ctx.payload);
-
-          if (!weeklyData) {
-            const skipped = { status: 'skipped', reason: 'meetings-not-found' };
-            ctx.payload = { ...ctx.payload, report: skipped };
-            return skipped;
-          }
-
-          const analyzer = this.deps.createAnalysisEngine?.() ?? createAnalysisEngineFromEnv();
-          const outputDir = scanner.getFullPath('analysis');
-          const generator = new ReportGenerator(analyzer, {
-            outputDir,
-            weekNumber: weeklyData.weekNumber,
-          });
-          const report = await generator.generateWeeklyReport(weeklyData);
-          const fileName = generator.generateFileName('weekly', weeklyData.weekNumber);
-          const outputPath = path.join(outputDir, fileName);
-
-          await generator.saveReport(report, outputPath);
-
-          const result = {
-            status: 'generated',
-            weekNumber: weeklyData.weekNumber,
-            totalDocuments: weeklyData.documents.length,
-            reportPath: outputPath,
-          };
-          ctx.payload = { ...ctx.payload, report: result };
-
-          return result;
+          return await this.generateWeeklyDigestReport(ctx);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           throw new Error(`Analysis 보고서 업데이트 실패: ${message}`);
         }
+      },
+    };
+  }
+
+  private createWeeklyDigestScanStep(): WorkflowStep {
+    return {
+      id: 'vault-scan',
+      name: '볼트 주간 데이터 수집',
+      execute: async (ctx: WorkflowContext) => {
+        const scanner = this.createVaultScannerFromEnv();
+        const weeklyData = await this.collectMeetingWeeklyData(scanner, ctx.payload);
+
+        if (!weeklyData) {
+          const skipped = { status: 'skipped', reason: 'meetings-not-found' };
+          ctx.payload = { ...ctx.payload, weeklyDigest: { weeklyData: null, scan: skipped } };
+          return skipped;
+        }
+
+        const result = {
+          status: 'collected',
+          weekNumber: weeklyData.weekNumber,
+          totalDocuments: weeklyData.documents.length,
+          memberCount: weeklyData.memberCount ?? 0,
+        };
+        ctx.payload = {
+          ...ctx.payload,
+          weeklyDigest: {
+            ...(this.readWeeklyDigestPayload(ctx.payload) ?? {}),
+            weeklyData,
+            scan: result,
+          },
+        };
+
+        return result;
+      },
+    };
+  }
+
+  private createWeeklyDigestReportStep(): WorkflowStep {
+    return {
+      id: 'weekly-report',
+      name: '주간 보고서 생성',
+      execute: async (ctx: WorkflowContext) => {
+        try {
+          return await this.generateWeeklyDigestReport(ctx);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          throw new Error(`주간 보고서 생성 실패: ${message}`);
+        }
+      },
+    };
+  }
+
+  private createWeeklyDigestGitHubCommitStep(): WorkflowStep {
+    return {
+      id: 'github-commit',
+      name: 'GitHub 커밋',
+      execute: async (ctx: WorkflowContext) => {
+        const weeklyDigest = this.readWeeklyDigestPayload(ctx.payload);
+        const report = weeklyDigest?.report;
+
+        if (!report || report.status !== 'generated' || !report.reportPath) {
+          const skipped = { status: 'skipped', reason: 'report-not-generated' };
+          ctx.payload = {
+            ...ctx.payload,
+            weeklyDigest: {
+              ...(weeklyDigest ?? {}),
+              github: skipped,
+            },
+          };
+          return skipped;
+        }
+
+        if (!this.hasGitHubSyncEnv()) {
+          const skipped = { status: 'skipped', reason: 'github-env-not-configured' };
+          ctx.payload = {
+            ...ctx.payload,
+            weeklyDigest: {
+              ...(weeklyDigest ?? {}),
+              github: skipped,
+            },
+          };
+          return skipped;
+        }
+
+        const sync = this.deps.createGitHubSync?.() ?? createGitHubSyncFromEnv();
+        const relativePath = path.relative(process.env['GITHUB_LOCAL_PATH'] ?? process.cwd(), report.reportPath);
+        const commit = await sync.commitAndPush(
+          [
+            {
+              filePath: report.reportPath,
+              relativePath,
+              folderType: 'analysis',
+              changeType: 'modify',
+            },
+          ],
+          GitHubSync.buildCommitMessage({
+            type: 'analysis',
+            period: `week${String(report.weekNumber).padStart(2, '0')}`,
+          })
+        );
+
+        const result = {
+          status: 'committed',
+          sha: commit.sha,
+          message: commit.message,
+          filesChanged: commit.filesChanged,
+        };
+        ctx.payload = {
+          ...ctx.payload,
+          weeklyDigest: {
+            ...(weeklyDigest ?? {}),
+            github: result,
+          },
+        };
+
+        return result;
+      },
+    };
+  }
+
+  private createWeeklyDigestNotifyStep(): WorkflowStep {
+    return {
+      id: 'digest-notify',
+      name: '다이제스트 알림 전송',
+      execute: async (ctx: WorkflowContext) => {
+        const weeklyDigest = this.readWeeklyDigestPayload(ctx.payload);
+        const webhookUrl = this.getWeeklyDigestWebhookUrl();
+        if (!webhookUrl) {
+          const skipped = {
+            status: 'skipped',
+            reason: 'webhook-not-configured',
+            weekNumber: weeklyDigest?.report?.weekNumber ?? weeklyDigest?.scan?.weekNumber ?? null,
+            reportPath: weeklyDigest?.report?.reportPath ?? null,
+            githubStatus: weeklyDigest?.github?.status ?? 'skipped',
+          };
+          ctx.payload = {
+            ...ctx.payload,
+            weeklyDigest: {
+              ...(weeklyDigest ?? {}),
+              notification: skipped,
+            },
+          };
+          return skipped;
+        }
+
+        const payload = this.buildWeeklyDigestNotificationPayload(weeklyDigest);
+        const fetcher = this.deps.fetch ?? globalThis.fetch?.bind(globalThis);
+        if (!fetcher) {
+          throw new Error('fetch API를 사용할 수 없습니다.');
+        }
+
+        const response = await fetcher(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(`알림 전송 실패: status=${response.status ?? 'unknown'}`);
+        }
+
+        const result = {
+          status: 'sent',
+          weekNumber: weeklyDigest?.report?.weekNumber ?? weeklyDigest?.scan?.weekNumber ?? null,
+          reportPath: weeklyDigest?.report?.reportPath ?? null,
+          githubStatus: weeklyDigest?.github?.status ?? 'skipped',
+          channel: 'webhook',
+        };
+        ctx.payload = {
+          ...ctx.payload,
+          weeklyDigest: {
+            ...(weeklyDigest ?? {}),
+            notification: result,
+          },
+        };
+        return result;
       },
     };
   }
@@ -558,6 +708,125 @@ export class WorkflowOrchestrator {
       return frontmatterDate;
     }
     return fallbackDate;
+  }
+
+  private async generateWeeklyDigestReport(ctx: WorkflowContext): Promise<{
+    status: 'generated' | 'skipped';
+    reason?: string;
+    weekNumber?: number;
+    totalDocuments?: number;
+    reportPath?: string;
+  }> {
+    const scanner = this.createVaultScannerFromEnv();
+    const weeklyDigest = this.readWeeklyDigestPayload(ctx.payload);
+    const weeklyData = weeklyDigest?.weeklyData ?? (await this.collectMeetingWeeklyData(scanner, ctx.payload));
+
+    if (!weeklyData) {
+      const skipped = { status: 'skipped' as const, reason: 'meetings-not-found' };
+      ctx.payload = {
+        ...ctx.payload,
+        weeklyDigest: {
+          ...(weeklyDigest ?? {}),
+          weeklyData: null,
+          report: skipped,
+        },
+        report: skipped,
+      };
+      return skipped;
+    }
+
+    const analyzer = this.deps.createAnalysisEngine?.() ?? createAnalysisEngineFromEnv();
+    const outputDir = scanner.getFullPath('analysis');
+    const generator = new ReportGenerator(analyzer, {
+      outputDir,
+      weekNumber: weeklyData.weekNumber,
+    });
+    const report = await generator.generateWeeklyReport(weeklyData);
+    const fileName = generator.generateFileName('weekly', weeklyData.weekNumber);
+    const outputPath = path.join(outputDir, fileName);
+
+    await generator.saveReport(report, outputPath);
+
+    const result = {
+      status: 'generated' as const,
+      weekNumber: weeklyData.weekNumber,
+      totalDocuments: weeklyData.documents.length,
+      reportPath: outputPath,
+    };
+    ctx.payload = {
+      ...ctx.payload,
+      weeklyDigest: {
+        ...(weeklyDigest ?? {}),
+        weeklyData,
+        report: result,
+      },
+      report: result,
+    };
+
+    return result;
+  }
+
+  private readWeeklyDigestPayload(payload?: Record<string, unknown>): {
+    weeklyData?: WeeklyData | null;
+    scan?: Record<string, unknown>;
+    report?: Record<string, unknown> & { status?: string; reportPath?: string; weekNumber?: number };
+    github?: Record<string, unknown> & { status?: string };
+    notification?: Record<string, unknown>;
+  } | null {
+    const weeklyDigest = payload?.['weeklyDigest'];
+    if (!weeklyDigest || typeof weeklyDigest !== 'object') {
+      return null;
+    }
+
+    return weeklyDigest as {
+      weeklyData?: WeeklyData | null;
+      scan?: Record<string, unknown>;
+      report?: Record<string, unknown> & { status?: string; reportPath?: string; weekNumber?: number };
+      github?: Record<string, unknown> & { status?: string };
+      notification?: Record<string, unknown>;
+    };
+  }
+
+  private getWeeklyDigestWebhookUrl(): string | undefined {
+    const value =
+      process.env['WEEKLY_DIGEST_WEBHOOK_URL'] ?? process.env['NOTIFICATION_WEBHOOK_URL'];
+    return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+  }
+
+  private buildWeeklyDigestNotificationPayload(
+    weeklyDigest: {
+      report?: Record<string, unknown> & { reportPath?: string; weekNumber?: number };
+      github?: Record<string, unknown> & { status?: string };
+      scan?: Record<string, unknown> & { totalDocuments?: number; weekNumber?: number };
+    } | null
+  ): { text: string; attachments: Array<{ title: string; fields: Array<{ title: string; value: string; short: boolean }> }> } {
+    const weekNumber = weeklyDigest?.report?.weekNumber ?? weeklyDigest?.scan?.weekNumber ?? null;
+    const reportPath = weeklyDigest?.report?.reportPath ?? '보고서 경로 없음';
+    const githubStatus = weeklyDigest?.github?.status ?? 'skipped';
+    const totalDocuments = weeklyDigest?.scan?.totalDocuments;
+
+    return {
+      text: `✅ weeklyDigest 완료: Week${String(weekNumber ?? '').padStart(2, '0')}`,
+      attachments: [
+        {
+          title: '주간 다이제스트 결과',
+          fields: [
+            { title: '주차', value: weekNumber === null ? 'unknown' : String(weekNumber), short: true },
+            { title: '문서 수', value: typeof totalDocuments === 'number' ? String(totalDocuments) : 'unknown', short: true },
+            { title: 'GitHub', value: githubStatus, short: true },
+            { title: 'Report', value: reportPath, short: false },
+          ],
+        },
+      ],
+    };
+  }
+
+  private hasGitHubSyncEnv(): boolean {
+    return Boolean(
+      (process.env['GITHUB_TOKEN'] ?? process.env['GITHUB_API_KEY']) &&
+        process.env['GITHUB_OWNER'] &&
+        process.env['GITHUB_REPO']
+    );
   }
 }
 

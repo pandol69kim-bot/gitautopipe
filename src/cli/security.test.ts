@@ -98,5 +98,8 @@ describe('CLI security', () => {
     expect(getRequiredSecretsForCommand('workflow', { workflowId: 'onSkillUpdate' })).toEqual([
       'VERCEL_TOKEN',
     ]);
+    expect(getRequiredSecretsForCommand('workflow', { workflowId: 'weeklyDigest' })).toEqual([
+      'OPENAI_API_KEY|CLAUDE_API_KEY|ANTHROPIC_API_KEY',
+    ]);
   });
 });

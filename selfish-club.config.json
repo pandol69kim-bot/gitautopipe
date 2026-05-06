@@ -14,11 +14,7 @@
     "branch": "main"
   },
   "workflows": {
-    "schedules": {
-      "onNotionSync": {
-        "cron": "0 9 * * *"
-      }
-    }
+    "schedules": {}
   },
   "logLevel": "info"
 }

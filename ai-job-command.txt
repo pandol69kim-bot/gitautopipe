@@ -467,3 +467,68 @@ node -r ts-node/register -r dotenv/config -e "const fs=require('fs'); const path
 
 node -r ts-node/register -r dotenv/config -e "const { VaultScanner }=require('./src/core/vault-scanner'); const { createAnalysisEngineFromEnv }=require('./src/integrations/analysis-factory'); const path=require('path'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='openai'; const scanner=new VaultScanner({ basePath: path.resolve(process.env.VAULT_PATH ?? './vault'), folders: { mission: process.env.VAULT_FOLDER_MISSION ?? 'mission', meetings: process.env.VAULT_FOLDER_MEETINGS ?? 'meetings', skillInsight: process.env.VAULT_FOLDER_SKILL_INSIGHT ?? 'skillInsight', sharing: process.env.VAULT_FOLDER_SHARING ?? 'sharing', analysis: process.env.VAULT_FOLDER_ANALYSIS ?? 'analysis', linkedin: process.env.VAULT_FOLDER_LINKEDIN ?? 'linkedin' } }); const files=await scanner.scanFolder('meetings'); const picked=files.slice(0,1); const documents=[]; for (const file of picked){ const parsed=await scanner.parseMarkdown(file.filePath); documents.push({ content: parsed.content, title: parsed.frontmatter.title ?? file.fileName, date: parsed.frontmatter.date, author: parsed.frontmatter.author, folderType: 'meetings' }); } const analyzer=createAnalysisEngineFromEnv(); const summary=await analyzer.generateSummary({ weekNumber: 19, documents, memberCount: 1 }); const keywords=await analyzer.extractKeywords(documents); const trends=await analyzer.identifyTrends([{ weekNumber: 19, keywords: Array.isArray(keywords) ? keywords.map((k)=>k.keyword) : [], summary: typeof summary.summary === 'string' ? summary.summary : '', participationRate: summary.participationRate, analyzedAt: new Date() }]); console.log(JSON.stringify({ summaryType: typeof summary, summaryKeys: summary && typeof summary === 'object' ? Object.keys(summary) : [], summaryPreview: { weekNumber: summary.weekNumber, highlightsType: Array.isArray(summary.highlights) ? 'array' : typeof summary.highlights, topKeywordsType: Array.isArray(summary.topKeywords) ? 'array' : typeof summary.topKeywords }, keywordsType: Array.isArray(keywords) ? 'array' : typeof keywords, keywordCount: Array.isArray(keywords) ? keywords.length : -1, trendKeys: trends && typeof trends === 'object' ? Object.keys(trends) : [], trendPreview: { risingKeywordsType: Array.isArray(trends.risingKeywords) ? 'array' : typeof trends.risingKeywords, consistentThemesType: Array.isArray(trends.consistentThemes) ? 'array' : typeof trends.consistentThemes } }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
 
+
+
+
+node -r ts-node/register -r dotenv/config -e "const fs=require('fs'); const path=require('path'); const { WorkflowOrchestrator }=require('./src/workflows/orchestrator'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='openai'; const vaultPath=path.resolve(process.env.VAULT_PATH ?? './vault'); const analysisFolder=process.env.VAULT_FOLDER_ANALYSIS ?? 'analysis'; const analysisPath=path.join(vaultPath, analysisFolder); const before=new Map(fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); return [filePath, fs.statSync(filePath).mtimeMs]; })); const orchestrator=new WorkflowOrchestrator(); await orchestrator.emit('meeting:synced', { smokeTest: true, provider: 'openai' }); const history=orchestrator.getExecutionHistory('onMeetingSync'); const latestExecution=history[history.length-1]; const files=fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); const stat=fs.statSync(filePath); return { name, filePath, mtimeMs: stat.mtimeMs, changed: (before.get(filePath) ?? 0) !== stat.mtimeMs }; }).sort((a,b)=>b.mtimeMs-a.mtimeMs); const latestFile=files[0]; const preview=latestFile ? fs.readFileSync(latestFile.filePath,'utf-8').split(/\r?\n/).slice(0,12) : []; console.log(JSON.stringify({ provider:'openai', status: latestExecution?.status, stepResults: latestExecution?.stepResults?.map((step)=>({ stepId: step.stepId, status: step.status, error: step.error ?? null })), reportPath: latestFile?.filePath, reportChanged: latestFile?.changed ?? false, preview }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+
+
+
+
+
+node index.js schedule run-due가 실제로 어떤 순서로 흘러가는지 현재 코드 기준으로 확인하겠습니다. 최근 사용자 수정이 들어간 commands.ts와 설정 파일을 먼저 읽고, 그다음 실행 프로세스를 정리하겠습니다.
+
+핵심 흐름은 더 좁혀졌습니다. 이제 runScheduleRunDue가 결과를 어떻게 만들고, 현재 설정 파일 상태에서 왜 체감상 아무 일도 안 일어날 수 있는지까지 확인하겠습니다.
+
+이제 실행 경로는 거의 다 보였습니다. 마지막으로 executeCliCommand 보안 래퍼와 parseScheduleDate만 확인하면, 명령의 진입부터 출력까지 정확히 정리할 수 있습니다.
+
+실행 프로세스 설명에 중요한 마지막 포인트는 “현재 설정 파일이 비어 있어도 무엇이 실행 대상이 되는가”입니다. 기본 cron 스케줄 등록 지점만 확인하고, 바로 정리해드리겠습니다.
+
+node index.js schedule run-due 실행 프로세스는 현재 코드 기준으로 아래 순서입니다.
+
+먼저 CLI가 시작되면 src/cli/index.ts에서 .env를 로드하고, Command, ConfigManager, WorkflowOrchestrator를 생성합니다. 그다음 schedule run-due 서브커맨드가 매칭되면 src/cli/index.ts에서 executeCliCommand('schedule', { at, operation: 'run-due' }, ...) 형태로 진입합니다.
+
+여기서 바로 실행되는 게 아니라, 먼저 보안 래퍼를 탑니다. src/cli/index.ts executeCliCommand()가 src/cli/security.ts를 통해 권한, rate limit, 필수 시크릿 검증을 처리합니다. schedule 명령 자체는 manage 권한으로 매핑되고, run-due는 별도 시크릿이 없어도 통과할 수 있는 구조입니다.
+
+그다음 실제 본체는 src/cli/commands.ts runScheduleRunDue()입니다.
+
+opts.at가 있으면 src/cli/commands.ts parseScheduleDate()로 ISO 시각을 파싱합니다.
+opts.at가 없으면 현재 시각 new Date()를 사용합니다.
+그 시각을 src/workflows/orchestrator.ts orchestrator.runDueSchedules(at)에 넘깁니다.
+runDueSchedules()는 현재 orchestrator에 등록된 스케줄 목록만 가져와 isCronDue(schedule.cron, at)로 due 여부를 필터링합니다.
+due 판정된 스케줄만 executeWorkflow()로 즉시 실행합니다.
+각 실행 결과는 executionId, workflowId, status, stepResults, totalDurationMs 구조로 누적됩니다.
+마지막에 CLI는 이를 format(...)으로 감싸 action: "schedule-run-due", requestedAt, dueCount, executions, timestamp 형태로 출력합니다.
+중요한 포인트는 “무엇이 스케줄 목록에 들어와 있느냐”입니다. 이 목록은 두 군데에서 채워집니다.
+
+기본 등록: src/workflows/orchestrator.ts에서 weeklyDigest가 cron trigger 0 9 * * 1로 정의되어 있고, src/workflows/orchestrator.ts에서 생성 시 자동 등록됩니다.
+설정 파일 등록: CLI preAction 훅이 src/cli/index.ts에서 configManager.init() 후 src/cli/config-manager.ts listWorkflowSchedules()를 읽어 orchestrator에 추가 등록합니다.
+현재 워크스페이스의 selfish-club.config.json 상태는 workflows.schedules가 비어 있습니다. 즉, 현재 schedule run-due에서 실질적인 후보는 기본 등록된 weeklyDigest 하나뿐입니다. 그래서 이 명령을 지금 실행했을 때 결과는 보통 둘 중 하나입니다.
+
+현재 시각이 월요일 09:00 조건에 맞으면 weeklyDigest가 실행됩니다.
+그 외 시각이면 dueCount: 0과 빈 executions가 나옵니다.
+정리하면, 이 명령은 “설정 파일에 저장된 스케줄과 기본 cron 스케줄 중에서 지금 시각에 해당하는 것만 1회 즉시 실행하는 명령”입니다. 상주 프로세스가 아니라 단발 실행이고, 설정 파일이 비어 있어도 기본 weeklyDigest는 후보가 됩니다.
+
+원하면 다음 중 하나로 이어서 정리해드릴 수 있습니다.
+
+이 내용을 수정작업.md에 “schedule run-due 실행 프로세스” 섹션으로 추가
+실제 예시 기준으로 run-due --at "2026-05-11T09:00:00" 실행 결과까지 재현해서 설명
+schedule start와 schedule run-due 차이까지 표로 비교 정리
+GPT-5.4 • 1x
+
+
+
+
+
+
+
+
+
+
+
+
+npx vitest run src/workflows/orchestrator.test.ts src/cli/security.test.ts -t "weeklyDigest 실행 시 주간 보고서를 생성하고 GitHub 커밋 단계를 건너뛸 수 있다|워크플로우별 필수 시크릿을 계산한다"
+
+
+npx vitest run src/workflows/orchestrator.test.ts src/cli/security.test.ts -t "weeklyDigest 실행 시 주간 보고서를 생성하고 GitHub 커밋 단계를 건너뛸 수 있다|워크플로우별 필수 시크릿을 계산한다"
+

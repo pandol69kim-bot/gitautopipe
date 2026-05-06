@@ -411,6 +411,161 @@ describe('WorkflowOrchestrator', () => {
       expect(content).toContain('API 연동 완료');
     });
 
+    it('weeklyDigest 실행 시 주간 보고서를 생성하고 GitHub 커밋 단계를 건너뛸 수 있다', async () => {
+      const vaultPath = path.join(tempDir, 'vault');
+      const meetingsPath = path.join(vaultPath, 'meetings');
+      const analysisPath = path.join(vaultPath, 'analysis');
+
+      fs.mkdirSync(meetingsPath, { recursive: true });
+      fs.mkdirSync(analysisPath, { recursive: true });
+      fs.writeFileSync(
+        path.join(meetingsPath, 'meeting-1.md'),
+        [
+          '---',
+          'title: 주간 다이제스트 회의',
+          'date: 2026-05-06',
+          'author: alice',
+          '---',
+          '',
+          '# 액션 아이템',
+          '',
+          '- 이번 주 요약 작성',
+          '- 회고 공유',
+        ].join('\n'),
+        'utf-8'
+      );
+
+      vi.stubEnv('VAULT_PATH', vaultPath);
+      vi.stubEnv('VAULT_FOLDER_MEETINGS', 'meetings');
+      vi.stubEnv('VAULT_FOLDER_ANALYSIS', 'analysis');
+
+      orchestrator = new WorkflowOrchestrator({
+        createAnalysisEngine: () => ({
+          extractKeywords: vi.fn().mockResolvedValue([
+            { keyword: '요약', frequency: 2, relevance: 0.8 },
+          ]),
+          generateSummary: vi.fn().mockResolvedValue({
+            weekNumber: 19,
+            highlights: ['이번 주 요약 작성'],
+            summary: '### Week19 다이제스트\n- 이번 주 요약 작성',
+            participationRate: 100,
+            topKeywords: ['요약'],
+            markdownOutput: '### Week19 다이제스트\n- 이번 주 요약 작성',
+          }),
+          identifyTrends: vi.fn().mockResolvedValue({
+            risingKeywords: ['요약'],
+            decliningKeywords: [],
+            consistentThemes: ['회고'],
+            weeklyGrowth: 5,
+            markdownOutput: '### 다이제스트 트렌드\n- 요약',
+          }),
+        }),
+      });
+
+      const result = await orchestrator.executeWorkflow('weeklyDigest');
+
+      expect(result.status).toBe('completed');
+      expect(result.stepResults.map((step) => step.stepId)).toEqual([
+        'vault-scan',
+        'weekly-report',
+        'github-commit',
+        'digest-notify',
+      ]);
+
+      const files = fs.readdirSync(analysisPath);
+      expect(files.some((file) => file.includes('weekly_report'))).toBe(true);
+
+      const content = fs.readFileSync(path.join(analysisPath, files[0]), 'utf-8');
+      expect(content).toContain('Week19 활동 보고서');
+      expect(content).toContain('이번 주 요약 작성');
+
+      const githubStep = result.stepResults.find((step) => step.stepId === 'github-commit');
+      expect(githubStep?.status).toBe('completed');
+      expect(githubStep?.output).toMatchObject({
+        status: 'skipped',
+        reason: 'github-env-not-configured',
+      });
+
+      const notifyStep = result.stepResults.find((step) => step.stepId === 'digest-notify');
+      expect(notifyStep?.output).toMatchObject({
+        status: 'skipped',
+        reason: 'webhook-not-configured',
+      });
+    });
+
+    it('weeklyDigest 실행 시 webhook이 있으면 실제 알림 payload를 전송한다', async () => {
+      const vaultPath = path.join(tempDir, 'vault');
+      const meetingsPath = path.join(vaultPath, 'meetings');
+      const analysisPath = path.join(vaultPath, 'analysis');
+      const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+
+      fs.mkdirSync(meetingsPath, { recursive: true });
+      fs.mkdirSync(analysisPath, { recursive: true });
+      fs.writeFileSync(
+        path.join(meetingsPath, 'meeting-1.md'),
+        [
+          '---',
+          'title: 주간 다이제스트 회의',
+          'date: 2026-05-06',
+          'author: alice',
+          '---',
+          '',
+          '# 액션 아이템',
+          '',
+          '- 이번 주 요약 작성',
+        ].join('\n'),
+        'utf-8'
+      );
+
+      vi.stubEnv('VAULT_PATH', vaultPath);
+      vi.stubEnv('VAULT_FOLDER_MEETINGS', 'meetings');
+      vi.stubEnv('VAULT_FOLDER_ANALYSIS', 'analysis');
+      vi.stubEnv('WEEKLY_DIGEST_WEBHOOK_URL', 'https://hooks.slack.com/test');
+
+      orchestrator = new WorkflowOrchestrator({
+        fetch: mockFetch,
+        createAnalysisEngine: () => ({
+          extractKeywords: vi.fn().mockResolvedValue([
+            { keyword: '요약', frequency: 2, relevance: 0.8 },
+          ]),
+          generateSummary: vi.fn().mockResolvedValue({
+            weekNumber: 19,
+            highlights: ['이번 주 요약 작성'],
+            summary: '### Week19 다이제스트\n- 이번 주 요약 작성',
+            participationRate: 100,
+            topKeywords: ['요약'],
+            markdownOutput: '### Week19 다이제스트\n- 이번 주 요약 작성',
+          }),
+          identifyTrends: vi.fn().mockResolvedValue({
+            risingKeywords: ['요약'],
+            decliningKeywords: [],
+            consistentThemes: ['회고'],
+            weeklyGrowth: 5,
+            markdownOutput: '### 다이제스트 트렌드\n- 요약',
+          }),
+        }),
+      });
+
+      const result = await orchestrator.executeWorkflow('weeklyDigest');
+
+      expect(result.status).toBe('completed');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://hooks.slack.com/test',
+        expect.objectContaining({ method: 'POST' })
+      );
+
+      const [, request] = mockFetch.mock.calls[0] as [string, { body?: string }];
+      const payload = JSON.parse(request.body ?? '{}') as { text?: string; attachments?: Array<{ fields?: Array<{ value?: string }> }> };
+      expect(payload.text).toContain('weeklyDigest 완료');
+      expect(JSON.stringify(payload)).toContain('2026-19_weekly_report.md');
+
+      const notifyStep = result.stepResults.find((step) => step.stepId === 'digest-notify');
+      expect(notifyStep?.output).toMatchObject({
+        status: 'sent',
+        channel: 'webhook',
+      });
+    });
+
     it('onSkillUpdate 워크플로우가 등록된다', () => {
       expect(orchestrator.getWorkflow('onSkillUpdate')).toBeDefined();
     });

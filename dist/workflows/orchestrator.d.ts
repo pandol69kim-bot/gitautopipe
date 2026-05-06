@@ -1,4 +1,5 @@
 import type { Workflow, Execution, ExecutionResult } from '../types/workflow';
+import { GitHubSync } from '../integrations/github';
 import type { AnalysisEngine } from '../types/analysis';
 interface ScheduleEntry {
     workflowId: string;
@@ -7,6 +8,7 @@ interface ScheduleEntry {
 }
 interface WorkflowOrchestratorDeps {
     createAnalysisEngine?: () => AnalysisEngine;
+    createGitHubSync?: () => GitHubSync;
 }
 export declare class WorkflowOrchestrator {
     private readonly workflows;
@@ -29,9 +31,16 @@ export declare class WorkflowOrchestrator {
     private registerPredefinedWorkflows;
     private makeLogStep;
     private createMeetingReportStep;
+    private createWeeklyDigestScanStep;
+    private createWeeklyDigestReportStep;
+    private createWeeklyDigestGitHubCommitStep;
+    private createWeeklyDigestNotifyStep;
     private createVaultScannerFromEnv;
     private collectMeetingWeeklyData;
     private resolveMeetingDate;
+    private generateWeeklyDigestReport;
+    private readWeeklyDigestPayload;
+    private hasGitHubSyncEnv;
 }
 export {};
 //# sourceMappingURL=orchestrator.d.ts.map

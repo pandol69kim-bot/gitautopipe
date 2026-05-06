@@ -102,12 +102,27 @@
 
 1. `vault-scan`
    - 이름: 볼트 주간 데이터 수집
+   - 설명: meetings 폴더를 스캔해 대상 주차 문서를 수집하고 payload에 저장
 2. `weekly-report`
    - 이름: 주간 보고서 생성
+   - 설명: 수집한 주간 데이터로 Analysis 주간 보고서를 생성하고 `vault/analysis`에 저장
 3. `github-commit`
    - 이름: GitHub 커밋
+   - 설명: GitHub 환경 변수가 준비되어 있으면 생성된 보고서를 커밋/푸시하고, 없으면 skip
 4. `digest-notify`
    - 이름: 다이제스트 알림 전송
+   - 설명: 보고서 경로와 GitHub 처리 상태를 기준으로 알림용 요약 정보를 정리
+
+### 실행 흐름
+
+1. `node ./dist/cli/index.js workflow weeklyDigest` 실행
+2. CLI 보안 검증에서 workflow 실행 권한과 AI 시크릿 그룹 확인
+3. `runWorkflow()`가 `orchestrator.executeWorkflow('weeklyDigest')` 호출
+4. `vault-scan`이 주간 meetings 데이터를 payload에 적재
+5. `weekly-report`가 Analysis 주간 보고서 파일 생성
+6. `github-commit`이 GitHub 설정 존재 시 커밋/푸시, 없으면 skip
+7. `digest-notify`가 최종 요약 정보를 반환
+8. CLI가 `executionId`, `status`, `stepResults`, `totalDurationMs`를 출력
 
 ---
 

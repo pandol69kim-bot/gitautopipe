@@ -114,6 +114,9 @@ function getRequiredSecretsForCommand(command, options = {}) {
             if (workflowId === 'onSkillUpdate') {
                 return ['VERCEL_TOKEN'];
             }
+            if (workflowId === 'weeklyDigest') {
+                return ['OPENAI_API_KEY|CLAUDE_API_KEY|ANTHROPIC_API_KEY'];
+            }
             return ['CLAUDE_API_KEY|ANTHROPIC_API_KEY'];
         }
         default:
