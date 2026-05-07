@@ -546,3 +546,26 @@ npx vitest run src/workflows/orchestrator.test.ts -t "weeklyDigest 실행 시 �
 node ./dist/cli/index.js workflow onNotionSync -o json
 
 
+
+
+
+
+node -r ts-node/register/transpile-only -r dotenv/config -e "const { WorkflowOrchestrator } = require('./src/workflows/orchestrator'); process.env.GITHUB_TOKEN=''; process.env.GITHUB_API_KEY=''; process.env.GITHUB_OWNER=''; process.env.GITHUB_REPO=''; process.env.WEEKLY_DIGEST_WEBHOOK_URL='https://example.invalid/webhook'; const orchestrator = new WorkflowOrchestrator({ fetch: async () => ({ ok: true, status: 200 }), createAnalysisEngine: () => ({ extractKeywords: async () => [{ keyword: 'meeting', frequency: 3, relevance: 0.8 }], generateSummary: async () => ({ weekNumber: 19, highlights: ['자동 점검 실행'], summary: '### Week19 다이제스트\n- 자동 점검 실행', participationRate: 100, topKeywords: ['meeting'], markdownOutput: '### Week19 다이제스트\n- 자동 점검 실행' }), identifyTrends: async () => ({ risingKeywords: ['meeting'], decliningKeywords: [], consistentThemes: ['sync'], weeklyGrowth: 1, markdownOutput: '### 다이제스트 트렌드\n- meeting' }) }) }); orchestrator.executeWorkflow('weeklyDigest').then((result) => { const notify = result.stepResults.find((step) => step.stepId === 'digest-notify'); const report = result.stepResults.find((step) => step.stepId === 'weekly-report'); console.log(JSON.stringify({ status: result.status, notify, report }, null, 2)); }).catch((error) => { console.error(error); process.exit(1); });"
+
+
+
+node -r ts-node/register/transpile-only -r dotenv/config -e "const path = require('path'); const { WorkflowOrchestrator } = require('./src/workflows/orchestrator'); const orchestrator = new WorkflowOrchestrator(); const webhookUrl = orchestrator.getWeeklyDigestWebhookUrl(); if (!webhookUrl) { throw new Error('WEEKLY_DIGEST_WEBHOOK_URL not configured'); } const payload = orchestrator.buildWeeklyDigestNotificationPayload({ report: { weekNumber: 19, reportPath: path.resolve('./vault/analysis/2026-19_weekly_report.md') }, github: { status: 'skipped' }, scan: { totalDocuments: 3, weekNumber: 19 } }); fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(async (response) => { console.log(JSON.stringify({ ok: response.ok, status: response.status, text: payload.text, reportPath: payload.attachments?.[0]?.fields?.find((field) => field.title === 'Report')?.value ?? null }, null, 2)); if (!response.ok) { process.exit(1); } }).catch((error) => { console.error(error); process.exit(1); });"
+
+
+
+npx ts-node src/cli/index.ts workflow weeklyDigest --output json
+
+
+
+// workflow 현황체크
+
+npx ts-node src/cli/index.ts status --output json
+npx ts-node src/cli/index.ts workflow onMissionUpdate --output json
+npx ts-node src/cli/index.ts workflow onSkillUpdate --output json
+npx ts-node src/cli/index.ts workflow onMeetingSync --output json
+npx ts-node src/cli/index.ts workflow onNotionSync --output json
