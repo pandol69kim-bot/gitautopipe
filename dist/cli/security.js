@@ -99,7 +99,7 @@ function getRequiredSecretsForCommand(command, options = {}) {
         case 'analyze':
             return ['CLAUDE_API_KEY|ANTHROPIC_API_KEY'];
         case 'deploy':
-            return ['VERCEL_TOKEN'];
+            return ['VERCEL_TOKEN', 'VERCEL_PROJECT_ID'];
         case 'workflow': {
             const workflowId = String(options['workflowId'] ?? '');
             if (workflowId === 'onNotionSync') {
@@ -112,7 +112,7 @@ function getRequiredSecretsForCommand(command, options = {}) {
                 return ['GITHUB_TOKEN'];
             }
             if (workflowId === 'onSkillUpdate') {
-                return ['VERCEL_TOKEN'];
+                return ['VERCEL_TOKEN', 'VERCEL_PROJECT_ID'];
             }
             if (workflowId === 'weeklyDigest') {
                 return ['OPENAI_API_KEY|CLAUDE_API_KEY|ANTHROPIC_API_KEY'];

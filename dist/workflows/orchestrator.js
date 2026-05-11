@@ -495,11 +495,43 @@ class WorkflowOrchestrator {
             name: '다이제스트 알림 전송',
             execute: async (ctx) => {
                 const weeklyDigest = this.readWeeklyDigestPayload(ctx.payload);
+                const webhookUrl = this.getWeeklyDigestWebhookUrl();
+                if (!webhookUrl) {
+                    const skipped = {
+                        status: 'skipped',
+                        reason: 'webhook-not-configured',
+                        weekNumber: weeklyDigest?.report?.weekNumber ?? weeklyDigest?.scan?.weekNumber ?? null,
+                        reportPath: weeklyDigest?.report?.reportPath ?? null,
+                        githubStatus: weeklyDigest?.github?.status ?? 'skipped',
+                    };
+                    ctx.payload = {
+                        ...ctx.payload,
+                        weeklyDigest: {
+                            ...(weeklyDigest ?? {}),
+                            notification: skipped,
+                        },
+                    };
+                    return skipped;
+                }
+                const payload = this.buildWeeklyDigestNotificationPayload(weeklyDigest);
+                const fetcher = this.deps.fetch ?? globalThis.fetch?.bind(globalThis);
+                if (!fetcher) {
+                    throw new Error('fetch API를 사용할 수 없습니다.');
+                }
+                const response = await fetcher(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                if (!response.ok) {
+                    throw new Error(`알림 전송 실패: status=${response.status ?? 'unknown'}`);
+                }
                 const result = {
-                    status: 'prepared',
+                    status: 'sent',
                     weekNumber: weeklyDigest?.report?.weekNumber ?? weeklyDigest?.scan?.weekNumber ?? null,
                     reportPath: weeklyDigest?.report?.reportPath ?? null,
                     githubStatus: weeklyDigest?.github?.status ?? 'skipped',
+                    channel: 'webhook',
                 };
                 ctx.payload = {
                     ...ctx.payload,
@@ -624,6 +656,30 @@ class WorkflowOrchestrator {
             return null;
         }
         return weeklyDigest;
+    }
+    getWeeklyDigestWebhookUrl() {
+        const value = process.env['WEEKLY_DIGEST_WEBHOOK_URL'] ?? process.env['NOTIFICATION_WEBHOOK_URL'];
+        return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+    }
+    buildWeeklyDigestNotificationPayload(weeklyDigest) {
+        const weekNumber = weeklyDigest?.report?.weekNumber ?? weeklyDigest?.scan?.weekNumber ?? null;
+        const reportPath = weeklyDigest?.report?.reportPath ?? '보고서 경로 없음';
+        const githubStatus = weeklyDigest?.github?.status ?? 'skipped';
+        const totalDocuments = weeklyDigest?.scan?.totalDocuments;
+        return {
+            text: `✅ weeklyDigest 완료: Week${String(weekNumber ?? '').padStart(2, '0')}`,
+            attachments: [
+                {
+                    title: '주간 다이제스트 결과',
+                    fields: [
+                        { title: '주차', value: weekNumber === null ? 'unknown' : String(weekNumber), short: true },
+                        { title: '문서 수', value: typeof totalDocuments === 'number' ? String(totalDocuments) : 'unknown', short: true },
+                        { title: 'GitHub', value: githubStatus, short: true },
+                        { title: 'Report', value: reportPath, short: false },
+                    ],
+                },
+            ],
+        };
     }
     hasGitHubSyncEnv() {
         return Boolean((process.env['GITHUB_TOKEN'] ?? process.env['GITHUB_API_KEY']) &&

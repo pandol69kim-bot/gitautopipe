@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "meetings/Meeting_2026_05_05.md",
+                "file": "meetings/Meeting_2026-05-11.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Meeting_2026_05_05"
+              "title": "Meeting_2026-05-11"
             }
           }
         ],
@@ -200,8 +200,11 @@
   },
   "active": "4d0af79ba9e9c5b9",
   "lastOpenFiles": [
-    "meetings/Meeting_2026_05_06.md",
+    "analysis/2026-20_weekly_report.md",
     "meetings/Meeting_2026_05_05.md",
+    "meetings/Meeting_2026-05-11.md",
+    "무제.md",
+    "meetings/Meeting_2026_05_06.md",
     "sharing/test.md",
     "meetings/Meeting_2026_05_06-2.md",
     "analysis/2026-19_weekly_report.md",
@@ -224,9 +227,6 @@
     "meetings/제목 없음-358ce5bf-5072-80ae-b0a6-e890d0399a8b.md",
     "meetings/테스트 후 싱크.md",
     "meetings/미팅 2026-05-06 1_1 체크인.md",
-    "meetings/미팅 2026-05-07 엔지니어링 싱크.md",
-    "meetings/미팅 2026-05-07 스프린트 플래닝.md",
-    "meetings/미팅 2026-05-07 디자인 리뷰.md",
-    "meetings/미팅 2026-05-06 회고(Retro).md"
+    "meetings/미팅 2026-05-07 엔지니어링 싱크.md"
   ]
 }

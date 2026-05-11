@@ -9,6 +9,14 @@ interface ScheduleEntry {
 interface WorkflowOrchestratorDeps {
     createAnalysisEngine?: () => AnalysisEngine;
     createGitHubSync?: () => GitHubSync;
+    fetch?: (input: string, init?: {
+        method?: string;
+        headers?: Record<string, string>;
+        body?: string;
+    }) => Promise<{
+        ok: boolean;
+        status?: number;
+    }>;
 }
 export declare class WorkflowOrchestrator {
     private readonly workflows;
@@ -40,6 +48,8 @@ export declare class WorkflowOrchestrator {
     private resolveMeetingDate;
     private generateWeeklyDigestReport;
     private readWeeklyDigestPayload;
+    private getWeeklyDigestWebhookUrl;
+    private buildWeeklyDigestNotificationPayload;
     private hasGitHubSyncEnv;
 }
 export {};
