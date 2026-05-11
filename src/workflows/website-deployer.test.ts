@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fs from 'fs';
+import * as path from 'path';
 import { WebsiteDeployer } from './website-deployer';
 import type { DeploymentResult } from '../types/deployer';
 
@@ -74,6 +75,7 @@ describe('WebsiteDeployer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFetch.mockReset();
 
     vi.mocked(fs.readdirSync).mockReturnValue(sampleMarkdownFiles.map((f) => f.name) as never);
     vi.mocked(fs.readFileSync).mockImplementation((filePath: unknown) => {
@@ -137,6 +139,25 @@ describe('WebsiteDeployer', () => {
     it('검색 인덱스가 페이지 수와 동일하게 생성된다', async () => {
       const result = await deployer.buildSite('/vault/Skill_Insight');
       expect(result.searchIndex).toHaveLength(3);
+    });
+
+    it('빌드 산출물을 .build 폴더에 기록한다', async () => {
+      await deployer.buildSite('/vault/Skill_Insight');
+
+      expect(vi.mocked(fs.mkdirSync)).toHaveBeenCalledWith(
+        expect.stringContaining(`${path.sep}.build`),
+        { recursive: true }
+      );
+      expect(vi.mocked(fs.writeFileSync)).toHaveBeenCalledWith(
+        expect.stringContaining(`${path.sep}.build${path.sep}index.html`),
+        expect.stringContaining('<!DOCTYPE html>'),
+        'utf-8'
+      );
+      expect(vi.mocked(fs.writeFileSync)).toHaveBeenCalledWith(
+        expect.stringContaining(`${path.sep}.build${path.sep}search-index.json`),
+        expect.stringContaining('gpt-api-guide'),
+        'utf-8'
+      );
     });
   });
 
@@ -232,6 +253,24 @@ describe('WebsiteDeployer', () => {
       );
     });
 
+    it('배포 payload에 source 대신 files 배열을 포함한다', async () => {
+      vi.mocked(fs.readdirSync).mockReturnValue(['index.html', 'search-index.json'] as never);
+      vi.mocked(fs.readFileSync).mockImplementation((filePath: unknown) => {
+        if (String(filePath).endsWith('index.html')) {
+          return Buffer.from('<html></html>');
+        }
+
+        return Buffer.from('{"items":[]}');
+      });
+
+      await deployer.deployToVercel('/tmp/build');
+
+      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(String(options.body)) as Record<string, unknown>;
+      expect(Array.isArray(body.files)).toBe(true);
+      expect(body.source).toBeUndefined();
+    });
+
     it('Authorization 헤더에 Bearer 토큰을 포함한다', async () => {
       await deployer.deployToVercel('/tmp/build');
       const [, options] = mockFetch.mock.calls[0];
@@ -244,21 +283,40 @@ describe('WebsiteDeployer', () => {
     });
 
     it('preview 배포 시 production target을 강제하지 않는다', async () => {
+      vi.mocked(fs.readdirSync).mockReturnValue(['index.html'] as never);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('<html></html>') as never);
+
       await deployer.deployToVercel('/tmp/build', { preview: true });
 
       const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
       const body = JSON.parse(String(options.body)) as Record<string, unknown>;
       expect(body.target).toBeUndefined();
-      expect(body.source).toBe('/tmp/build');
+      expect(Array.isArray(body.files)).toBe(true);
     });
 
     it('Vercel API 실패 시 에러를 던진다', async () => {
+      vi.mocked(fs.readdirSync).mockReturnValue(['index.html'] as never);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('<html></html>') as never);
+
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 403,
         json: async () => ({ error: 'Forbidden' }),
       });
       await expect(deployer.deployToVercel('/tmp/build')).rejects.toThrow();
+    });
+
+    it('중첩된 에러 객체의 message를 추출한다', async () => {
+      vi.mocked(fs.readdirSync).mockReturnValue(['index.html'] as never);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('<html></html>') as never);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: { code: 'invalid_request', message: 'files is required' } }),
+      });
+
+      await expect(deployer.deployToVercel('/tmp/build')).rejects.toThrow('files is required');
     });
   });
 
