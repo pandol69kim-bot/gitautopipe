@@ -78,7 +78,13 @@ export interface DeployOptions {
   preview?: boolean;
 }
 
-type DeployCommandStatus = 'completed' | 'queued' | 'building' | 'failed' | 'canceled';
+type DeployCommandStatus =
+  | 'completed'
+  | 'initializing'
+  | 'queued'
+  | 'building'
+  | 'failed'
+  | 'canceled';
 
 export interface WorkflowRunOptions {
   workflowId: string;
@@ -514,7 +520,9 @@ export async function runDeploy(opts: DeployOptions, deps: CommandDeps): Promise
     );
   }
 
-  await deployer.sendNotification(finalDeployment);
+  if (status === 'completed') {
+    await deployer.sendNotification(finalDeployment);
+  }
 
   const result = {
     action: 'deploy',
@@ -586,6 +594,8 @@ function mergeDeploymentResult(
 
 function mapDeploymentStateToCommandStatus(state: DeploymentState): DeployCommandStatus {
   switch (state) {
+    case 'INITIALIZING':
+      return 'initializing';
     case 'READY':
       return 'completed';
     case 'QUEUED':

@@ -1,6 +1,12 @@
 export type SiteCategory = 'ai-tools' | 'platform' | 'insights' | 'uncategorized';
 
-export type DeploymentState = 'QUEUED' | 'BUILDING' | 'READY' | 'ERROR' | 'CANCELED';
+export type DeploymentState =
+  | 'INITIALIZING'
+  | 'QUEUED'
+  | 'BUILDING'
+  | 'READY'
+  | 'ERROR'
+  | 'CANCELED';
 
 export interface SitePage {
   slug: string;

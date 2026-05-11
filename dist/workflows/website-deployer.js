@@ -119,8 +119,11 @@ class WebsiteDeployer {
     }
     // ── Subtask 5: Vercel 배포 ────────────────────────────────────────
     async deployToVercel(buildOutput, options = {}) {
-        const url = `${VERCEL_API}/v13/deployments`;
-        const params = this.config.teamId ? `?teamId=${this.config.teamId}` : '';
+        const query = new URLSearchParams({ skipAutoDetectionConfirmation: '1' });
+        if (this.config.teamId) {
+            query.set('teamId', this.config.teamId);
+        }
+        const url = `${VERCEL_API}/v13/deployments?${query.toString()}`;
         const files = this.collectDeploymentFiles(buildOutput);
         if (files.length === 0) {
             throw new Error(`배포할 빌드 산출물이 없습니다: ${buildOutput}`);
@@ -131,7 +134,7 @@ class WebsiteDeployer {
             files,
             ...(options.preview ? {} : { target: 'production' }),
         };
-        const response = await this.fetch(`${url}${params}`, {
+        const response = await this.fetch(url, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${this.config.vercelToken}`,
