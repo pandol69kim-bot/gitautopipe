@@ -38,6 +38,7 @@ export interface DeploymentStatus {
 export interface DeploymentVerification {
     url: string;
     reachable: boolean;
+    accessControlled?: boolean;
     statusCode?: number;
     checkedAt: Date;
 }

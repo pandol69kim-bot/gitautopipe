@@ -213,6 +213,16 @@ class WebsiteDeployer {
                     return {
                         url: resolvedUrl,
                         reachable: true,
+                        accessControlled: false,
+                        statusCode: response.status,
+                        checkedAt: new Date(),
+                    };
+                }
+                if (response.status === 401 || response.status === 403) {
+                    return {
+                        url: resolvedUrl,
+                        reachable: true,
+                        accessControlled: true,
                         statusCode: response.status,
                         checkedAt: new Date(),
                     };
@@ -228,6 +238,7 @@ class WebsiteDeployer {
         return {
             url: resolvedUrl,
             reachable: false,
+            accessControlled: false,
             statusCode: latestStatusCode,
             checkedAt: new Date(),
         };

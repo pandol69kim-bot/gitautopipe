@@ -426,7 +426,7 @@ async function runDeploy(opts, deps) {
         status,
         url: finalDeployment.url,
         previewUrl: finalDeployment.previewUrl,
-        verificationStatus: verification.reachable ? 'verified' : 'unreachable',
+        verificationStatus: mapVerificationStatus(verification),
         verificationUrl: verification.url,
         verificationHttpStatus: verification.statusCode,
         verifiedAt: verification.checkedAt.toISOString(),
@@ -486,6 +486,7 @@ async function verifyDeploymentAccess(deployer, deployment, status) {
         return {
             url: /^https?:\/\//.test(verificationUrl) ? verificationUrl : `https://${verificationUrl}`,
             reachable: false,
+            accessControlled: false,
             checkedAt: new Date(),
         };
     }
@@ -528,6 +529,12 @@ function parsePositiveIntEnv(key, fallback) {
     }
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+function mapVerificationStatus(verification) {
+    if (!verification.reachable) {
+        return 'unreachable';
+    }
+    return verification.accessControlled ? 'protected' : 'verified';
 }
 async function runWorkflow(opts, deps) {
     const execution = await deps.orchestrator.executeWorkflow(opts.workflowId, opts.payload);
