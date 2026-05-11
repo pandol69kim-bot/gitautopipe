@@ -243,6 +243,15 @@ describe('WebsiteDeployer', () => {
       expect(result.deploymentId).toBe('dpl-abc123');
     });
 
+    it('preview 배포 시 production target을 강제하지 않는다', async () => {
+      await deployer.deployToVercel('/tmp/build', { preview: true });
+
+      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(String(options.body)) as Record<string, unknown>;
+      expect(body.target).toBeUndefined();
+      expect(body.source).toBe('/tmp/build');
+    });
+
     it('Vercel API 실패 시 에러를 던진다', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -346,6 +355,23 @@ describe('WebsiteDeployer', () => {
       const [, options] = mockFetch.mock.calls[0];
       const body = JSON.parse(options.body as string) as Record<string, unknown>;
       expect(JSON.stringify(body)).toContain('my-project.vercel.app');
+    });
+
+    it('webhook 응답이 실패면 에러를 던진다', async () => {
+      const deployerWithWebhook = new WebsiteDeployer(
+        {
+          vercelToken: 'test-token',
+          projectId: 'my-project',
+          notificationWebhookUrl: 'https://hooks.slack.com/test',
+        },
+        mockFetch
+      );
+
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+
+      await expect(deployerWithWebhook.sendNotification(deployResult)).rejects.toThrow(
+        '배포 알림 전송 실패'
+      );
     });
   });
 });

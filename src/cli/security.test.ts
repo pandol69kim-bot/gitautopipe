@@ -29,6 +29,7 @@ describe('CLI security', () => {
           CLAUDE_API_KEY: claudeApiKey,
           NOTION_TOKEN: notionToken,
           VERCEL_TOKEN: 'vercel_test_token',
+          VERCEL_PROJECT_ID: 'selfish-club',
         },
         encryptionKey: '0123456789abcdef0123456789abcdef',
       }),
@@ -97,9 +98,14 @@ describe('CLI security', () => {
     ]);
     expect(getRequiredSecretsForCommand('workflow', { workflowId: 'onSkillUpdate' })).toEqual([
       'VERCEL_TOKEN',
+      'VERCEL_PROJECT_ID',
     ]);
     expect(getRequiredSecretsForCommand('workflow', { workflowId: 'weeklyDigest' })).toEqual([
       'OPENAI_API_KEY|CLAUDE_API_KEY|ANTHROPIC_API_KEY',
     ]);
+  });
+
+  it('deploy 명령은 프로젝트 ID까지 필수 시크릿으로 요구한다', () => {
+    expect(getRequiredSecretsForCommand('deploy')).toEqual(['VERCEL_TOKEN', 'VERCEL_PROJECT_ID']);
   });
 });
