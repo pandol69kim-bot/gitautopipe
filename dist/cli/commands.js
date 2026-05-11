@@ -405,12 +405,13 @@ async function runDeploy(opts, deps) {
     const sourceFolder = resolveWebsiteDeploySourceFolder();
     const buildResult = await deployer.buildSite(sourceFolder);
     const deployment = await deployer.deployToVercel(buildResult.outputPath, { preview });
-    const deploymentStatus = await deployer.getDeploymentStatus(deployment.deploymentId);
+    const deploymentStatus = await deployer.waitForDeploymentReady(deployment.deploymentId, resolveDeploymentPollingOptions());
     const finalDeployment = mergeDeploymentResult(deployment, deploymentStatus);
     const status = mapDeploymentStateToCommandStatus(finalDeployment.state);
     if (status === 'failed' || status === 'canceled') {
         throw new Error(deploymentStatus.errorMessage ?? `배포가 ${finalDeployment.state} 상태로 종료되었습니다.`);
     }
+    const verification = await verifyDeploymentAccess(deployer, finalDeployment, status);
     if (status === 'completed') {
         await deployer.sendNotification(finalDeployment);
     }
@@ -425,6 +426,10 @@ async function runDeploy(opts, deps) {
         status,
         url: finalDeployment.url,
         previewUrl: finalDeployment.previewUrl,
+        verificationStatus: verification.reachable ? 'verified' : 'unreachable',
+        verificationUrl: verification.url,
+        verificationHttpStatus: verification.statusCode,
+        verifiedAt: verification.checkedAt.toISOString(),
         createdAt: finalDeployment.createdAt.toISOString(),
         readyAt: deploymentStatus.readyAt?.toISOString(),
         timestamp: new Date().toISOString(),
@@ -460,6 +465,37 @@ function resolveWebsiteDeploySourceFolder() {
     const skillInsightFolder = process.env['VAULT_FOLDER_SKILL_INSIGHT'] ?? 'skillInsight';
     return path.resolve(vaultBasePath, skillInsightFolder);
 }
+function resolveDeploymentPollingOptions() {
+    return {
+        maxAttempts: parsePositiveIntEnv('DEPLOY_STATUS_MAX_ATTEMPTS', 24),
+        delayMs: parsePositiveIntEnv('DEPLOY_STATUS_POLL_INTERVAL_MS', 5000),
+    };
+}
+function resolveDeploymentVerificationOptions() {
+    return {
+        maxAttempts: parsePositiveIntEnv('DEPLOY_VERIFY_MAX_ATTEMPTS', 10),
+        delayMs: parsePositiveIntEnv('DEPLOY_VERIFY_INTERVAL_MS', 3000),
+    };
+}
+async function verifyDeploymentAccess(deployer, deployment, status) {
+    const verificationUrl = deployment.url || deployment.previewUrl;
+    if (!verificationUrl) {
+        throw new Error('배포 URL이 없어 실제 접속 확인을 수행할 수 없습니다.');
+    }
+    if (status !== 'completed') {
+        return {
+            url: /^https?:\/\//.test(verificationUrl) ? verificationUrl : `https://${verificationUrl}`,
+            reachable: false,
+            checkedAt: new Date(),
+        };
+    }
+    const verification = await deployer.verifyDeploymentUrl(verificationUrl, resolveDeploymentVerificationOptions());
+    if (!verification.reachable) {
+        const statusSuffix = verification.statusCode ? ` (HTTP ${verification.statusCode})` : '';
+        throw new Error(`배포 URL 접속 확인 실패: ${verification.url}${statusSuffix}`);
+    }
+    return verification;
+}
 function mergeDeploymentResult(deployment, deploymentStatus) {
     return {
         ...deployment,
@@ -484,6 +520,14 @@ function mapDeploymentStateToCommandStatus(state) {
         default:
             return 'failed';
     }
+}
+function parsePositiveIntEnv(key, fallback) {
+    const value = process.env[key];
+    if (!value) {
+        return fallback;
+    }
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 async function runWorkflow(opts, deps) {
     const execution = await deps.orchestrator.executeWorkflow(opts.workflowId, opts.payload);

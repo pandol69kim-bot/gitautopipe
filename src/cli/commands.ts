@@ -546,7 +546,7 @@ export async function runDeploy(opts: DeployOptions, deps: CommandDeps): Promise
     status,
     url: finalDeployment.url,
     previewUrl: finalDeployment.previewUrl,
-    verificationStatus: verification.reachable ? 'verified' : 'unreachable',
+    verificationStatus: mapVerificationStatus(verification),
     verificationUrl: verification.url,
     verificationHttpStatus: verification.statusCode,
     verifiedAt: verification.checkedAt.toISOString(),
@@ -624,6 +624,7 @@ async function verifyDeploymentAccess(
     return {
       url: /^https?:\/\//.test(verificationUrl) ? verificationUrl : `https://${verificationUrl}`,
       reachable: false,
+      accessControlled: false,
       checkedAt: new Date(),
     };
   }
@@ -679,6 +680,16 @@ function parsePositiveIntEnv(key: string, fallback: number): number {
 
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function mapVerificationStatus(
+  verification: DeploymentVerification
+): 'verified' | 'protected' | 'unreachable' {
+  if (!verification.reachable) {
+    return 'unreachable';
+  }
+
+  return verification.accessControlled ? 'protected' : 'verified';
 }
 
 export async function runWorkflow(opts: WorkflowRunOptions, deps: CommandDeps): Promise<string> {

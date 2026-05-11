@@ -390,6 +390,19 @@ describe('WebsiteDeployer', () => {
       expect(verification.reachable).toBe(false);
       expect(verification.statusCode).toBe(503);
     });
+
+    it('401 응답이면 보호된 URL로 간주한다', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
+
+      const verification = await deployer.verifyDeploymentUrl('my-project.vercel.app', {
+        maxAttempts: 1,
+        delayMs: 0,
+      });
+
+      expect(verification.reachable).toBe(true);
+      expect(verification.accessControlled).toBe(true);
+      expect(verification.statusCode).toBe(401);
+    });
   });
 
   // ── Subtask 6: 롤백 ──────────────────────────────────────────────

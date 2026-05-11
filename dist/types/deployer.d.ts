@@ -35,6 +35,12 @@ export interface DeploymentStatus {
     errorMessage?: string;
     readyAt?: Date;
 }
+export interface DeploymentVerification {
+    url: string;
+    reachable: boolean;
+    statusCode?: number;
+    checkedAt: Date;
+}
 export interface WebsiteDeployerConfig {
     vercelToken: string;
     projectId: string;

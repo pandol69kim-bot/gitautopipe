@@ -177,6 +177,61 @@ class WebsiteDeployer {
             readyAt: data.readyAt ? new Date(data.readyAt) : undefined,
         };
     }
+    async waitForDeploymentReady(deploymentId, options = {}) {
+        const maxAttempts = options.maxAttempts ?? 24;
+        const delayMs = options.delayMs ?? 5000;
+        let latestStatus;
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+            latestStatus = await this.getDeploymentStatus(deploymentId);
+            if (['READY', 'ERROR', 'CANCELED'].includes(latestStatus.state)) {
+                return latestStatus;
+            }
+            if (attempt < maxAttempts) {
+                await this.sleep(delayMs);
+            }
+        }
+        return latestStatus ?? {
+            deploymentId,
+            state: 'INITIALIZING',
+        };
+    }
+    async verifyDeploymentUrl(url, options = {}) {
+        const maxAttempts = options.maxAttempts ?? 10;
+        const delayMs = options.delayMs ?? 3000;
+        const resolvedUrl = /^https?:\/\//.test(url) ? url : `https://${url}`;
+        let latestStatusCode;
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+            try {
+                const response = await this.fetch(resolvedUrl, {
+                    method: 'GET',
+                    headers: {
+                        Accept: 'text/html,application/xhtml+xml',
+                    },
+                });
+                latestStatusCode = response.status;
+                if (response.ok) {
+                    return {
+                        url: resolvedUrl,
+                        reachable: true,
+                        statusCode: response.status,
+                        checkedAt: new Date(),
+                    };
+                }
+            }
+            catch {
+                latestStatusCode = undefined;
+            }
+            if (attempt < maxAttempts) {
+                await this.sleep(delayMs);
+            }
+        }
+        return {
+            url: resolvedUrl,
+            reachable: false,
+            statusCode: latestStatusCode,
+            checkedAt: new Date(),
+        };
+    }
     // ── Subtask 6: 롤백 ──────────────────────────────────────────────
     async rollback(deploymentId) {
         const url = `${VERCEL_API}/v13/deployments/${deploymentId}/rollback`;
@@ -308,6 +363,12 @@ class WebsiteDeployer {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
+    }
+    sleep(ms) {
+        if (ms <= 0) {
+            return Promise.resolve();
+        }
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
     // ── Subtask 3: 카테고리 분류 (static) ────────────────────────────
     static classifyCategory(frontmatterCategory, title) {

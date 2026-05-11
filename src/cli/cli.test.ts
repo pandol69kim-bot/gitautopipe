@@ -282,6 +282,7 @@ describe('Commands', () => {
     websiteDeployerMocks.verifyDeploymentUrl.mockResolvedValue({
       url: 'https://selfish-club.vercel.app',
       reachable: true,
+      accessControlled: false,
       statusCode: 200,
       checkedAt: new Date('2026-05-11T00:01:05.000Z'),
     });
@@ -417,6 +418,7 @@ describe('Commands', () => {
     websiteDeployerMocks.verifyDeploymentUrl.mockResolvedValueOnce({
       url: 'https://selfish-club.vercel.app',
       reachable: false,
+      accessControlled: false,
       statusCode: 503,
       checkedAt: new Date('2026-05-11T00:01:05.000Z'),
     });
@@ -424,6 +426,22 @@ describe('Commands', () => {
     await expect(runDeploy({ preview: false }, deps())).rejects.toThrow(
       '배포 URL 접속 확인 실패'
     );
+  });
+
+  it('runDeploy: URL이 보호 상태면 protected로 반환한다', async () => {
+    websiteDeployerMocks.verifyDeploymentUrl.mockResolvedValueOnce({
+      url: 'https://selfish-club.vercel.app',
+      reachable: true,
+      accessControlled: true,
+      statusCode: 401,
+      checkedAt: new Date('2026-05-11T00:01:05.000Z'),
+    });
+
+    const result = await runDeploy({ preview: false }, deps());
+    const parsed = JSON.parse(result);
+
+    expect(parsed.verificationStatus).toBe('protected');
+    expect(parsed.verificationHttpStatus).toBe(401);
   });
 
   it('runWorkflow: 존재하는 워크플로우를 실행한다', async () => {
