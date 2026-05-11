@@ -36,12 +36,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkflowOrchestrator = void 0;
 const events_1 = require("events");
 const crypto_1 = require("crypto");
+const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const client_1 = require("@notionhq/client");
 const report_generator_1 = require("../core/report-generator");
 const vault_scanner_1 = require("../core/vault-scanner");
 const analysis_factory_1 = require("../integrations/analysis-factory");
 const github_1 = require("../integrations/github");
+const openai_1 = require("../integrations/openai");
 const notion_1 = require("../integrations/notion");
 const notion_sync_1 = require("../integrations/notion-sync");
 const cron_1 = require("./cron");
@@ -309,9 +311,9 @@ class WorkflowOrchestrator {
             id: 'onMissionUpdate',
             name: 'Mission 업데이트 처리',
             steps: [
-                this.makeLogStep('mission-log', 'Mission 파일 변경 감지'),
-                this.makeLogStep('claude-analyze', 'Claude 분석 실행'),
-                this.makeLogStep('linkedin-draft', 'LinkedIn 초안 생성'),
+                this.createMissionCollectStep(),
+                this.createMissionAnalysisStep(),
+                this.createMissionLinkedInDraftStep(),
             ],
             triggers: [{ type: 'event', event: 'mission:updated' }],
             errorHandling: { strategy: 'continue', notifyOnFailure: true },
@@ -367,6 +369,142 @@ class WorkflowOrchestrator {
             name,
             execute: async (_ctx) => {
                 return { stepId: id, message: `${name} 완료` };
+            },
+        };
+    }
+    createMissionCollectStep() {
+        return {
+            id: 'mission-collect',
+            name: 'Mission 파일 수집',
+            execute: async (ctx) => {
+                const scanner = this.createVaultScannerFromEnv();
+                const missionUpdate = this.readMissionUpdatePayload(ctx.payload);
+                const mission = await this.collectLatestMissionData(scanner, ctx.payload);
+                if (!mission) {
+                    const skipped = { status: 'skipped', reason: 'mission-not-found' };
+                    ctx.payload = {
+                        ...ctx.payload,
+                        missionUpdate: {
+                            ...(missionUpdate ?? {}),
+                            mission: null,
+                            collect: skipped,
+                        },
+                    };
+                    return skipped;
+                }
+                const result = {
+                    status: 'collected',
+                    missionTitle: mission.title,
+                    missionFilePath: mission.filePath,
+                    weekNumber: mission.weekNumber,
+                };
+                ctx.payload = {
+                    ...ctx.payload,
+                    missionUpdate: {
+                        ...(missionUpdate ?? {}),
+                        mission,
+                        collect: result,
+                    },
+                };
+                return result;
+            },
+        };
+    }
+    createMissionAnalysisStep() {
+        return {
+            id: 'openai-analyze',
+            name: 'OpenAI 분석 실행',
+            execute: async (ctx) => {
+                const scanner = this.createVaultScannerFromEnv();
+                const missionUpdate = this.readMissionUpdatePayload(ctx.payload);
+                const mission = missionUpdate?.mission ?? (await this.collectLatestMissionData(scanner, ctx.payload));
+                if (!mission) {
+                    const skipped = { status: 'skipped', reason: 'mission-not-found' };
+                    ctx.payload = {
+                        ...ctx.payload,
+                        missionUpdate: {
+                            ...(missionUpdate ?? {}),
+                            mission: null,
+                            analysis: skipped,
+                        },
+                    };
+                    return skipped;
+                }
+                const analyzer = this.deps.createOpenAIAnalysisEngine?.() ?? this.createMissionOpenAIAnalysisEngine();
+                const weeklyData = {
+                    weekNumber: mission.weekNumber,
+                    documents: [mission.document],
+                    memberCount: mission.author ? 1 : undefined,
+                };
+                const [summary, keywords] = await Promise.all([
+                    analyzer.generateSummary(weeklyData),
+                    analyzer.extractKeywords(weeklyData.documents),
+                ]);
+                const trends = await analyzer.identifyTrends([
+                    {
+                        weekNumber: mission.weekNumber,
+                        keywords: keywords.map((keyword) => keyword.keyword),
+                        summary: summary.summary,
+                        participationRate: summary.participationRate,
+                        analyzedAt: new Date(),
+                    },
+                ]);
+                const outputDir = scanner.getFullPath('analysis');
+                fs.mkdirSync(outputDir, { recursive: true });
+                const outputPath = path.join(outputDir, this.buildMissionAnalysisFileName(mission));
+                fs.writeFileSync(outputPath, this.buildMissionAnalysisMarkdown(mission, summary, keywords, trends), 'utf-8');
+                const result = {
+                    status: 'generated',
+                    provider: 'openai',
+                    missionTitle: mission.title,
+                    weekNumber: mission.weekNumber,
+                    keywordCount: keywords.length,
+                    reportPath: outputPath,
+                };
+                ctx.payload = {
+                    ...ctx.payload,
+                    missionUpdate: {
+                        ...(missionUpdate ?? {}),
+                        mission,
+                        analysis: result,
+                    },
+                    report: result,
+                };
+                return result;
+            },
+        };
+    }
+    createMissionLinkedInDraftStep() {
+        return {
+            id: 'linkedin-draft',
+            name: 'LinkedIn 초안 생성',
+            execute: async (ctx) => {
+                const missionUpdate = this.readMissionUpdatePayload(ctx.payload);
+                const analysis = missionUpdate?.analysis;
+                if (!analysis || analysis.status !== 'generated') {
+                    const skipped = { status: 'skipped', reason: 'analysis-not-generated' };
+                    ctx.payload = {
+                        ...ctx.payload,
+                        missionUpdate: {
+                            ...(missionUpdate ?? {}),
+                            linkedinDraft: skipped,
+                        },
+                    };
+                    return skipped;
+                }
+                const skipped = {
+                    status: 'skipped',
+                    reason: 'linkedin-draft-not-implemented',
+                    reportPath: analysis.reportPath,
+                };
+                ctx.payload = {
+                    ...ctx.payload,
+                    missionUpdate: {
+                        ...(missionUpdate ?? {}),
+                        linkedinDraft: skipped,
+                    },
+                };
+                return skipped;
             },
         };
     }
@@ -557,6 +695,39 @@ class WorkflowOrchestrator {
             },
         });
     }
+    async collectLatestMissionData(scanner, payload) {
+        const files = await scanner.scanFolder('mission');
+        if (files.length === 0) {
+            return null;
+        }
+        const requestedFilePath = typeof payload?.['filePath'] === 'string' ? path.resolve(String(payload['filePath'])) : null;
+        const targetFile = requestedFilePath
+            ? files.find((file) => path.resolve(file.filePath) === requestedFilePath)
+            : [...files].sort((left, right) => right.modifiedAt.getTime() - left.modifiedAt.getTime())[0];
+        if (!targetFile) {
+            return null;
+        }
+        const parsed = await scanner.parseMarkdown(targetFile.filePath);
+        const referenceDate = this.resolveMeetingDate(parsed.frontmatter.date, targetFile.modifiedAt);
+        const slug = targetFile.fileName.replace(/\.md$/i, '');
+        return {
+            filePath: targetFile.filePath,
+            fileName: targetFile.fileName,
+            title: parsed.frontmatter.title ?? slug,
+            slug,
+            date: referenceDate,
+            weekNumber: parsed.frontmatter.week ?? getIsoWeek(referenceDate),
+            author: parsed.frontmatter.author,
+            keywords: parsed.frontmatter.tags ?? [],
+            document: {
+                content: parsed.content,
+                title: parsed.frontmatter.title ?? targetFile.fileName,
+                date: referenceDate,
+                author: parsed.frontmatter.author,
+                folderType: 'mission',
+            },
+        };
+    }
     async collectMeetingWeeklyData(scanner, payload) {
         const files = await scanner.scanFolder('meetings');
         if (files.length === 0) {
@@ -605,6 +776,61 @@ class WorkflowOrchestrator {
             return frontmatterDate;
         }
         return fallbackDate;
+    }
+    createMissionOpenAIAnalysisEngine() {
+        const apiKey = process.env['OPENAI_API_KEY'];
+        if (!apiKey) {
+            throw new Error('OPENAI_API_KEY 환경변수가 필요합니다.');
+        }
+        return new openai_1.OpenAIAnalyzer({
+            apiKey,
+            model: process.env['OPENAI_MODEL'] ?? 'gpt-4o-mini',
+        });
+    }
+    buildMissionAnalysisFileName(mission) {
+        const date = mission.date.toISOString().split('T')[0];
+        const safeSlug = mission.slug.replace(/[^\w가-힣-]+/g, '_');
+        return `${date}_mission_analysis_${safeSlug}.md`;
+    }
+    buildMissionAnalysisMarkdown(mission, summary, keywords, trends) {
+        const lines = [
+            '---',
+            `title: "${mission.title} Mission 분석"`,
+            `date: ${new Date().toISOString().split('T')[0]}`,
+            'type: mission-analysis',
+            'provider: openai',
+            `source: "${mission.filePath.replace(/\\/g, '/')}"`,
+            `week: ${mission.weekNumber}`,
+            '---',
+            '',
+            `# ${mission.title} Mission 분석`,
+            '',
+            '## 요약',
+            '',
+            summary.summary,
+            '',
+            '## 하이라이트',
+            '',
+            ...(summary.highlights.length > 0
+                ? summary.highlights.map((item) => `- ${item}`)
+                : ['- 하이라이트 없음']),
+            '',
+            '## 키워드',
+            '',
+            ...(keywords.length > 0
+                ? keywords.map((item) => `- ${item.keyword} (빈도: ${item.frequency}, 관련성: ${item.relevance.toFixed(2)})`)
+                : ['- 키워드 없음']),
+            '',
+            '## 트렌드',
+            '',
+            trends.markdownOutput,
+            '',
+            '## 원문',
+            '',
+            mission.document.content,
+            '',
+        ];
+        return lines.join('\n');
     }
     async generateWeeklyDigestReport(ctx) {
         const scanner = this.createVaultScannerFromEnv();
@@ -656,6 +882,13 @@ class WorkflowOrchestrator {
             return null;
         }
         return weeklyDigest;
+    }
+    readMissionUpdatePayload(payload) {
+        const missionUpdate = payload?.['missionUpdate'];
+        if (!missionUpdate || typeof missionUpdate !== 'object') {
+            return null;
+        }
+        return missionUpdate;
     }
     getWeeklyDigestWebhookUrl() {
         const value = process.env['WEEKLY_DIGEST_WEBHOOK_URL'] ?? process.env['NOTIFICATION_WEBHOOK_URL'];

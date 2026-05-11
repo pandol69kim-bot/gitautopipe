@@ -8,6 +8,7 @@ interface ScheduleEntry {
 }
 interface WorkflowOrchestratorDeps {
     createAnalysisEngine?: () => AnalysisEngine;
+    createOpenAIAnalysisEngine?: () => AnalysisEngine;
     createGitHubSync?: () => GitHubSync;
     fetch?: (input: string, init?: {
         method?: string;
@@ -38,16 +39,24 @@ export declare class WorkflowOrchestrator {
     private sleep;
     private registerPredefinedWorkflows;
     private makeLogStep;
+    private createMissionCollectStep;
+    private createMissionAnalysisStep;
+    private createMissionLinkedInDraftStep;
     private createMeetingReportStep;
     private createWeeklyDigestScanStep;
     private createWeeklyDigestReportStep;
     private createWeeklyDigestGitHubCommitStep;
     private createWeeklyDigestNotifyStep;
     private createVaultScannerFromEnv;
+    private collectLatestMissionData;
     private collectMeetingWeeklyData;
     private resolveMeetingDate;
+    private createMissionOpenAIAnalysisEngine;
+    private buildMissionAnalysisFileName;
+    private buildMissionAnalysisMarkdown;
     private generateWeeklyDigestReport;
     private readWeeklyDigestPayload;
+    private readMissionUpdatePayload;
     private getWeeklyDigestWebhookUrl;
     private buildWeeklyDigestNotificationPayload;
     private hasGitHubSyncEnv;

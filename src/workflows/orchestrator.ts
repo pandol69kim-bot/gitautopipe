@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { randomUUID } from 'crypto';
+import * as fs from 'fs';
 import type {
   Workflow,
   WorkflowStep,
@@ -16,11 +17,12 @@ import { ReportGenerator } from '../core/report-generator';
 import { VaultScanner } from '../core/vault-scanner';
 import { createAnalysisEngineFromEnv } from '../integrations/analysis-factory';
 import { GitHubSync } from '../integrations/github';
+import { OpenAIAnalyzer } from '../integrations/openai';
 import { NotionMCPConnector } from '../integrations/notion';
 import type { NotionClient as INotionClient } from '../integrations/notion';
 import { syncNotionBidirectional } from '../integrations/notion-sync';
 import type { AnalysisEngine } from '../types/analysis';
-import type { Document, WeeklyData } from '../types/claude';
+import type { Document, KeywordResult, TrendResult, WeeklyData, WeeklySummary } from '../types/claude';
 import { isCronDue } from './cron';
 
 function createGitHubSyncFromEnv(): GitHubSync {
@@ -69,6 +71,7 @@ interface ScheduleEntry {
 
 interface WorkflowOrchestratorDeps {
   createAnalysisEngine?: () => AnalysisEngine;
+  createOpenAIAnalysisEngine?: () => AnalysisEngine;
   createGitHubSync?: () => GitHubSync;
   fetch?: (input: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<{ ok: boolean; status?: number }>;
 }
@@ -78,6 +81,18 @@ interface MeetingCandidate {
   weekNumber: number;
   weekYear: number;
   timestamp: number;
+}
+
+interface MissionCandidate {
+  filePath: string;
+  fileName: string;
+  title: string;
+  slug: string;
+  date: Date;
+  weekNumber: number;
+  author?: string;
+  keywords: string[];
+  document: Document;
 }
 
 // ── WorkflowOrchestrator 클래스 ───────────────────────────────────────
@@ -370,9 +385,9 @@ export class WorkflowOrchestrator {
       id: 'onMissionUpdate',
       name: 'Mission 업데이트 처리',
       steps: [
-        this.makeLogStep('mission-log', 'Mission 파일 변경 감지'),
-        this.makeLogStep('claude-analyze', 'Claude 분석 실행'),
-        this.makeLogStep('linkedin-draft', 'LinkedIn 초안 생성'),
+        this.createMissionCollectStep(),
+        this.createMissionAnalysisStep(),
+        this.createMissionLinkedInDraftStep(),
       ],
       triggers: [{ type: 'event', event: 'mission:updated' }],
       errorHandling: { strategy: 'continue', notifyOnFailure: true },
@@ -433,6 +448,162 @@ export class WorkflowOrchestrator {
       name,
       execute: async (_ctx: WorkflowContext) => {
         return { stepId: id, message: `${name} 완료` };
+      },
+    };
+  }
+
+  private createMissionCollectStep(): WorkflowStep {
+    return {
+      id: 'mission-collect',
+      name: 'Mission 파일 수집',
+      execute: async (ctx: WorkflowContext) => {
+        const scanner = this.createVaultScannerFromEnv();
+        const missionUpdate = this.readMissionUpdatePayload(ctx.payload);
+        const mission = await this.collectLatestMissionData(scanner, ctx.payload);
+
+        if (!mission) {
+          const skipped = { status: 'skipped' as const, reason: 'mission-not-found' };
+          ctx.payload = {
+            ...ctx.payload,
+            missionUpdate: {
+              ...(missionUpdate ?? {}),
+              mission: null,
+              collect: skipped,
+            },
+          };
+          return skipped;
+        }
+
+        const result = {
+          status: 'collected' as const,
+          missionTitle: mission.title,
+          missionFilePath: mission.filePath,
+          weekNumber: mission.weekNumber,
+        };
+
+        ctx.payload = {
+          ...ctx.payload,
+          missionUpdate: {
+            ...(missionUpdate ?? {}),
+            mission,
+            collect: result,
+          },
+        };
+
+        return result;
+      },
+    };
+  }
+
+  private createMissionAnalysisStep(): WorkflowStep {
+    return {
+      id: 'openai-analyze',
+      name: 'OpenAI 분석 실행',
+      execute: async (ctx: WorkflowContext) => {
+        const scanner = this.createVaultScannerFromEnv();
+        const missionUpdate = this.readMissionUpdatePayload(ctx.payload);
+        const mission = missionUpdate?.mission ?? (await this.collectLatestMissionData(scanner, ctx.payload));
+
+        if (!mission) {
+          const skipped = { status: 'skipped' as const, reason: 'mission-not-found' };
+          ctx.payload = {
+            ...ctx.payload,
+            missionUpdate: {
+              ...(missionUpdate ?? {}),
+              mission: null,
+              analysis: skipped,
+            },
+          };
+          return skipped;
+        }
+
+        const analyzer = this.deps.createOpenAIAnalysisEngine?.() ?? this.createMissionOpenAIAnalysisEngine();
+        const weeklyData: WeeklyData = {
+          weekNumber: mission.weekNumber,
+          documents: [mission.document],
+          memberCount: mission.author ? 1 : undefined,
+        };
+
+        const [summary, keywords] = await Promise.all([
+          analyzer.generateSummary(weeklyData),
+          analyzer.extractKeywords(weeklyData.documents),
+        ]);
+        const trends = await analyzer.identifyTrends([
+          {
+            weekNumber: mission.weekNumber,
+            keywords: keywords.map((keyword) => keyword.keyword),
+            summary: summary.summary,
+            participationRate: summary.participationRate,
+            analyzedAt: new Date(),
+          },
+        ]);
+
+        const outputDir = scanner.getFullPath('analysis');
+        fs.mkdirSync(outputDir, { recursive: true });
+        const outputPath = path.join(outputDir, this.buildMissionAnalysisFileName(mission));
+        fs.writeFileSync(
+          outputPath,
+          this.buildMissionAnalysisMarkdown(mission, summary, keywords, trends),
+          'utf-8'
+        );
+
+        const result = {
+          status: 'generated' as const,
+          provider: 'openai' as const,
+          missionTitle: mission.title,
+          weekNumber: mission.weekNumber,
+          keywordCount: keywords.length,
+          reportPath: outputPath,
+        };
+
+        ctx.payload = {
+          ...ctx.payload,
+          missionUpdate: {
+            ...(missionUpdate ?? {}),
+            mission,
+            analysis: result,
+          },
+          report: result,
+        };
+
+        return result;
+      },
+    };
+  }
+
+  private createMissionLinkedInDraftStep(): WorkflowStep {
+    return {
+      id: 'linkedin-draft',
+      name: 'LinkedIn 초안 생성',
+      execute: async (ctx: WorkflowContext) => {
+        const missionUpdate = this.readMissionUpdatePayload(ctx.payload);
+        const analysis = missionUpdate?.analysis;
+
+        if (!analysis || analysis.status !== 'generated') {
+          const skipped = { status: 'skipped' as const, reason: 'analysis-not-generated' };
+          ctx.payload = {
+            ...ctx.payload,
+            missionUpdate: {
+              ...(missionUpdate ?? {}),
+              linkedinDraft: skipped,
+            },
+          };
+          return skipped;
+        }
+
+        const skipped = {
+          status: 'skipped' as const,
+          reason: 'linkedin-draft-not-implemented',
+          reportPath: analysis.reportPath,
+        };
+        ctx.payload = {
+          ...ctx.payload,
+          missionUpdate: {
+            ...(missionUpdate ?? {}),
+            linkedinDraft: skipped,
+          },
+        };
+        return skipped;
       },
     };
   }
@@ -643,6 +814,48 @@ export class WorkflowOrchestrator {
     });
   }
 
+  private async collectLatestMissionData(
+    scanner: VaultScanner,
+    payload?: Record<string, unknown>
+  ): Promise<MissionCandidate | null> {
+    const files = await scanner.scanFolder('mission');
+    if (files.length === 0) {
+      return null;
+    }
+
+    const requestedFilePath =
+      typeof payload?.['filePath'] === 'string' ? path.resolve(String(payload['filePath'])) : null;
+    const targetFile = requestedFilePath
+      ? files.find((file) => path.resolve(file.filePath) === requestedFilePath)
+      : [...files].sort((left, right) => right.modifiedAt.getTime() - left.modifiedAt.getTime())[0];
+
+    if (!targetFile) {
+      return null;
+    }
+
+    const parsed = await scanner.parseMarkdown(targetFile.filePath);
+    const referenceDate = this.resolveMeetingDate(parsed.frontmatter.date, targetFile.modifiedAt);
+    const slug = targetFile.fileName.replace(/\.md$/i, '');
+
+    return {
+      filePath: targetFile.filePath,
+      fileName: targetFile.fileName,
+      title: parsed.frontmatter.title ?? slug,
+      slug,
+      date: referenceDate,
+      weekNumber: parsed.frontmatter.week ?? getIsoWeek(referenceDate),
+      author: parsed.frontmatter.author,
+      keywords: parsed.frontmatter.tags ?? [],
+      document: {
+        content: parsed.content,
+        title: parsed.frontmatter.title ?? targetFile.fileName,
+        date: referenceDate,
+        author: parsed.frontmatter.author,
+        folderType: 'mission',
+      },
+    };
+  }
+
   private async collectMeetingWeeklyData(
     scanner: VaultScanner,
     payload?: Record<string, unknown>
@@ -708,6 +921,74 @@ export class WorkflowOrchestrator {
       return frontmatterDate;
     }
     return fallbackDate;
+  }
+
+  private createMissionOpenAIAnalysisEngine(): AnalysisEngine {
+    const apiKey = process.env['OPENAI_API_KEY'];
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY 환경변수가 필요합니다.');
+    }
+
+    return new OpenAIAnalyzer({
+      apiKey,
+      model: process.env['OPENAI_MODEL'] ?? 'gpt-4o-mini',
+    });
+  }
+
+  private buildMissionAnalysisFileName(mission: MissionCandidate): string {
+    const date = mission.date.toISOString().split('T')[0];
+    const safeSlug = mission.slug.replace(/[^\w가-힣-]+/g, '_');
+    return `${date}_mission_analysis_${safeSlug}.md`;
+  }
+
+  private buildMissionAnalysisMarkdown(
+    mission: MissionCandidate,
+    summary: WeeklySummary,
+    keywords: KeywordResult[],
+    trends: TrendResult
+  ): string {
+    const lines = [
+      '---',
+      `title: "${mission.title} Mission 분석"`,
+      `date: ${new Date().toISOString().split('T')[0]}`,
+      'type: mission-analysis',
+      'provider: openai',
+      `source: "${mission.filePath.replace(/\\/g, '/')}"`,
+      `week: ${mission.weekNumber}`,
+      '---',
+      '',
+      `# ${mission.title} Mission 분석`,
+      '',
+      '## 요약',
+      '',
+      summary.summary,
+      '',
+      '## 하이라이트',
+      '',
+      ...(summary.highlights.length > 0
+        ? summary.highlights.map((item) => `- ${item}`)
+        : ['- 하이라이트 없음']),
+      '',
+      '## 키워드',
+      '',
+      ...(keywords.length > 0
+        ? keywords.map(
+            (item) =>
+              `- ${item.keyword} (빈도: ${item.frequency}, 관련성: ${item.relevance.toFixed(2)})`
+          )
+        : ['- 키워드 없음']),
+      '',
+      '## 트렌드',
+      '',
+      trends.markdownOutput,
+      '',
+      '## 원문',
+      '',
+      mission.document.content,
+      '',
+    ];
+
+    return lines.join('\n');
   }
 
   private async generateWeeklyDigestReport(ctx: WorkflowContext): Promise<{
@@ -784,6 +1065,25 @@ export class WorkflowOrchestrator {
       report?: Record<string, unknown> & { status?: string; reportPath?: string; weekNumber?: number };
       github?: Record<string, unknown> & { status?: string };
       notification?: Record<string, unknown>;
+    };
+  }
+
+  private readMissionUpdatePayload(payload?: Record<string, unknown>): {
+    mission?: MissionCandidate | null;
+    collect?: Record<string, unknown> & { status?: string };
+    analysis?: Record<string, unknown> & { status?: string; reportPath?: string };
+    linkedinDraft?: Record<string, unknown> & { status?: string };
+  } | null {
+    const missionUpdate = payload?.['missionUpdate'];
+    if (!missionUpdate || typeof missionUpdate !== 'object') {
+      return null;
+    }
+
+    return missionUpdate as {
+      mission?: MissionCandidate | null;
+      collect?: Record<string, unknown> & { status?: string };
+      analysis?: Record<string, unknown> & { status?: string; reportPath?: string };
+      linkedinDraft?: Record<string, unknown> & { status?: string };
     };
   }
 

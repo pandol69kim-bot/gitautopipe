@@ -18,6 +18,7 @@ describe('CLI security', () => {
   const githubToken = 'ghp_' + '1234567890abcdefghijklmnopqrstuv';
   const claudeApiKey = 'sk-ant-' + '1234567890abcdefghijklmnopqrst';
   const notionToken = 'secret_' + '12345678901234567890';
+  const openAIApiKey = 'sk-proj-test-openai-key';
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cli-security-'));
@@ -27,6 +28,7 @@ describe('CLI security', () => {
         env: {
           GITHUB_TOKEN: githubToken,
           CLAUDE_API_KEY: claudeApiKey,
+          OPENAI_API_KEY: openAIApiKey,
           NOTION_TOKEN: notionToken,
           VERCEL_TOKEN: 'vercel_test_token',
           VERCEL_PROJECT_ID: 'selfish-club',
@@ -71,7 +73,7 @@ describe('CLI security', () => {
 
     await expect(
       executeSecuredCommand(
-        { command: 'analyze', resource: 'workflow/onMissionUpdate', requiredSecrets: ['CLAUDE_API_KEY|ANTHROPIC_API_KEY'] },
+        { command: 'analyze', resource: 'workflow/onMissionUpdate', requiredSecrets: ['OPENAI_API_KEY'] },
         deps,
         async () => 'ok'
       )
@@ -96,6 +98,9 @@ describe('CLI security', () => {
       'NOTION_TOKEN',
       'CLAUDE_API_KEY|ANTHROPIC_API_KEY|OPENAI_API_KEY',
     ]);
+    expect(getRequiredSecretsForCommand('workflow', { workflowId: 'onMissionUpdate' })).toEqual([
+      'OPENAI_API_KEY',
+    ]);
     expect(getRequiredSecretsForCommand('workflow', { workflowId: 'onSkillUpdate' })).toEqual([
       'VERCEL_TOKEN',
       'VERCEL_PROJECT_ID',
@@ -107,5 +112,9 @@ describe('CLI security', () => {
 
   it('deploy 명령은 프로젝트 ID까지 필수 시크릿으로 요구한다', () => {
     expect(getRequiredSecretsForCommand('deploy')).toEqual(['VERCEL_TOKEN', 'VERCEL_PROJECT_ID']);
+  });
+
+  it('analyze 명령은 OPENAI_API_KEY를 요구한다', () => {
+    expect(getRequiredSecretsForCommand('analyze')).toEqual(['OPENAI_API_KEY']);
   });
 });

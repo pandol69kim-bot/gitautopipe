@@ -1,9 +1,15 @@
 [
   {
+    "slug": "skills",
+    "title": "Skills",
+    "category": "uncategorized",
+    "excerpt": "skill 1 추가"
+  },
+  {
     "slug": "test2",
     "title": "Test2",
     "category": "uncategorized",
-    "excerpt": "asdfasd\r \r ▣ 셀피시클럼 실행케스트 \r -- C:\\Users\\codelab\\Downloads\\gitautopipe\r http://localhost:3000/dashboard"
+    "excerpt": "asdfasd  ▣ 셀피시클럼 실행케스트  -- C:\\Users\\codelab\\Downloads\\gitautopipe http://localhost:3000/dashboard"
   },
   {
     "slug": "기능 작동 분석서",

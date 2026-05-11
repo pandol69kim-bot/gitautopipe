@@ -345,6 +345,83 @@ describe('WorkflowOrchestrator', () => {
       expect(orchestrator.getWorkflow('onMissionUpdate')).toBeDefined();
     });
 
+    it('onMissionUpdate는 Mission 파일을 OpenAI로 분석해 보고서를 생성한다', async () => {
+      const vaultPath = path.join(tempDir, 'vault');
+      const missionPath = path.join(vaultPath, 'mission');
+      const analysisPath = path.join(vaultPath, 'analysis');
+
+      fs.mkdirSync(missionPath, { recursive: true });
+      fs.mkdirSync(analysisPath, { recursive: true });
+      fs.writeFileSync(
+        path.join(missionPath, 'mission-1.md'),
+        [
+          '---',
+          'title: OpenAI 워크플로우 연결',
+          'date: 2026-05-11',
+          'author: peter',
+          'tags: [OpenAI, Workflow]',
+          'week: 20',
+          '---',
+          '',
+          '# 구현 메모',
+          '',
+          '- onMissionUpdate에 실제 OpenAI 분석 연결',
+          '- 결과를 분석 폴더에 저장',
+        ].join('\n'),
+        'utf-8'
+      );
+
+      vi.stubEnv('VAULT_PATH', vaultPath);
+      vi.stubEnv('VAULT_FOLDER_MISSION', 'mission');
+      vi.stubEnv('VAULT_FOLDER_ANALYSIS', 'analysis');
+
+      orchestrator = new WorkflowOrchestrator({
+        createOpenAIAnalysisEngine: () => ({
+          extractKeywords: vi.fn().mockResolvedValue([
+            { keyword: 'OpenAI', frequency: 2, relevance: 0.9 },
+            { keyword: 'Workflow', frequency: 1, relevance: 0.8 },
+          ]),
+          generateSummary: vi.fn().mockResolvedValue({
+            weekNumber: 20,
+            highlights: ['onMissionUpdate에 실제 OpenAI 분석 연결'],
+            summary: 'Mission 문서를 OpenAI로 분석했다.',
+            participationRate: 100,
+            topKeywords: ['OpenAI', 'Workflow'],
+            markdownOutput: '## 요약\n- OpenAI 분석 완료',
+          }),
+          identifyTrends: vi.fn().mockResolvedValue({
+            risingKeywords: ['OpenAI'],
+            decliningKeywords: [],
+            consistentThemes: ['Workflow'],
+            weeklyGrowth: 10,
+            markdownOutput: '## 트렌드\n- OpenAI',
+          }),
+        }),
+      });
+
+      const result = await orchestrator.executeWorkflow('onMissionUpdate');
+
+      expect(result.status).toBe('completed');
+      expect(result.stepResults.map((step) => step.stepId)).toEqual([
+        'mission-collect',
+        'openai-analyze',
+        'linkedin-draft',
+      ]);
+      const analysisStep = result.stepResults.find((step) => step.stepId === 'openai-analyze');
+      expect(analysisStep?.output).toMatchObject({
+        status: 'generated',
+        provider: 'openai',
+        weekNumber: 20,
+      });
+
+      const files = fs.readdirSync(analysisPath);
+      expect(files.some((file) => file.includes('mission_analysis'))).toBe(true);
+
+      const content = fs.readFileSync(path.join(analysisPath, files[0]), 'utf-8');
+      expect(content).toContain('provider: openai');
+      expect(content).toContain('Mission 문서를 OpenAI로 분석했다.');
+    });
+
     it('onMeetingSync 워크플로우가 등록된다', () => {
       expect(orchestrator.getWorkflow('onMeetingSync')).toBeDefined();
     });

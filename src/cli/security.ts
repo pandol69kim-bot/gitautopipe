@@ -134,7 +134,7 @@ export function getRequiredSecretsForCommand(
     case 'notion-check':
       return ['NOTION_TOKEN'];
     case 'analyze':
-      return ['CLAUDE_API_KEY|ANTHROPIC_API_KEY'];
+      return ['OPENAI_API_KEY'];
     case 'deploy':
       return ['VERCEL_TOKEN', 'VERCEL_PROJECT_ID'];
     case 'workflow': {
@@ -144,6 +144,9 @@ export function getRequiredSecretsForCommand(
       }
       if (workflowId === 'onMeetingSync') {
         return ['NOTION_TOKEN', 'CLAUDE_API_KEY|ANTHROPIC_API_KEY|OPENAI_API_KEY'];
+      }
+      if (workflowId === 'onMissionUpdate') {
+        return ['OPENAI_API_KEY'];
       }
       if (workflowId === 'onGitHubSync') {
         return ['GITHUB_TOKEN'];

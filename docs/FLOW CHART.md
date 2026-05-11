@@ -2,7 +2,7 @@
 
 작성일: 2026-05-01  
 프로젝트: 셀피시 클럽 AI 에이전트 협업 시스템  
-버전: v1.1
+버전: v1.2
 
 > 상세 실행 흐름은 `프로그램 흐름도.md` 참고. 본 문서는 비즈니스 레벨 플로우를 정의한다.
 
@@ -43,9 +43,9 @@ flowchart TB
 flowchart LR
     MissionFile[Mission 파일 변경] --> Event[mission-updated 이벤트]
     Event --> Orchestrator[워크플로우 오케스트레이터]
-    Orchestrator --> Step1[mission-log 수집]
-    Step1 --> Step2[claude-analyze 분석]
-    Step2 --> Step3[linkedin-draft 생성]
+    Orchestrator --> Step1[mission-collect 최신 Mission 수집]
+    Step1 --> Step2[openai-analyze 분석 보고서 생성]
+    Step2 --> Step3[linkedin-draft placeholder]
     Step3 --> Done[완료]
 ```
 
@@ -131,3 +131,4 @@ flowchart TB
 |------|------|-----------|--------|
 | v1.0 | 2026-05-01 | 최초 작성 | 피터판돌 |
 | v1.1 | 2026-05-01 | Mermaid 문법 오류 수정 (콜론 라벨, \n 제거) | 피터판돌 |
+| v1.2 | 2026-05-11 | onMissionUpdate 실제 OpenAI 분석 반영, LinkedIn step placeholder 명시 | 피터판돌 |
