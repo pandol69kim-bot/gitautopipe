@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>작업내용   2026 05 11</title>
+</head>
+<body>
+  <main>
+    <a href="./index.html">Back</a>
+    <h1>작업내용   2026 05 11</h1>
+    <p>uncategorized</p>
+    <h1>작업내용 - 2026-05-11</h1>
+<h2>개요</h2>
+<p><code>node ./dist/cli/index.js deploy</code> 명령이 실제 <code>WebsiteDeployer</code>를 통해 동작하도록 연결하고, 배포 완료 후 실제 URL 접속 확인까지 자동화했다.</p>
+<h2>주요 수정 내용</h2>
+<h3>1. deploy 명령 실제 배포 연결</h3>
+<li><code>src/cli/commands.ts</code></li>
+<li>기존의 로그성 workflow emit 방식 대신 <code>WebsiteDeployer</code>를 직접 생성해 다음 순서로 실행하도록 변경</li>
+<li>소스 폴더 결정</li>
+<li>정적 사이트 빌드</li>
+<li>Vercel 배포 생성</li>
+<li>배포 상태 폴링</li>
+<li>배포 URL 접근 검증</li>
+<li>완료 시 webhook 알림 전송</li>
+<li>결과 출력에 실제 배포 정보 포함</li>
+<li><code>deploymentId</code></li>
+<li><code>state</code></li>
+<li><code>status</code></li>
+<li><code>url</code></li>
+<li><code>previewUrl</code></li>
+<li><code>verificationStatus</code></li>
+<li><code>verificationUrl</code></li>
+<li><code>verificationHttpStatus</code></li>
+<li><code>verifiedAt</code></li>
+<h3>2. WebsiteDeployer 배포 로직 보강</h3>
+<li><code>src/workflows/website-deployer.ts</code></li>
+<li><code>buildSite()</code>가 <code>.build</code> 하위에 실제 산출물 생성</li>
+<li><code>index.html</code></li>
+<li><code>search-index.json</code></li>
+<li><code>{slug}.html</code></li>
+<li><code>deployToVercel()</code>가 로컬 경로 문자열을 보내지 않고, <code>.build</code> 폴더 파일을 <code>files</code> 배열로 업로드하도록 수정</li>
+<li>Vercel 에러 메시지를 중첩 객체에서도 읽을 수 있도록 개선</li>
+<li><code>skipAutoDetectionConfirmation=1</code> query parameter 추가</li>
+<h3>3. 배포 상태 대기 자동화</h3>
+<li><code>waitForDeploymentReady()</code> 추가</li>
+<li>Vercel 상태를 READY, ERROR, CANCELED까지 폴링하도록 구현</li>
+<li>관련 환경 변수 추가</li>
+<li><code>DEPLOY_STATUS_MAX_ATTEMPTS</code></li>
+<li><code>DEPLOY_STATUS_POLL_INTERVAL_MS</code></li>
+<h3>4. 배포 URL 실제 접속 확인 자동화</h3>
+<li><code>verifyDeploymentUrl()</code> 추가</li>
+<li>READY 상태 후 실제 배포 URL에 GET 요청 수행</li>
+<li>검증 결과를 다음으로 분류</li>
+<li><code>verified</code>: 2xx 응답</li>
+<li><code>protected</code>: 401 또는 403 응답</li>
+<li><code>unreachable</code>: 반복 시도 후 실패</li>
+<li>관련 환경 변수 추가</li>
+<li><code>DEPLOY_VERIFY_MAX_ATTEMPTS</code></li>
+<li><code>DEPLOY_VERIFY_INTERVAL_MS</code></li>
+<h3>5. protected 상태 처리</h3>
+<li>Vercel 배포 URL이 401/403을 반환하는 경우를 오류로 보지 않고 <code>protected</code> 상태로 처리</li>
+<li>이 경우 배포 자체는 성공으로 유지하고, 접근 보호 상태만 결과에 표시</li>
+<h3>6. 보안 및 예시 환경 변수 정리</h3>
+<li><code>src/cli/security.ts</code></li>
+<li><code>deploy</code> 명령 필수 시크릿을 다음으로 정리</li>
+<li><code>VERCEL_TOKEN</code></li>
+<li><code>VERCEL_PROJECT_ID</code></li>
+<li><code>.env.example</code>에 배포 관련 선택 환경 변수 추가</li>
+<h2>테스트 및 검증</h2>
+<h3>테스트</h3>
+<p>다음 테스트를 중심으로 검증 완료</p>
+<li><code>src/cli/cli.test.ts</code></li>
+<li><code>src/workflows/website-deployer.test.ts</code></li>
+<li><code>src/cli/security.test.ts</code></li>
+<p>검증 결과</p>
+<li>관련 테스트 88개 통과</li>
+<li><code>npm run build</code> 성공</li>
+<h3>실제 명령 검증</h3>
+<p>실제 실행</p>
+<p><code>`</code>bash</p>
+<p>npm run build</p>
+<p>node ./dist/cli/index.js deploy</p>
+<p><code>`</code></p>
+<p>최종 확인 결과</p>
+<li>배포 생성 성공</li>
+<li>상태 <code>READY</code></li>
+<li>URL 검증 수행됨</li>
+<li>현재 배포 URL은 공개 응답이 아니라 보호 상태로 판별됨</li>
+<li><code>verificationStatus: protected</code></li>
+<li><code>verificationHttpStatus: 401</code></li>
+<h2>실제 관찰된 이슈와 조치</h2>
+<h3>이슈 1. Vercel 400 + <code>[object Object]</code></h3>
+<p>원인</p>
+<li>잘못된 payload 형식</li>
+<li>에러 객체를 문자열로 부정확하게 출력</li>
+<p>조치</p>
+<li><code>files</code> 배열 업로드 방식으로 수정</li>
+<li>에러 message 추출 로직 추가</li>
+<h3>이슈 2. <code>INITIALIZING</code> 상태를 실패로 처리</h3>
+<p>원인</p>
+<li>진행 중 상태를 실패로 분류</li>
+<p>조치</p>
+<li><code>INITIALIZING</code>을 진행 중 상태로 분류하고 예외 미발생 처리</li>
+<h3>이슈 3. 배포 URL 401</h3>
+<p>원인</p>
+<li>배포는 완료되었지만 URL 접근이 보호됨</li>
+<p>조치</p>
+<li><code>protected</code> 상태 도입</li>
+<li>배포 실패가 아니라 보호 상태로 보고</li>
+<h2>산출 문서</h2>
+<li><code>기능 작동 분석서.md</code> 작성 및 정리</li>
+<li>오늘 작업 요약 문서 생성</li>
+<h2>비고</h2>
+<li>현재 <code>deploy</code>는 dry-run 없이 실제 Vercel deployment를 생성한다.</li>
+<li>webhook 실패는 여전히 전체 명령 실패로 전파된다.</li>
+<li>배포 URL이 <code>protected</code>로 나오는 것은 배포 실패가 아니라 접근 정책 상태다.</li>
+  </main>
+</body>
+</html>

@@ -1,14 +1,14 @@
 [
   {
-    "slug": "test",
-    "title": "Test",
-    "category": "uncategorized",
-    "excerpt": "asdfasd"
-  },
-  {
     "slug": "test2",
     "title": "Test2",
     "category": "uncategorized",
     "excerpt": "asdfasd\r \r ▣ 셀피시클럼 실행케스트 \r -- C:\\Users\\codelab\\Downloads\\gitautopipe\r http://localhost:3000/dashboard"
+  },
+  {
+    "slug": "작업내용 - 2026-05-11",
+    "title": "작업내용   2026 05 11",
+    "category": "uncategorized",
+    "excerpt": "# 작업내용 - 2026-05-11      ## 개요  `node ./dist/cli/index.js deploy` 명령이 실제 `WebsiteDeployer`를 통해 동작하도록 연결하고, 배포 완료 후 실제 URL 접속 확인까지 자동화했다.      ## 주요 수정"
   }
 ]
