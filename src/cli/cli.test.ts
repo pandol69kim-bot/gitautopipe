@@ -211,6 +211,8 @@ const websiteDeployerMocks = vi.hoisted(() => ({
   buildSite: vi.fn(),
   deployToVercel: vi.fn(),
   getDeploymentStatus: vi.fn(),
+  waitForDeploymentReady: vi.fn(),
+  verifyDeploymentUrl: vi.fn(),
   sendNotification: vi.fn(),
 }));
 
@@ -271,6 +273,18 @@ describe('Commands', () => {
       url: 'selfish-club.vercel.app',
       readyAt: new Date('2026-05-11T00:01:00.000Z'),
     });
+    websiteDeployerMocks.waitForDeploymentReady.mockResolvedValue({
+      deploymentId: 'dpl_123',
+      state: 'READY',
+      url: 'selfish-club.vercel.app',
+      readyAt: new Date('2026-05-11T00:01:00.000Z'),
+    });
+    websiteDeployerMocks.verifyDeploymentUrl.mockResolvedValue({
+      url: 'https://selfish-club.vercel.app',
+      reachable: true,
+      statusCode: 200,
+      checkedAt: new Date('2026-05-11T00:01:05.000Z'),
+    });
     websiteDeployerMocks.sendNotification.mockResolvedValue(undefined);
   });
 
@@ -287,6 +301,8 @@ describe('Commands', () => {
     websiteDeployerMocks.buildSite.mockReset();
     websiteDeployerMocks.deployToVercel.mockReset();
     websiteDeployerMocks.getDeploymentStatus.mockReset();
+    websiteDeployerMocks.waitForDeploymentReady.mockReset();
+    websiteDeployerMocks.verifyDeploymentUrl.mockReset();
     websiteDeployerMocks.sendNotification.mockReset();
 
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -337,6 +353,8 @@ describe('Commands', () => {
     expect(parsed.deploymentId).toBe('dpl_123');
     expect(parsed.state).toBe('READY');
     expect(parsed.url).toBe('selfish-club.vercel.app');
+    expect(parsed.verificationStatus).toBe('verified');
+    expect(parsed.verificationHttpStatus).toBe(200);
   });
 
   it('runDeploy: WebsiteDeployer로 사이트 빌드와 배포를 수행한다', async () => {
@@ -348,7 +366,14 @@ describe('Commands', () => {
     expect(websiteDeployerMocks.deployToVercel).toHaveBeenCalledWith('/tmp/build', {
       preview: false,
     });
-    expect(websiteDeployerMocks.getDeploymentStatus).toHaveBeenCalledWith('dpl_123');
+    expect(websiteDeployerMocks.waitForDeploymentReady).toHaveBeenCalledWith(
+      'dpl_123',
+      expect.objectContaining({ maxAttempts: expect.any(Number), delayMs: expect.any(Number) })
+    );
+    expect(websiteDeployerMocks.verifyDeploymentUrl).toHaveBeenCalledWith(
+      'selfish-club.vercel.app',
+      expect.objectContaining({ maxAttempts: expect.any(Number), delayMs: expect.any(Number) })
+    );
     expect(websiteDeployerMocks.sendNotification).toHaveBeenCalledWith(
       expect.objectContaining({ deploymentId: 'dpl_123', state: 'READY' })
     );
@@ -363,7 +388,7 @@ describe('Commands', () => {
   });
 
   it('runDeploy: READY가 아니면 misleading completed 대신 현재 상태를 반환한다', async () => {
-    websiteDeployerMocks.getDeploymentStatus.mockResolvedValueOnce({
+    websiteDeployerMocks.waitForDeploymentReady.mockResolvedValueOnce({
       deploymentId: 'dpl_123',
       state: 'BUILDING',
       url: 'selfish-club.vercel.app',
@@ -374,16 +399,31 @@ describe('Commands', () => {
 
     expect(parsed.status).toBe('building');
     expect(parsed.state).toBe('BUILDING');
+    expect(parsed.verificationStatus).toBe('unreachable');
+    expect(websiteDeployerMocks.verifyDeploymentUrl).not.toHaveBeenCalled();
   });
 
   it('runDeploy: 배포 상태가 ERROR면 실패로 반환한다', async () => {
-    websiteDeployerMocks.getDeploymentStatus.mockResolvedValueOnce({
+    websiteDeployerMocks.waitForDeploymentReady.mockResolvedValueOnce({
       deploymentId: 'dpl_123',
       state: 'ERROR',
       errorMessage: 'build failed',
     });
 
     await expect(runDeploy({ preview: false }, deps())).rejects.toThrow('build failed');
+  });
+
+  it('runDeploy: URL 접속 확인이 실패하면 에러를 던진다', async () => {
+    websiteDeployerMocks.verifyDeploymentUrl.mockResolvedValueOnce({
+      url: 'https://selfish-club.vercel.app',
+      reachable: false,
+      statusCode: 503,
+      checkedAt: new Date('2026-05-11T00:01:05.000Z'),
+    });
+
+    await expect(runDeploy({ preview: false }, deps())).rejects.toThrow(
+      '배포 URL 접속 확인 실패'
+    );
   });
 
   it('runWorkflow: 존재하는 워크플로우를 실행한다', async () => {

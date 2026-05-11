@@ -411,7 +411,9 @@ async function runDeploy(opts, deps) {
     if (status === 'failed' || status === 'canceled') {
         throw new Error(deploymentStatus.errorMessage ?? `배포가 ${finalDeployment.state} 상태로 종료되었습니다.`);
     }
-    await deployer.sendNotification(finalDeployment);
+    if (status === 'completed') {
+        await deployer.sendNotification(finalDeployment);
+    }
     const result = {
         action: 'deploy',
         preview,
@@ -468,6 +470,8 @@ function mergeDeploymentResult(deployment, deploymentStatus) {
 }
 function mapDeploymentStateToCommandStatus(state) {
     switch (state) {
+        case 'INITIALIZING':
+            return 'initializing';
         case 'READY':
             return 'completed';
         case 'QUEUED':

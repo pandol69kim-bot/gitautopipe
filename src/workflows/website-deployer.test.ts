@@ -348,6 +348,50 @@ describe('WebsiteDeployer', () => {
     });
   });
 
+  describe('waitForDeploymentReady', () => {
+    it('READY 상태가 될 때까지 상태를 조회한다', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'dpl-abc123', readyState: 'BUILDING' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => mockVercelStatusResponse });
+
+      const status = await deployer.waitForDeploymentReady('dpl-abc123', {
+        maxAttempts: 2,
+        delayMs: 0,
+      });
+
+      expect(status.state).toBe('READY');
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('verifyDeploymentUrl', () => {
+    it('URL이 열리면 reachable=true를 반환한다', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) });
+
+      const verification = await deployer.verifyDeploymentUrl('my-project.vercel.app', {
+        maxAttempts: 1,
+        delayMs: 0,
+      });
+
+      expect(verification.reachable).toBe(true);
+      expect(verification.statusCode).toBe(200);
+    });
+
+    it('재시도 후에도 응답이 실패면 reachable=false를 반환한다', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({}) })
+        .mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({}) });
+
+      const verification = await deployer.verifyDeploymentUrl('my-project.vercel.app', {
+        maxAttempts: 2,
+        delayMs: 0,
+      });
+
+      expect(verification.reachable).toBe(false);
+      expect(verification.statusCode).toBe(503);
+    });
+  });
+
   // ── Subtask 6: 롤백 ──────────────────────────────────────────────
 
   describe('rollback', () => {

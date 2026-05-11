@@ -5,6 +5,7 @@ import type {
   BuildResult,
   DeploymentResult,
   DeploymentStatus,
+  DeploymentVerification,
   SiteCategory,
   SitePage,
   SearchIndexEntry,
@@ -49,6 +50,11 @@ type FetchFn = (
 
 export interface DeployToVercelOptions {
   preview?: boolean;
+}
+
+export interface DeploymentPollingOptions {
+  maxAttempts?: number;
+  delayMs?: number;
 }
 
 // ── WebsiteDeployer 클래스 ────────────────────────────────────────────
@@ -215,6 +221,79 @@ export class WebsiteDeployer {
     };
   }
 
+  async waitForDeploymentReady(
+    deploymentId: string,
+    options: DeploymentPollingOptions = {}
+  ): Promise<DeploymentStatus> {
+    const maxAttempts = options.maxAttempts ?? 24;
+    const delayMs = options.delayMs ?? 5000;
+
+    let latestStatus: DeploymentStatus | undefined;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      latestStatus = await this.getDeploymentStatus(deploymentId);
+
+      if (['READY', 'ERROR', 'CANCELED'].includes(latestStatus.state)) {
+        return latestStatus;
+      }
+
+      if (attempt < maxAttempts) {
+        await this.sleep(delayMs);
+      }
+    }
+
+    return latestStatus ?? {
+      deploymentId,
+      state: 'INITIALIZING',
+    };
+  }
+
+  async verifyDeploymentUrl(
+    url: string,
+    options: DeploymentPollingOptions = {}
+  ): Promise<DeploymentVerification> {
+    const maxAttempts = options.maxAttempts ?? 10;
+    const delayMs = options.delayMs ?? 3000;
+    const resolvedUrl = /^https?:\/\//.test(url) ? url : `https://${url}`;
+
+    let latestStatusCode: number | undefined;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const response = await this.fetch(resolvedUrl, {
+          method: 'GET',
+          headers: {
+            Accept: 'text/html,application/xhtml+xml',
+          },
+        });
+
+        latestStatusCode = response.status;
+
+        if (response.ok) {
+          return {
+            url: resolvedUrl,
+            reachable: true,
+            statusCode: response.status,
+            checkedAt: new Date(),
+          };
+        }
+      } catch {
+        latestStatusCode = undefined;
+      }
+
+      if (attempt < maxAttempts) {
+        await this.sleep(delayMs);
+      }
+    }
+
+    return {
+      url: resolvedUrl,
+      reachable: false,
+      statusCode: latestStatusCode,
+      checkedAt: new Date(),
+    };
+  }
+
   // ── Subtask 6: 롤백 ──────────────────────────────────────────────
 
   async rollback(deploymentId: string): Promise<void> {
@@ -375,6 +454,14 @@ export class WebsiteDeployer {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  private sleep(ms: number): Promise<void> {
+    if (ms <= 0) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // ── Subtask 3: 카테고리 분류 (static) ────────────────────────────
