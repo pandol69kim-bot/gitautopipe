@@ -16,6 +16,11 @@ export declare class WebsiteDeployer {
     getDeploymentStatus(deploymentId: string): Promise<DeploymentStatus>;
     rollback(deploymentId: string): Promise<void>;
     sendNotification(result: DeploymentResult): Promise<void>;
+    private collectDeploymentFiles;
+    private extractErrorMessage;
+    private renderIndexHtml;
+    private renderPageHtml;
+    private escapeHtml;
     static classifyCategory(frontmatterCategory: string | undefined, title: string): SiteCategory;
     static markdownToHtml(markdown: string): string;
     private static inlineMarkdown;

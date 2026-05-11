@@ -130,8 +130,12 @@ export class WebsiteDeployer {
     buildOutput: string,
     options: DeployToVercelOptions = {}
   ): Promise<DeploymentResult> {
-    const url = `${VERCEL_API}/v13/deployments`;
-    const params = this.config.teamId ? `?teamId=${this.config.teamId}` : '';
+    const query = new URLSearchParams({ skipAutoDetectionConfirmation: '1' });
+    if (this.config.teamId) {
+      query.set('teamId', this.config.teamId);
+    }
+
+    const url = `${VERCEL_API}/v13/deployments?${query.toString()}`;
     const files = this.collectDeploymentFiles(buildOutput);
 
     if (files.length === 0) {
@@ -145,7 +149,7 @@ export class WebsiteDeployer {
       ...(options.preview ? {} : { target: 'production' }),
     };
 
-    const response = await this.fetch(`${url}${params}`, {
+    const response = await this.fetch(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.config.vercelToken}`,

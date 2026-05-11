@@ -79,6 +79,7 @@ class WebsiteDeployer {
     // ── Subtask 2: 사이트 빌드 ────────────────────────────────────────
     async buildSite(sourceFolder) {
         const files = fs.readdirSync(sourceFolder).filter((f) => f.endsWith('.md'));
+        const outputPath = path.join(sourceFolder, '.build');
         const pages = files.map((fileName) => {
             const filePath = path.join(sourceFolder, fileName);
             const raw = fs.readFileSync(filePath, 'utf-8');
@@ -102,10 +103,16 @@ class WebsiteDeployer {
             category: p.category,
             excerpt: p.markdownSource.slice(0, 150).replace(/\n/g, ' ').trim(),
         }));
+        fs.mkdirSync(outputPath, { recursive: true });
+        for (const page of pages) {
+            fs.writeFileSync(path.join(outputPath, `${page.slug}.html`), this.renderPageHtml(page), 'utf-8');
+        }
+        fs.writeFileSync(path.join(outputPath, 'index.html'), this.renderIndexHtml(pages), 'utf-8');
+        fs.writeFileSync(path.join(outputPath, 'search-index.json'), JSON.stringify(searchIndex, null, 2), 'utf-8');
         return {
             pages,
             searchIndex,
-            outputPath: path.join(sourceFolder, '.build'),
+            outputPath,
             pageCount: pages.length,
             builtAt: new Date(),
         };
@@ -114,9 +121,14 @@ class WebsiteDeployer {
     async deployToVercel(buildOutput, options = {}) {
         const url = `${VERCEL_API}/v13/deployments`;
         const params = this.config.teamId ? `?teamId=${this.config.teamId}` : '';
+        const files = this.collectDeploymentFiles(buildOutput);
+        if (files.length === 0) {
+            throw new Error(`배포할 빌드 산출물이 없습니다: ${buildOutput}`);
+        }
         const payload = {
             name: this.config.projectId,
-            source: buildOutput,
+            project: this.config.projectId,
+            files,
             ...(options.preview ? {} : { target: 'production' }),
         };
         const response = await this.fetch(`${url}${params}`, {
@@ -129,7 +141,7 @@ class WebsiteDeployer {
         });
         if (!response.ok) {
             const err = (await response.json());
-            throw new Error(`Vercel 배포 실패 (${response.status ?? 'unknown'}): ${err.error ?? '알 수 없는 오류'}`);
+            throw new Error(`Vercel 배포 실패 (${response.status ?? 'unknown'}): ${this.extractErrorMessage(err)}`);
         }
         const data = (await response.json());
         return {
@@ -150,9 +162,7 @@ class WebsiteDeployer {
         });
         if (!response.ok) {
             const err = (await response.json());
-            const message = typeof err.error === 'string'
-                ? err.error
-                : err.error?.message ?? '알 수 없는 오류';
+            const message = this.extractErrorMessage(err);
             throw new Error(`배포 상태 조회 실패 (${response.status ?? 'unknown'}): ${message}`);
         }
         const data = (await response.json());
@@ -205,6 +215,96 @@ class WebsiteDeployer {
         if (!response.ok) {
             throw new Error(`배포 알림 전송 실패 (${response.status ?? 'unknown'})`);
         }
+    }
+    collectDeploymentFiles(buildOutput, currentPath = buildOutput) {
+        const entries = fs.readdirSync(currentPath, { withFileTypes: true });
+        const deploymentFiles = [];
+        for (const entry of entries) {
+            const entryName = typeof entry === 'string' ? entry : entry.name;
+            const absolutePath = path.join(currentPath, entryName);
+            const isDirectory = typeof entry === 'string' ? false : entry.isDirectory();
+            if (isDirectory) {
+                deploymentFiles.push(...this.collectDeploymentFiles(buildOutput, absolutePath));
+                continue;
+            }
+            const relativePath = path.relative(buildOutput, absolutePath).replace(/\\/g, '/');
+            const fileBuffer = fs.readFileSync(absolutePath);
+            deploymentFiles.push({
+                file: relativePath,
+                data: fileBuffer.toString('base64'),
+                encoding: 'base64',
+            });
+        }
+        return deploymentFiles;
+    }
+    extractErrorMessage(payload) {
+        const errorValue = payload['error'];
+        const messageValue = payload['message'];
+        if (typeof errorValue === 'string' && errorValue.trim().length > 0) {
+            return errorValue;
+        }
+        if (errorValue && typeof errorValue === 'object') {
+            const nestedMessage = errorValue['message'];
+            if (typeof nestedMessage === 'string' && nestedMessage.trim().length > 0) {
+                return nestedMessage;
+            }
+            return JSON.stringify(errorValue);
+        }
+        if (typeof messageValue === 'string' && messageValue.trim().length > 0) {
+            return messageValue;
+        }
+        return '알 수 없는 오류';
+    }
+    renderIndexHtml(pages) {
+        const items = pages
+            .map((page) => `<li><a href="./${page.slug}.html">${this.escapeHtml(page.title)}</a> <small>${page.category}</small></li>`)
+            .join('\n');
+        return [
+            '<!DOCTYPE html>',
+            '<html lang="ko">',
+            '<head>',
+            '  <meta charset="utf-8">',
+            '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+            '  <title>Skill Insight</title>',
+            '</head>',
+            '<body>',
+            '  <main>',
+            '    <h1>Skill Insight</h1>',
+            '    <ul>',
+            items,
+            '    </ul>',
+            '  </main>',
+            '</body>',
+            '</html>',
+        ].join('\n');
+    }
+    renderPageHtml(page) {
+        return [
+            '<!DOCTYPE html>',
+            '<html lang="ko">',
+            '<head>',
+            '  <meta charset="utf-8">',
+            '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+            `  <title>${this.escapeHtml(page.title)}</title>`,
+            '</head>',
+            '<body>',
+            '  <main>',
+            `    <a href="./index.html">Back</a>`,
+            `    <h1>${this.escapeHtml(page.title)}</h1>`,
+            `    <p>${this.escapeHtml(page.category)}</p>`,
+            `    ${page.htmlContent}`,
+            '  </main>',
+            '</body>',
+            '</html>',
+        ].join('\n');
+    }
+    escapeHtml(text) {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
     // ── Subtask 3: 카테고리 분류 (static) ────────────────────────────
     static classifyCategory(frontmatterCategory, title) {
