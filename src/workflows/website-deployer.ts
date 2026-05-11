@@ -47,6 +47,10 @@ type FetchFn = (
   options?: RequestInit
 ) => Promise<{ ok: boolean; status?: number; json(): Promise<unknown> }>;
 
+export interface DeployToVercelOptions {
+  preview?: boolean;
+}
+
 // ── WebsiteDeployer 클래스 ────────────────────────────────────────────
 
 export class WebsiteDeployer {
@@ -104,9 +108,17 @@ export class WebsiteDeployer {
 
   // ── Subtask 5: Vercel 배포 ────────────────────────────────────────
 
-  async deployToVercel(buildOutput: string): Promise<DeploymentResult> {
+  async deployToVercel(
+    buildOutput: string,
+    options: DeployToVercelOptions = {}
+  ): Promise<DeploymentResult> {
     const url = `${VERCEL_API}/v13/deployments`;
     const params = this.config.teamId ? `?teamId=${this.config.teamId}` : '';
+    const payload = {
+      name: this.config.projectId,
+      source: buildOutput,
+      ...(options.preview ? {} : { target: 'production' }),
+    };
 
     const response = await this.fetch(`${url}${params}`, {
       method: 'POST',
@@ -114,11 +126,7 @@ export class WebsiteDeployer {
         Authorization: `Bearer ${this.config.vercelToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        name: this.config.projectId,
-        target: 'production',
-        source: buildOutput,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -154,6 +162,15 @@ export class WebsiteDeployer {
       method: 'GET',
       headers: { Authorization: `Bearer ${this.config.vercelToken}` },
     });
+
+    if (!response.ok) {
+      const err = (await response.json()) as { error?: { message?: string } | string };
+      const message =
+        typeof err.error === 'string'
+          ? err.error
+          : err.error?.message ?? '알 수 없는 오류';
+      throw new Error(`배포 상태 조회 실패 (${response.status ?? 'unknown'}): ${message}`);
+    }
 
     const data = (await response.json()) as {
       id: string;
@@ -211,11 +228,15 @@ export class WebsiteDeployer {
       ],
     };
 
-    await this.fetch(webhookUrl, {
+    const response = await this.fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+
+    if (!response.ok) {
+      throw new Error(`배포 알림 전송 실패 (${response.status ?? 'unknown'})`);
+    }
   }
 
   // ── Subtask 3: 카테고리 분류 (static) ────────────────────────────

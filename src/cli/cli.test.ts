@@ -207,19 +207,88 @@ import {
 } from './commands';
 import { WorkflowOrchestrator } from '../workflows/orchestrator';
 
+const websiteDeployerMocks = vi.hoisted(() => ({
+  buildSite: vi.fn(),
+  deployToVercel: vi.fn(),
+  getDeploymentStatus: vi.fn(),
+  sendNotification: vi.fn(),
+}));
+
+vi.mock('../workflows/website-deployer', () => ({
+  WebsiteDeployer: vi.fn().mockImplementation(function MockWebsiteDeployer() {
+    return websiteDeployerMocks;
+  }),
+}));
+
 describe('Commands', () => {
   let orchestrator: WorkflowOrchestrator;
   let configManager: ConfigManager;
   let tmpDir: string;
+  const deployEnvKeys = [
+    'GITHUB_TOKEN',
+    'VERCEL_TOKEN',
+    'VERCEL_PROJECT_ID',
+    'VERCEL_TEAM_ID',
+    'NOTIFICATION_WEBHOOK_URL',
+    'WEBSITE_DEPLOY_SOURCE_FOLDER',
+    'VAULT_PATH',
+    'VAULT_FOLDER_SKILL_INSIGHT',
+  ] as const;
+  const originalDeployEnv = new Map<string, string | undefined>();
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'selfish-commands-'));
     orchestrator = new WorkflowOrchestrator();
     configManager = new ConfigManager(tmpDir);
     configManager.init();
+
+    for (const key of deployEnvKeys) {
+      originalDeployEnv.set(key, process.env[key]);
+      delete process.env[key];
+    }
+
+  process.env['GITHUB_TOKEN'] = 'test-github-token';
+    process.env['VERCEL_TOKEN'] = 'test-vercel-token';
+    process.env['VERCEL_PROJECT_ID'] = 'selfish-club';
+
+    websiteDeployerMocks.buildSite.mockResolvedValue({
+      outputPath: '/tmp/build',
+      pageCount: 2,
+      builtAt: new Date('2026-05-11T00:00:00.000Z'),
+      pages: [],
+      searchIndex: [],
+    });
+    websiteDeployerMocks.deployToVercel.mockResolvedValue({
+      deploymentId: 'dpl_123',
+      url: 'selfish-club.vercel.app',
+      previewUrl: 'selfish-club-preview.vercel.app',
+      state: 'QUEUED',
+      createdAt: new Date('2026-05-11T00:00:10.000Z'),
+    });
+    websiteDeployerMocks.getDeploymentStatus.mockResolvedValue({
+      deploymentId: 'dpl_123',
+      state: 'READY',
+      url: 'selfish-club.vercel.app',
+      readyAt: new Date('2026-05-11T00:01:00.000Z'),
+    });
+    websiteDeployerMocks.sendNotification.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
+    for (const key of deployEnvKeys) {
+      const value = originalDeployEnv.get(key);
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+
+    websiteDeployerMocks.buildSite.mockReset();
+    websiteDeployerMocks.deployToVercel.mockReset();
+    websiteDeployerMocks.getDeploymentStatus.mockReset();
+    websiteDeployerMocks.sendNotification.mockReset();
+
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -264,6 +333,57 @@ describe('Commands', () => {
     const parsed = JSON.parse(result);
     expect(parsed.action).toBe('deploy');
     expect(parsed.preview).toBe(true);
+    expect(parsed.status).toBe('completed');
+    expect(parsed.deploymentId).toBe('dpl_123');
+    expect(parsed.state).toBe('READY');
+    expect(parsed.url).toBe('selfish-club.vercel.app');
+  });
+
+  it('runDeploy: WebsiteDeployer로 사이트 빌드와 배포를 수행한다', async () => {
+    await runDeploy({ preview: false }, deps());
+
+    expect(websiteDeployerMocks.buildSite).toHaveBeenCalledWith(
+      path.resolve('./vault', 'skillInsight')
+    );
+    expect(websiteDeployerMocks.deployToVercel).toHaveBeenCalledWith('/tmp/build', {
+      preview: false,
+    });
+    expect(websiteDeployerMocks.getDeploymentStatus).toHaveBeenCalledWith('dpl_123');
+    expect(websiteDeployerMocks.sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ deploymentId: 'dpl_123', state: 'READY' })
+    );
+  });
+
+  it('runDeploy: preview 옵션을 실제 배포 호출에 전달한다', async () => {
+    await runDeploy({ preview: true }, deps());
+
+    expect(websiteDeployerMocks.deployToVercel).toHaveBeenCalledWith('/tmp/build', {
+      preview: true,
+    });
+  });
+
+  it('runDeploy: READY가 아니면 misleading completed 대신 현재 상태를 반환한다', async () => {
+    websiteDeployerMocks.getDeploymentStatus.mockResolvedValueOnce({
+      deploymentId: 'dpl_123',
+      state: 'BUILDING',
+      url: 'selfish-club.vercel.app',
+    });
+
+    const result = await runDeploy({ preview: false }, deps());
+    const parsed = JSON.parse(result);
+
+    expect(parsed.status).toBe('building');
+    expect(parsed.state).toBe('BUILDING');
+  });
+
+  it('runDeploy: 배포 상태가 ERROR면 실패로 반환한다', async () => {
+    websiteDeployerMocks.getDeploymentStatus.mockResolvedValueOnce({
+      deploymentId: 'dpl_123',
+      state: 'ERROR',
+      errorMessage: 'build failed',
+    });
+
+    await expect(runDeploy({ preview: false }, deps())).rejects.toThrow('build failed');
   });
 
   it('runWorkflow: 존재하는 워크플로우를 실행한다', async () => {

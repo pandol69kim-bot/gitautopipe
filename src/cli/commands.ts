@@ -13,6 +13,8 @@ import type { NotionClient } from '../integrations/notion';
 import { syncNotionBidirectional } from '../integrations/notion-sync';
 import { ConfigManager } from './config-manager';
 import { validateCronExpression } from '../workflows/cron';
+import { WebsiteDeployer } from '../workflows/website-deployer';
+import type { DeploymentResult, DeploymentState, DeploymentStatus } from '../types/deployer';
 
 interface NotionApiErrorLike {
   code?: string;
@@ -75,6 +77,8 @@ export interface AnalyzeOptions {
 export interface DeployOptions {
   preview?: boolean;
 }
+
+type DeployCommandStatus = 'completed' | 'queued' | 'building' | 'failed' | 'canceled';
 
 export interface WorkflowRunOptions {
   workflowId: string;
@@ -495,14 +499,105 @@ export async function runAnalyze(opts: AnalyzeOptions, deps: CommandDeps): Promi
 }
 
 export async function runDeploy(opts: DeployOptions, deps: CommandDeps): Promise<string> {
-  await deps.orchestrator.emit('skill:updated', { preview: opts.preview ?? false });
+  const preview = opts.preview ?? false;
+  const deployer = createWebsiteDeployerFromEnv();
+  const sourceFolder = resolveWebsiteDeploySourceFolder();
+  const buildResult = await deployer.buildSite(sourceFolder);
+  const deployment = await deployer.deployToVercel(buildResult.outputPath, { preview });
+  const deploymentStatus = await deployer.getDeploymentStatus(deployment.deploymentId);
+  const finalDeployment = mergeDeploymentResult(deployment, deploymentStatus);
+  const status = mapDeploymentStateToCommandStatus(finalDeployment.state);
+
+  if (status === 'failed' || status === 'canceled') {
+    throw new Error(
+      deploymentStatus.errorMessage ?? `배포가 ${finalDeployment.state} 상태로 종료되었습니다.`
+    );
+  }
+
+  await deployer.sendNotification(finalDeployment);
+
   const result = {
     action: 'deploy',
-    preview: opts.preview ?? false,
-    status: 'completed',
+    preview,
+    sourceFolder,
+    outputPath: buildResult.outputPath,
+    pageCount: buildResult.pageCount,
+    deploymentId: finalDeployment.deploymentId,
+    state: finalDeployment.state,
+    status,
+    url: finalDeployment.url,
+    previewUrl: finalDeployment.previewUrl,
+    createdAt: finalDeployment.createdAt.toISOString(),
+    readyAt: deploymentStatus.readyAt?.toISOString(),
     timestamp: new Date().toISOString(),
   };
   return format(result, deps.outputFormat);
+}
+
+function createWebsiteDeployerFromEnv(): WebsiteDeployer {
+  const vercelToken = process.env['VERCEL_TOKEN'];
+  if (!vercelToken) {
+    throw new Error('VERCEL_TOKEN is required.');
+  }
+
+  const projectId = process.env['VERCEL_PROJECT_ID'];
+  if (!projectId) {
+    throw new Error('VERCEL_PROJECT_ID is required.');
+  }
+
+  const fetchFn = globalThis.fetch?.bind(globalThis);
+  if (!fetchFn) {
+    throw new Error('Global fetch is not available in this runtime.');
+  }
+
+  return new WebsiteDeployer(
+    {
+      vercelToken,
+      projectId,
+      teamId: process.env['VERCEL_TEAM_ID'],
+      notificationWebhookUrl: process.env['NOTIFICATION_WEBHOOK_URL'],
+    },
+    fetchFn
+  );
+}
+
+function resolveWebsiteDeploySourceFolder(): string {
+  const configuredPath = process.env['WEBSITE_DEPLOY_SOURCE_FOLDER'];
+  if (configuredPath) {
+    return path.resolve(configuredPath);
+  }
+
+  const vaultBasePath = path.resolve(process.env['VAULT_PATH'] ?? './vault');
+  const skillInsightFolder = process.env['VAULT_FOLDER_SKILL_INSIGHT'] ?? 'skillInsight';
+  return path.resolve(vaultBasePath, skillInsightFolder);
+}
+
+function mergeDeploymentResult(
+  deployment: DeploymentResult,
+  deploymentStatus: DeploymentStatus
+): DeploymentResult {
+  return {
+    ...deployment,
+    state: deploymentStatus.state,
+    url: deploymentStatus.url ?? deployment.url,
+    previewUrl: deployment.previewUrl,
+  };
+}
+
+function mapDeploymentStateToCommandStatus(state: DeploymentState): DeployCommandStatus {
+  switch (state) {
+    case 'READY':
+      return 'completed';
+    case 'QUEUED':
+      return 'queued';
+    case 'BUILDING':
+      return 'building';
+    case 'CANCELED':
+      return 'canceled';
+    case 'ERROR':
+    default:
+      return 'failed';
+  }
 }
 
 export async function runWorkflow(opts: WorkflowRunOptions, deps: CommandDeps): Promise<string> {
