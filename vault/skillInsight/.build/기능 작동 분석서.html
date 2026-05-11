@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>기능 작동 분석서</title>
+</head>
+<body>
+  <main>
+    <a href="./index.html">Back</a>
+    <h1>기능 작동 분석서</h1>
+    <p>uncategorized</p>
+    <h1><code>node ./dist/cli/index.js deploy</code> 기능 작동 분석서</h1>
+<p>분석일: 2026-05-11</p>
+<h2>1. 분석 대상</h2>
+<p><code>`</code>bash</p>
+<p>node ./dist/cli/index.js deploy</p>
+<p><code>`</code></p>
+<p>이 명령은 빌드된 CLI 엔트리포인트(<code>dist/cli/index.js</code>)를 통해 <code>deploy</code> 서브커맨드를 실행한다. TypeScript 원본 기준 주요 구현은 다음 파일에 있다.</p>
+<li><code>src/cli/index.ts</code>: CLI 명령 등록, 공통 옵션 처리, 보안 래퍼 호출</li>
+<li><code>src/cli/security.ts</code>: 권한 확인, rate limit, 필수 시크릿 검증, 감사 로그 기록</li>
+<li><code>src/cli/commands.ts</code>: <code>runDeploy()</code> 구현</li>
+<li><code>src/workflows/website-deployer.ts</code>: 사이트 빌드, Vercel 배포, 상태 조회, URL 검증, 알림 전송</li>
+<li><code>src/types/deployer.ts</code>: 배포 관련 타입 정의</li>
+<p><code>node ./dist/cli/index.js deploy --help</code> 실행 결과 기준으로 명령은 다음 옵션을 제공한다.</p>
+<p><code>`</code>text</p>
+<p>Usage: selfish-club deploy [options]</p>
+<p>Skill/Insight 사이트를 Vercel에 배포합니다</p>
+<p>Options:</p>
+<p>--preview   프리뷰 배포로 실행 (default: false)</p>
+<p>-h, --help  display help for command</p>
+<p><code>`</code></p>
+<h2>2. 전체 실행 흐름</h2>
+<p><code>`</code>mermaid</p>
+<p>flowchart TD</p>
+<p>A["node ./dist/cli/index.js deploy"] --> B["dotenv 로드"]</p>
+<p>B --> C["Commander preAction 훅 실행"]</p>
+<p>C --> D["config 초기화 및 workflow schedule 로드"]</p>
+<p>D --> E["executeCliCommand('deploy')"]</p>
+<p>E --> F["executeSecuredCommand"]</p>
+<p>F --> G["권한 확인 / rate limit / 필수 시크릿 검증"]</p>
+<p>G --> H["runDeploy"]</p>
+<p>H --> I["WebsiteDeployer 생성"]</p>
+<p>I --> J["sourceFolder 결정"]</p>
+<p>J --> K["Markdown 사이트 빌드"]</p>
+<p>K --> L["Vercel deployment 생성"]</p>
+<p>L --> M["deployment 상태 폴링"]</p>
+<p>M --> N{"READY?"}</p>
+<p>N -->|yes| O["배포 URL 접근 검증"]</p>
+<p>N -->|ERROR/CANCELED| P["오류 throw"]</p>
+<p>N -->|timeout but BUILDING 등| Q["현재 상태 반환"]</p>
+<p>O --> R["알림 webhook 전송"]</p>
+<p>R --> S["결과 format 후 stdout 출력"]</p>
+<p>S --> T["감사 로그 success 기록"]</p>
+<p>P --> U["감사 로그 failure 기록"]</p>
+<p><code>`</code></p>
+<h2>3. CLI 진입과 옵션 처리</h2>
+<p><code>src/cli/index.ts</code>에서 <code>deploy</code> 명령은 다음처럼 등록된다.</p>
+<li><code>program.command('deploy')</code></li>
+<li>옵션: <code>--preview</code>, 기본값 <code>false</code></li>
+<li>실행 핸들러:</li>
+<li>부모 명령의 <code>--output</code> 값을 읽는다. 기본값은 <code>table</code>이다.</li>
+<li><code>executeCliCommand('deploy', opts, async () => runDeploy(...))</code>를 호출한다.</li>
+<li>반환 문자열을 <code>console.log()</code>로 출력한다.</li>
+<p>루트 CLI에는 공통 옵션도 있다.</p>
+<li><code>-o, --output <format></code>: <code>table | json | minimal</code>, 기본값 <code>table</code></li>
+<li><code>--log-level <level></code>: <code>debug | info | warn | error</code>, 기본값 <code>info</code></li>
+<p>따라서 JSON으로 결과를 보고 싶으면 다음처럼 실행한다.</p>
+<p><code>`</code>bash</p>
+<p>node ./dist/cli/index.js --output json deploy</p>
+<p><code>`</code></p>
+<p>프리뷰 배포는 다음처럼 실행한다.</p>
+<p><code>`</code>bash</p>
+<p>node ./dist/cli/index.js deploy --preview</p>
+<p><code>`</code></p>
+<h2>4. 사전 처리: dotenv, 설정, 스케줄 로드</h2>
+<p>CLI 시작 시 <code>loadDotenv()</code>가 실행되어 <code>.env</code> 값을 <code>process.env</code>로 로드한다.</p>
+<p>명령 실행 전 <code>preAction</code> 훅에서 다음 작업이 수행된다.</p>
+<li><code>--log-level</code> 값을 logger에 반영한다.</li>
+<li><code>ConfigManager.init()</code>으로 <code>selfish-club.config.json</code>을 초기화 또는 로드한다.</li>
+<li>저장된 workflow schedule 목록을 읽어 <code>WorkflowOrchestrator</code>에 등록한다.</li>
+<li>설정 경로와 로그 레벨을 debug 로그로 남긴다.</li>
+<p>이 단계는 deploy 자체의 핵심 배포 로직은 아니지만, 모든 CLI 명령 공통으로 실행된다.</p>
+<h2>5. 보안 래퍼 동작</h2>
+<p><code>deploy</code>는 실제 작업 전에 <code>executeSecuredCommand()</code>를 통과한다.</p>
+<h3>5.1 리소스 식별자</h3>
+<p><code>buildCommandResource()</code>는 deploy 명령의 리소스를 다음처럼 만든다.</p>
+<li>일반 배포: <code>deploy/production</code></li>
+<li>프리뷰 배포: <code>deploy/preview</code></li>
+<h3>5.2 권한 확인</h3>
+<p><code>deploy</code> 명령은 <code>mapCommandToAction()</code>에서 <code>manage</code> 액션으로 매핑된다. 기본 actor는 다음 환경 변수로 결정된다.</p>
+<li><code>SELFISH_ACTOR_ROLE</code>: <code>Admin | Member | Viewer</code>, 기본값 <code>Admin</code></li>
+<li><code>SELFISH_ACTOR_ID</code>: 기본값 <code>local-admin</code></li>
+<p>기본값이 <code>Admin</code>이므로 일반 로컬 실행에서는 권한 통과 가능성이 높다.</p>
+<h3>5.3 Rate limit</h3>
+<p>기본 rate limit은 actor와 명령 조합 기준이다.</p>
+<li>key: <code>${actor.id}:deploy</code></li>
+<li>기본 제한: 60초에 30회</li>
+<li>환경 변수:</li>
+<li><code>SELFISH_RATE_LIMIT</code></li>
+<li><code>SELFISH_RATE_LIMIT_WINDOW_MS</code></li>
+<h3>5.4 필수 시크릿 검증</h3>
+<p><code>getRequiredSecretsForCommand('deploy')</code> 결과는 다음이다.</p>
+<p><code>`</code>text</p>
+<p>VERCEL_TOKEN</p>
+<p>VERCEL_PROJECT_ID</p>
+<p><code>`</code></p>
+<p>둘 중 하나라도 비어 있으면 deploy 실행 전 실패한다. 검증은 <code>SecretManager</code>가 환경 변수에서 값을 로드한 뒤 수행한다.</p>
+<h3>5.5 감사 로그</h3>
+<p>성공 또는 실패 결과는 <code>audit/audit.log</code>에 기록된다.</p>
+<li>성공: <code>status: success</code></li>
+<li>실패: <code>status: failure</code>, 오류 메시지 metadata 포함</li>
+<h2>6. <code>runDeploy()</code> 상세 흐름</h2>
+<p><code>src/cli/commands.ts</code>의 <code>runDeploy()</code>가 deploy의 중심 로직이다.</p>
+<p>실행 순서는 다음과 같다.</p>
+<li><code>preview = opts.preview ?? false</code></li>
+<li><code>createWebsiteDeployerFromEnv()</code>로 <code>WebsiteDeployer</code> 생성</li>
+<li><code>resolveWebsiteDeploySourceFolder()</code>로 배포할 Markdown 폴더 결정</li>
+<li><code>deployer.buildSite(sourceFolder)</code> 실행</li>
+<li><code>deployer.deployToVercel(buildResult.outputPath, { preview })</code> 실행</li>
+<li><code>deployer.waitForDeploymentReady(deployment.deploymentId, pollingOptions)</code> 실행</li>
+<li>배포 생성 응답과 상태 조회 응답을 병합</li>
+<li>Vercel <code>readyState</code>를 CLI 상태로 매핑</li>
+<li>실패 또는 취소 상태면 오류 throw</li>
+<li>완료 상태면 배포 URL 접근 검증</li>
+<li>완료 상태면 notification webhook 전송</li>
+<li>결과 객체를 <code>table | json | minimal</code> 형식으로 변환해 반환</li>
+<h2>7. 환경 변수</h2>
+<h3>7.1 필수</h3>
+<p>| 환경 변수 | 용도 |</p>
+<p>| --- | --- |</p>
+<p>| <code>VERCEL_TOKEN</code> | Vercel API Authorization Bearer 토큰 |</p>
+<p>| <code>VERCEL_PROJECT_ID</code> | Vercel deployment payload의 <code>name</code>, <code>project</code> 값 |</p>
+<h3>7.2 선택</h3>
+<p>| 환경 변수 | 기본값 | 용도 |</p>
+<p>| --- | --- | --- |</p>
+<p>| <code>VERCEL_TEAM_ID</code> | 없음 | Vercel API query string에 <code>teamId</code> 추가 |</p>
+<p>| <code>NOTIFICATION_WEBHOOK_URL</code> | 없음 | 배포 완료 후 webhook 알림 전송 |</p>
+<p>| <code>WEBSITE_DEPLOY_SOURCE_FOLDER</code> | 없음 | 배포 대상 Markdown 폴더를 직접 지정 |</p>
+<p>| <code>VAULT_PATH</code> | <code>./vault</code> | 기본 배포 소스 계산용 vault 루트 |</p>
+<p>| <code>VAULT_FOLDER_SKILL_INSIGHT</code> | <code>skillInsight</code> | 기본 배포 소스 폴더명 |</p>
+<p>| <code>DEPLOY_STATUS_MAX_ATTEMPTS</code> | <code>24</code> | Vercel 상태 폴링 최대 횟수 |</p>
+<p>| <code>DEPLOY_STATUS_POLL_INTERVAL_MS</code> | <code>5000</code> | Vercel 상태 폴링 간격(ms) |</p>
+<p>| <code>DEPLOY_VERIFY_MAX_ATTEMPTS</code> | <code>10</code> | 배포 URL 접근 검증 최대 횟수 |</p>
+<p>| <code>DEPLOY_VERIFY_INTERVAL_MS</code> | <code>3000</code> | 배포 URL 접근 검증 간격(ms) |</p>
+<p>| <code>SELFISH_ACTOR_ROLE</code> | <code>Admin</code> | CLI 권한 actor role |</p>
+<p>| <code>SELFISH_ACTOR_ID</code> | <code>local-admin</code> | CLI 권한 actor id |</p>
+<p>| <code>SELFISH_RATE_LIMIT</code> | <code>30</code> | rate limit 허용 횟수 |</p>
+<p>| <code>SELFISH_RATE_LIMIT_WINDOW_MS</code> | <code>60000</code> | rate limit 시간 창(ms) |</p>
+<h2>8. 배포 소스 폴더 결정</h2>
+<p><code>resolveWebsiteDeploySourceFolder()</code>는 다음 우선순위로 소스 폴더를 결정한다.</p>
+<li><code>WEBSITE_DEPLOY_SOURCE_FOLDER</code>가 있으면 <code>path.resolve()</code>한 값을 사용</li>
+<li>없으면 <code>path.resolve(VAULT_PATH ?? './vault', VAULT_FOLDER_SKILL_INSIGHT ?? 'skillInsight')</code></li>
+<p>현재 기본값 기준 배포 대상은 다음이다.</p>
+<p><code>`</code>text</p>
+<p>D:\TM_PROJECT_셀피시\코드엑스개발\vault\skillInsight</p>
+<p><code>`</code></p>
+<h2>9. 사이트 빌드 동작</h2>
+<p><code>WebsiteDeployer.buildSite(sourceFolder)</code>는 지정 폴더의 <code>.md</code> 파일만 대상으로 정적 HTML 사이트를 만든다.</p>
+<h3>9.1 입력</h3>
+<li><code>sourceFolder</code> 바로 아래의 <code>.md</code> 파일</li>
+<li>하위 폴더는 빌드 입력으로 순회하지 않는다.</li>
+<li>Markdown frontmatter는 <code>gray-matter</code>로 파싱한다.</li>
+<h3>9.2 페이지 정보 생성</h3>
+<p>각 Markdown 파일마다 다음 정보를 만든다.</p>
+<li><code>slug</code>: 파일명에서 <code>.md</code> 제거</li>
+<li><code>title</code>: frontmatter의 <code>title</code>, 없으면 파일명 기반 제목</li>
+<li><code>category</code>: frontmatter의 <code>category</code> 또는 제목 키워드 기반 분류</li>
+<li><code>htmlContent</code>: 간단 Markdown 변환 결과</li>
+<li><code>markdownSource</code>: frontmatter 제거 후 본문</li>
+<li><code>searchText</code>: 제목과 본문을 합친 lowercase 문자열</li>
+<h3>9.3 카테고리 분류</h3>
+<p>frontmatter <code>category</code>가 아래 값 중 하나면 그대로 사용한다.</p>
+<li><code>ai-tools</code></li>
+<li><code>platform</code></li>
+<li><code>insights</code></li>
+<li><code>uncategorized</code></li>
+<p>없거나 유효하지 않으면 제목 키워드를 기준으로 분류한다. 매칭되지 않으면 <code>uncategorized</code>가 된다.</p>
+<h3>9.4 Markdown 변환 범위</h3>
+<p>현재 변환기는 단순 규칙 기반이다.</p>
+<li><code>#</code>, <code>##</code>, <code>###</code> 제목</li>
+<li><code>- </code> 목록 항목</li>
+<li><code>1. </code> 숫자 목록 항목</li>
+<li>일반 문단</li>
+<li>inline: <code><strong>bold</strong></code>, <code><em>em</em></code>, <code>` </code>code<code> </code><code>, </code><a href="url">text</a>`</li>
+<p>주의할 점은 목록 항목을 <code><ul></code> 또는 <code><ol></code>로 감싸지 않고 <code><li></code>만 생성한다는 것이다.</p>
+<h3>9.5 산출물</h3>
+<p>빌드 결과는 소스 폴더의 <code>.build</code> 하위에 생성된다.</p>
+<p><code>`</code>text</p>
+<p>sourceFolder/.build/</p>
+<p>index.html</p>
+<p>search-index.json</p>
+<p>{slug}.html</p>
+<p><code>`</code></p>
+<p><code>buildSite()</code> 반환값에는 다음이 포함된다.</p>
+<li><code>pages</code></li>
+<li><code>searchIndex</code></li>
+<li><code>outputPath</code></li>
+<li><code>pageCount</code></li>
+<li><code>builtAt</code></li>
+<h2>10. Vercel 배포 요청</h2>
+<p><code>deployToVercel(buildOutput, { preview })</code>는 <code>.build</code> 폴더 파일을 모두 base64로 읽어 Vercel API에 전달한다.</p>
+<h3>10.1 API endpoint</h3>
+<p><code>`</code>text</p>
+<p>POST https://api.vercel.com/v13/deployments?skipAutoDetectionConfirmation=1</p>
+<p><code>`</code></p>
+<p><code>VERCEL_TEAM_ID</code>가 있으면 query string에 <code>teamId</code>가 추가된다.</p>
+<h3>10.2 request headers</h3>
+<p><code>`</code>text</p>
+<p>Authorization: Bearer ${VERCEL_TOKEN}</p>
+<p>Content-Type: application/json</p>
+<p><code>`</code></p>
+<h3>10.3 request payload</h3>
+<p>일반 배포일 때:</p>
+<p><code>`</code>json</p>
+<p>{</p>
+<p>"name": "VERCEL_PROJECT_ID",</p>
+<p>"project": "VERCEL_PROJECT_ID",</p>
+<p>"files": [</p>
+<p>{</p>
+<p>"file": "index.html",</p>
+<p>"data": "base64...",</p>
+<p>"encoding": "base64"</p>
+<p>}</p>
+<p>],</p>
+<p>"target": "production"</p>
+<p>}</p>
+<p><code>`</code></p>
+<p>프리뷰 배포(<code>--preview</code>)일 때는 <code>target: "production"</code>을 넣지 않는다.</p>
+<h3>10.4 파일 수집 방식</h3>
+<p><code>collectDeploymentFiles()</code>는 <code>.build</code> 폴더를 재귀 순회한다.</p>
+<li>상대 경로는 <code>/</code> 구분자로 정규화한다.</li>
+<li>파일 내용은 base64 문자열로 변환한다.</li>
+<li>파일이 하나도 없으면 오류를 발생시킨다.</li>
+<h2>11. 상태 폴링</h2>
+<p>배포 생성 후 <code>waitForDeploymentReady()</code>가 deployment ID로 상태를 조회한다.</p>
+<h3>11.1 API endpoint</h3>
+<p><code>`</code>text</p>
+<p>GET https://api.vercel.com/v13/deployments/{deploymentId}</p>
+<p><code>`</code></p>
+<p><code>VERCEL_TEAM_ID</code>가 있으면 <code>?teamId=...</code>가 붙는다.</p>
+<h3>11.2 종료 조건</h3>
+<p>다음 상태 중 하나를 받으면 즉시 반환한다.</p>
+<li><code>READY</code></li>
+<li><code>ERROR</code></li>
+<li><code>CANCELED</code></li>
+<p>그 외 상태는 지정 간격으로 재시도한다.</p>
+<p>기본값:</p>
+<li>최대 24회</li>
+<li>5초 간격</li>
+<li>총 대기 시간은 최장 약 115초 수준이다. 마지막 시도 후에는 추가 sleep이 없기 때문이다.</li>
+<h2>12. 상태 매핑</h2>
+<p>Vercel <code>readyState</code>는 CLI 결과의 <code>status</code>로 매핑된다.</p>
+<p>| Vercel state | CLI status |</p>
+<p>| --- | --- |</p>
+<p>| <code>INITIALIZING</code> | <code>initializing</code> |</p>
+<p>| <code>QUEUED</code> | <code>queued</code> |</p>
+<p>| <code>BUILDING</code> | <code>building</code> |</p>
+<p>| <code>READY</code> | <code>completed</code> |</p>
+<p>| <code>CANCELED</code> | <code>canceled</code> |</p>
+<p>| <code>ERROR</code> 또는 기타 | <code>failed</code> |</p>
+<p><code>failed</code> 또는 <code>canceled</code>이면 결과를 출력하지 않고 오류를 던진다.</p>
+<h2>13. 배포 URL 접근 검증</h2>
+<p><code>READY</code> 상태이면 <code>verifyDeploymentAccess()</code>가 실행된다.</p>
+<p>검증 URL은 다음 우선순위다.</p>
+<li><code>deployment.url</code></li>
+<li><code>deployment.previewUrl</code></li>
+<p>URL에 <code>http://</code> 또는 <code>https://</code>가 없으면 <code>https://</code>를 붙인다.</p>
+<p>검증은 GET 요청으로 수행한다.</p>
+<p><code>`</code>text</p>
+<p>Accept: text/html,application/xhtml+xml</p>
+<p><code>`</code></p>
+<p>결과 해석:</p>
+<li><code>2xx</code>: <code>verified</code></li>
+<li><code>401</code> 또는 <code>403</code>: 접근은 가능하지만 보호됨, <code>protected</code></li>
+<li>반복 시도 후 실패: <code>unreachable</code></li>
+<p><code>READY</code>인데 <code>unreachable</code>이면 <code>runDeploy()</code>는 오류를 던진다.</p>
+<p>폴링 후 상태가 <code>BUILDING</code>, <code>QUEUED</code>, <code>INITIALIZING</code>처럼 완료가 아니면 실제 GET 검증은 생략하고 <code>unreachable</code> 상태의 verification 객체를 만들어 결과에 포함한다.</p>
+<h2>14. 알림 전송</h2>
+<p>배포 상태가 <code>completed</code>일 때만 <code>sendNotification()</code>이 호출된다.</p>
+<p><code>NOTIFICATION_WEBHOOK_URL</code>이 없으면 아무 작업도 하지 않고 종료한다.</p>
+<p>있으면 webhook URL로 POST 요청을 보낸다.</p>
+<p><code>`</code>text</p>
+<p>Content-Type: application/json</p>
+<p><code>`</code></p>
+<p>payload에는 deployment ID, 상태, URL 정보가 포함된다.</p>
+<p>주의: 알림 전송 실패는 무시되지 않고 오류로 전파된다. 즉, Vercel 배포와 URL 검증이 성공해도 webhook 실패 때문에 전체 CLI 명령은 실패 처리될 수 있다.</p>
+<h2>15. 최종 출력</h2>
+<p><code>runDeploy()</code>가 만드는 결과 객체는 다음 필드를 포함한다.</p>
+<p>| 필드 | 의미 |</p>
+<p>| --- | --- |</p>
+<p>| <code>action</code> | 항상 <code>deploy</code> |</p>
+<p>| <code>preview</code> | 프리뷰 배포 여부 |</p>
+<p>| <code>sourceFolder</code> | Markdown 원본 폴더 |</p>
+<p>| <code>outputPath</code> | 빌드 산출물 경로 |</p>
+<p>| <code>pageCount</code> | 빌드한 페이지 수 |</p>
+<p>| <code>deploymentId</code> | Vercel deployment ID |</p>
+<p>| <code>state</code> | Vercel readyState |</p>
+<p>| <code>status</code> | CLI 상태 |</p>
+<p>| <code>url</code> | 최종 배포 URL |</p>
+<p>| <code>previewUrl</code> | preview URL |</p>
+<p>| <code>verificationStatus</code> | <code>verified | protected | unreachable</code> |</p>
+<p>| <code>verificationUrl</code> | 검증에 사용한 URL |</p>
+<p>| <code>verificationHttpStatus</code> | 검증 HTTP status code |</p>
+<p>| <code>verifiedAt</code> | URL 검증 시각 |</p>
+<p>| <code>createdAt</code> | Vercel deployment 생성 시각 |</p>
+<p>| <code>readyAt</code> | Vercel READY 시각 |</p>
+<p>| <code>timestamp</code> | CLI 결과 생성 시각 |</p>
+<p>기본 <code>table</code> 출력은 객체를 <code>key<TAB>value</code> 형태로 출력한다. <code>--output json</code>을 사용하면 자동화나 디버깅에 더 적합하다.</p>
+<p>예상 JSON 구조:</p>
+<p><code>`</code>json</p>
+<p>{</p>
+<p>"action": "deploy",</p>
+<p>"preview": false,</p>
+<p>"sourceFolder": "D:\\TM_PROJECT_셀피시\\코드엑스개발\\vault\\skillInsight",</p>
+<p>"outputPath": "D:\\TM_PROJECT_셀피시\\코드엑스개발\\vault\\skillInsight\\.build",</p>
+<p>"pageCount": 2,</p>
+<p>"deploymentId": "dpl_...",</p>
+<p>"state": "READY",</p>
+<p>"status": "completed",</p>
+<p>"url": "project.vercel.app",</p>
+<p>"previewUrl": "project.vercel.app",</p>
+<p>"verificationStatus": "verified",</p>
+<p>"verificationUrl": "https://project.vercel.app",</p>
+<p>"verificationHttpStatus": 200,</p>
+<p>"verifiedAt": "2026-05-11T00:00:00.000Z",</p>
+<p>"createdAt": "2026-05-11T00:00:00.000Z",</p>
+<p>"readyAt": "2026-05-11T00:00:00.000Z",</p>
+<p>"timestamp": "2026-05-11T00:00:00.000Z"</p>
+<p>}</p>
+<p><code>`</code></p>
+<h2>16. 실패 조건 정리</h2>
+<p>| 단계 | 실패 조건 | 결과 |</p>
+<p>| --- | --- | --- |</p>
+<p>| 보안 | 권한 없음 | 오류, 감사 로그 failure |</p>
+<p>| 보안 | rate limit 초과 | 오류, 감사 로그 failure |</p>
+<p>| 보안 | <code>VERCEL_TOKEN</code> 또는 <code>VERCEL_PROJECT_ID</code> 없음 | 오류, 감사 로그 failure |</p>
+<p>| 초기화 | Node runtime에 <code>globalThis.fetch</code> 없음 | 오류 |</p>
+<p>| 빌드 | source folder가 없거나 읽을 수 없음 | fs 오류 |</p>
+<p>| 빌드 | <code>.md</code> 파일이 없어도 빌드는 가능하나 <code>index.html</code>, <code>search-index.json</code>은 생성됨 | 페이지 수 0 |</p>
+<p>| 배포 | <code>.build</code> 파일이 0개 | 오류 |</p>
+<p>| 배포 | Vercel API POST 실패 | <code>Vercel 배포 실패 (...)</code> 오류 |</p>
+<p>| 상태 조회 | Vercel status API 실패 | 오류 |</p>
+<p>| 상태 조회 | 최종 상태 <code>ERROR</code> | 오류 |</p>
+<p>| 상태 조회 | 최종 상태 <code>CANCELED</code> | 오류 |</p>
+<p>| URL 검증 | READY 이후 배포 URL 없음 | 오류 |</p>
+<p>| URL 검증 | READY 이후 URL 접근 불가 | 오류 |</p>
+<p>| 알림 | webhook 응답 실패 | 오류 |</p>
+<h2>17. 실제 실행 시 외부 부작용</h2>
+<p><code>node ./dist/cli/index.js deploy</code>는 단순 dry-run이 아니다.</p>
+<p>실행 시 발생하는 부작용:</p>
+<li><code>.env</code> 로드</li>
+<li><code>selfish-club.config.json</code> 초기화 또는 갱신 가능</li>
+<li><code>audit/audit.log</code> 기록</li>
+<li><code>sourceFolder/.build</code> 생성 또는 갱신</li>
+<li>Vercel에 실제 deployment 생성</li>
+<li>Vercel deployment 상태 조회</li>
+<li>배포 URL GET 접근 검증</li>
+<li>설정된 경우 notification webhook 호출</li>
+<h2>18. 구현상 주의점과 개선 후보</h2>
+<li><code>deploy</code>는 dry-run 옵션이 없다.</li>
+<li>빌드만 확인하거나 payload만 검증하는 모드가 없어 실제 Vercel deployment가 생성된다.</li>
+<li>알림 실패가 전체 실패로 처리된다.</li>
+<li>배포 성공 후 webhook만 실패해도 CLI는 실패한다. 운영상 알림 실패를 경고로 낮출지 검토할 수 있다.</li>
+<li>Markdown 변환기가 단순하다.</li>
+<li>목록을 <code><ul></code>/<code><ol></code>로 감싸지 않는다.</li>
+<li>표, 코드블록, 이미지, blockquote 등 일반 Markdown 요소 지원이 부족하다.</li>
+<li>HTML sanitization 범위가 제한적이다.</li>
+<li>제목은 escape하지만, inline Markdown 변환 결과의 링크 href 등은 별도 검증하지 않는다.</li>
+<li><code>.build</code>가 source folder 내부에 생성된다.</li>
+<li>이후 source folder 전체를 다루는 다른 도구가 <code>.build</code>를 입력으로 오인하지 않도록 제외 정책이 필요할 수 있다.</li>
+<li>상태 폴링 timeout 후에도 오류가 아닐 수 있다.</li>
+<li>제한 횟수 내 <code>READY/ERROR/CANCELED</code>에 도달하지 않으면 마지막 상태를 결과로 반환한다.</li>
+<li>예: <code>BUILDING</code>이면 CLI status도 <code>building</code>으로 출력하고 종료한다.</li>
+<li>help 실행 시 <code>.env</code>가 로드된다.</li>
+<li>실제 확인 결과 <code>deploy --help</code>에서도 dotenv 로드 메시지가 출력되었다.</li>
+<h2>19. 빠른 실행 체크리스트</h2>
+<p>실제 배포 전 확인할 항목:</p>
+<li><code>.env</code>에 <code>VERCEL_TOKEN</code>이 있는가</li>
+<li><code>.env</code>에 <code>VERCEL_PROJECT_ID</code>가 있는가</li>
+<li>팀 프로젝트면 <code>VERCEL_TEAM_ID</code>가 필요한가</li>
+<li><code>WEBSITE_DEPLOY_SOURCE_FOLDER</code>를 지정할지, 기본 <code>vault/skillInsight</code>를 사용할지 결정했는가</li>
+<li>대상 폴더에 배포할 <code>.md</code> 파일이 있는가</li>
+<li><code>--preview</code> 없이 실행하면 production target으로 배포되는 것이 맞는가</li>
+<li><code>NOTIFICATION_WEBHOOK_URL</code>이 설정되어 있다면 webhook 실패가 전체 실패로 이어져도 괜찮은가</li>
+<li>자동화에서 사용한다면 <code>--output json</code>을 붙였는가</li>
+<p>권장 실행 예:</p>
+<p><code>`</code>bash</p>
+<p>node ./dist/cli/index.js --output json deploy --preview</p>
+<p><code>`</code></p>
+<p>운영 배포:</p>
+<p><code>`</code>bash</p>
+<p>node ./dist/cli/index.js --output json deploy</p>
+<p><code>`</code></p>
+  </main>
+</body>
+</html>

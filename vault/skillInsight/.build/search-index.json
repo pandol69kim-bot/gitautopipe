@@ -6,6 +6,12 @@
     "excerpt": "asdfasd\r \r ▣ 셀피시클럼 실행케스트 \r -- C:\\Users\\codelab\\Downloads\\gitautopipe\r http://localhost:3000/dashboard"
   },
   {
+    "slug": "기능 작동 분석서",
+    "title": "기능 작동 분석서",
+    "category": "uncategorized",
+    "excerpt": "# `node ./dist/cli/index.js deploy` 기능 작동 분석서  분석일: 2026-05-11  ## 1. 분석 대상  ```bash node ./dist/cli/index.js deploy ```  이 명령은 빌드된 CLI 엔트리포인트(`dist/c"
+  },
+  {
     "slug": "작업내용 - 2026-05-11",
     "title": "작업내용   2026 05 11",
     "category": "uncategorized",
