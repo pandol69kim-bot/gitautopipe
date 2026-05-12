@@ -1,0 +1,665 @@
+crosoft Windows [Version 10.0.19045.6466]
+(c) Microsoft Corporation. All rights reserved.
+
+D:\TM_PROJECT_셀피시\코드엑스개발>cd "D:\TM_PROJECT_셀피시\코드엑스개발" && npx vitest run --reporter=verbose 2>&1
+
+ RUN  v4.1.5 D:/TM_PROJECT_셀피시/코드엑스개발
+
+ ✓ src/utils/env.test.ts > loadEnv > 유효한 환경 변수로 정상 로드 132ms
+ ✓ src/utils/env.test.ts > loadEnv > 필수 환경 변수 누락 시 에러 발생 8ms
+ ✓ src/utils/env.test.ts > loadEnv > VERCEL_TOKEN은 선택 사항 3ms
+ ✓ src/integrations/github.test.ts > GitHubSync > 생성자 > 유효한 설정으로 인스턴스 생성 4ms
+ ✓ src/integrations/github.test.ts > GitHubSync > 생성자 > 빈 owner로 생성 시 에러 2ms
+ ✓ src/integrations/github.test.ts > GitHubSync > 생성자 > 빈 token으로 생성 시 에러 1ms
+ ✓ src/integrations/github.test.ts > GitHubSync > buildCommitMessage (정적 메서드) > context 0 → 올바른 커밋 메시지 생 성 1ms
+ ✓ src/integrations/github.test.ts > GitHubSync > buildCommitMessage (정적 메서드) > context 1 → 올바른 커밋 메시지 생 성 0ms
+ ✓ src/integrations/github.test.ts > GitHubSync > buildCommitMessage (정적 메서드) > context 2 → 올바른 커밋 메시지 생 성 0ms
+ ✓ src/integrations/github.test.ts > GitHubSync > buildCommitMessage (정적 메서드) > context 3 → 올바른 커밋 메시지 생 성 0ms
+ ✓ src/integrations/github.test.ts > GitHubSync > buildCommitMessage (정적 메서드) > context 4 → 올바른 커밋 메시지 생 성 0ms
+
+<--- Last few GCs --->
+
+[11852:000002D033A80000]    79343 ms: Scavenge (interleaved) 4055.0 (4072.1) -> 4055.0 (4119.1) MB, pooled: 0 MB, 166.76 / 0.00 ms  (average mu = 0.309, current mu = 0.304) allocation failure;
+[11852:000002D033A80000]    90361 ms: Mark-Compact (reduce) 4055.1 (4119.1) -> 4055.1 (4057.4) MB, pooled: 0 MB, 8594.31 / 0.00 ms  (+ 5.1 ms in 2 steps since start of marking, biggest step 5.0 ms, walltime since start of marking 8608 ms) (average mu = 0.
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----t.ts > GitHubSync > createPullRequest > PR 생성 후 PullRequestResult 반환 1ms
+ ✓ src/integrations/github.test.ts > GitHubSync > sync > 충돌 없을 때 성공 결과 반환 1ms
+ 1: 00007FF74CD3AE1F node::OnFatalError+1343nner > 생성자 > 유효한 설정으로 인스턴스 생성 13ms
+ 2: 00007FF74D9837B7 v8::Function::NewInstance+423 생성자 > 존재하지 않는 basePath로 생성 시 에러 9ms
+ 3: 00007FF74D783E77 v8::base::AddressSpaceReservation::AddressSpaceReservation+322071 9ms
+ 4: 00007FF74D787B84 v8::base::AddressSpaceReservation::AddressSpaceReservation+337700 파일 목록 반환 11ms
+ 5: 00007FF74D796B1C v8::internal::StrongRootAllocatorBase::deallocate_impl+16604 반환 8ms
+ 6: 00007FF74D79635B v8::internal::StrongRootAllocatorBase::deallocate_impl+14619 스캔 시 빈 배열 반환 9ms
+ 7: 00007FF74EBFEBED v8::base::UnsignedDivisionByConstant<unsigned __int64>+2791309 relativePath, createdAt, modifiedAt
+ 8: 00007FF74D781940 v8::base::AddressSpaceReservation::AddressSpaceReservation+312544
+ 9: 00007FF74D805619 v8::Unlocker::~Unlocker+9273> parseMarkdown > frontmatter와 content 정상 파싱 13ms
+10: 00007FF74D37AFF2 v8::String::Utf8Value::~Utf8Value+141746own > excerpt 생성 (200자 초과 시 자름) 9ms
+11: 000002D05B9B733A nner.test.ts > VaultScanner > parseMarkdown > frontmatter 없는 파일도 파싱 9ms
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Worker forks emitted error.
+ ❯ EventEmitter.<anonymous> ../../TM_PROJECT_%EC%85%80%ED%94%BC%EC%8B%9C/%EC%BD%94%EB%93%9C%EC%97%91%EC%8A%A4%EA%B0%9C%EB%B0%9C/node_modules/vitest/dist/chunks/cli-api.Cjt90eJu.js:3445:22
+ ❯ EventEmitter.emit node:events:508:28
+ ❯ ChildProcess.emitUnexpectedExit ../../TM_PROJECT_%EC%85%80%ED%94%BC%EC%8B%9C/%EC%BD%94%EB%93%9C%EC%97%91%EC%8A%A4%EA%B0%9C%EB%B0%9C/node_modules/vitest/dist/chunks/cli-api.Cjt90eJu.js:3012:22
+ ❯ ChildProcess.emit node:events:508:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+Caused by: Error: Worker exited unexpectedly
+ ❯ ChildProcess.emitUnexpectedExit ../../TM_PROJECT_%EC%85%80%ED%94%BC%EC%8B%9C/%EC%BD%94%EB%93%9C%EC%97%91%EC%8A%A4%EA%B0%9C%EB%B0%9C/node_modules/vitest/dist/chunks/cli-api.Cjt90eJu.js:3011:33
+ ❯ ChildProcess.emit node:events:508:28
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  3 passed (4)
+      Tests  33 passed (53)
+     Errors  1 error
+   Start at  17:45:40
+   Duration  92.18s (transform 302ms, setup 0ms, import 744ms, tests 306ms, environment 1ms)
+
+
+D:\TM_PROJECT_셀피시\코드엑스개발>
+
+
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && cat .taskmaster/tasks/tasks.json 2>/dev/null | python -c "import json,sys; tasks=json.load(sys.stdin)['tasks']; t=[t for t in tasks if t['id']==4]; print(json.dumps(t[0], ensure_ascii=False, indent=2))" 2>/dev/null || echo "tasks.json not found or task 4 not found"
+
+
+python -c "import json; d=json.load(open('D:/TM_PROJECT_셀피시/코드엑스개발/.taskmaster/tasks/tasks.json', encoding='utf-8')); print(list(d.keys()))"
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && ls src/integrations/ && echo "---" && ls src/core/ 2>/dev/null && echo "---core done" && git log --oneline -5
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && ls src/types/ && ls src/workflows/ 2>/dev/null || echo "workflows 없음"
+
+D:\TM_PROJECT_셀피시\코드엑스개발\src\types\report.ts
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && git add src/types/report.ts src/types/index.ts src/core/report-generator.ts src/core/report-generator.test.ts && git commit -m "$(cat <<'EOF'
+feat: Implement ReportGenerator for Analysis workflow (Task 5)
+
+- Add Report, ReportSection, MemberContribution types (src/types/report.ts)
+- Implement ReportGenerator class with TDD (20 tests, all passing)
+  - generateWeeklyReport: weekly highlights, keywords, trends sections
+  - generateMemberReport: per-member contribution report
+  - generateTeamOverview: team-wide trend analysis
+  - saveReport: YAML frontmatter + markdown file output
+  - generateFileName: YYYY-WW_weekly_report.md naming convention
+- Export report types from src/types/index.ts
+EOF
+)"
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && git add src/types/linkedin.ts src/types/index.ts src/integrations/linkedin.ts src/integrations/linkedin.test.ts && git commit -m "$(cat <<'EOF'
+feat: Implement LinkedInContentGenerator for auto post generation (Task 6)
+
+- Add LinkedIn types: LinkedInPost, FormattedPost, MissionContent, LinkedInTone (src/types/linkedin.ts)
+- Implement LinkedInContentGenerator with TDD (23 tests, all passing)
+  - generateDraft: Mission 문서 → LinkedIn 게시물 초안 (LLM 호출)
+  - applyTone: professional/casual/thought-leader 톤 변환
+  - addHashtags: 키워드에서 #해시태그 자동 추가 (CamelCase, 중복 제거, 최대 10개)
+  - formatForPlatform: LinkedIn 3000자 제한 검사 + {날짜}_{제목}_{작성자}.md 파일명
+  - buildHashtags: static 헬퍼 (공백→CamelCase, 중복 제거)
+- Export linkedin types from src/types/index.ts
+EOF
+)"
+
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && cat src/integrations/notion.ts && echo "===" && node -e "require('@notionhq/client')" 2>&1 | head -3
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && cat package.json | python -c "import json,sys; d=json.load(sys.stdin); deps={**d.get('dependencies',{}),**d.get('devDependencies',{})}; [print(k,v) for k,v in deps.items() if 'notion' in k.lower() or 'gray' in k.lower() or 'matter' in k.lower()]"
+
+
+D:\TM_PROJECT_셀피시\코드엑스개발\src\integrations\notion.ts
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && git add src/types/notion.ts src/types/index.ts src/integrations/notion.ts src/integrations/notion.test.ts && git commit -m "$(cat <<'EOF'
+feat: Implement NotionMCPConnector for Meetings automation (Task 7)
+
+- Add Notion types: NotionPage, NotionBlock, SyncMetadata, MergeResult (src/types/notion.ts)
+- Implement NotionMCPConnector with TDD (31 tests, all passing)
+  - fetchMeetings: Notion DB → NotionPage 배열 (블록 포함)
+  - syncToObsidian: Notion 블록 → Obsidian 마크다운 변환 + YAML frontmatter
+  - syncFromObsidian: 마크다운 → Notion 블록 역변환 + pages.create
+  - resolveConflicts: 최신 수정 시간 기준 충돌 해결 (notion-wins / obsidian-wins)
+  - buildSyncMetadata: 동기화 메타데이터 생성
+  - blockToMarkdown (static): 10개 블록 타입 변환 (heading, list, to_do, code, divider)
+- Export notion types from src/types/index.ts
+EOF
+)"
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && python -c "
+import json
+d=json.load(open('package.json'))
+deps={**d.get('dependencies',{}),**d.get('devDependencies',{})}
+for k,v in sorted(deps.items()): print(k,v)
+" && echo "===" && ls src/workflows/
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && python -c "
+import json
+d=json.load(open('package.json', encoding='utf-8'))
+deps={**d.get('dependencies',{}),**d.get('devDependencies',{})}
+for k,v in sorted(deps.items()): print(k,v)
+" && echo "===" && ls src/workflows/
+
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && git add src/types/deployer.ts src/types/index.ts src/workflows/website-deployer.ts src/workflows/website-deployer.test.ts && git commit -m "$(cat <<'EOF'
+feat: Implement WebsiteDeployer for Skill/Insight auto-deployment (Task 8)
+
+- Add deployment types: BuildResult, DeploymentResult, DeploymentStatus, SiteCategory (src/types/deployer.ts)
+- Implement WebsiteDeployer with TDD (29 tests, all passing)
+  - buildSite: 마크다운 파일 스캔 → HTML 변환 + 검색 인덱스 생성
+  - classifyCategory: frontmatter 또는 제목 키워드로 ai-tools/platform/insights 자동 분류
+  - markdownToHtml: heading/list/bold/italic/code/link 인라인 변환
+  - deployToVercel: Vercel REST API POST + Bearer 인증
+  - getDeploymentStatus: 배포 상태 폴링
+  - rollback: 특정 배포 롤백
+  - sendNotification: Slack/Discord webhook 알림
+- Export deployer types from src/types/index.ts
+EOF
+)"
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && git add src/types/workflow.ts src/types/index.ts src/workflows/orchestrator.ts src/workflows/orchestrator.test.ts && git commit -m "$(cat <<'EOF'
+feat: Implement WorkflowOrchestrator as central automation hub (Task 9)
+
+- Add workflow types: Workflow, WorkflowStep, Execution, ExecutionResult, ErrorHandlingConfig (src/types/workflow.ts)
+- Implement WorkflowOrchestrator with TDD (29 tests, all passing)
+  - registerWorkflow / getWorkflow: 워크플로우 등록 및 조회
+  - executeWorkflow: 스텝 순차 실행 + WorkflowContext 전달
+  - getExecutionHistory: 실행 이력 누적 관리
+  - scheduleWorkflow / getSchedules: Cron 스케줄 등록
+  - emit: EventEmitter 기반 이벤트 트리거
+  - errorHandling: stop / continue / retry (exponential backoff) 전략
+  - 사전 정의 워크플로우 4개: onMissionUpdate, onMeetingSync, onSkillUpdate, weeklyDigest
+- Export workflow types from src/types/index.ts
+EOF
+)"
+
+
+
+
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && cat .taskmaster/tasks/tasks.json 2>/dev/null | python -c "import json,sys; tasks=json.load(sys.stdin)['tasks']; t=[x for x in tasks if x['id']==10][0]; print(json.dumps(t, ensure_ascii=False, indent=2))"
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && cat .taskmaster/tasks/tasks.json | python -c "import json,sys; data=json.load(sys.stdin); print(list(data.keys()))"
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && cat .taskmaster/tasks/tasks.json | python -c "import json,sys; data=json.load(sys.stdin); tasks=data['master']['tasks']; [print(t['id'], t.get('title','')) for t in tasks]"
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && cat .taskmaster/tasks/tasks.json | python -c "
+import json,sys
+data=json.load(sys.stdin)
+tasks=data['master']['tasks']
+t=[x for x in tasks if x['id']==10][0]
+print(json.dumps(t, ensure_ascii=False, indent=2))
+"
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && cat .taskmaster/tasks/tasks.json | python -c "
+import json,sys
+data=json.load(sys.stdin)
+tasks=data['master']['tasks']
+for t in tasks:
+    print(repr(t['id']), type(t['id']))
+"
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && cat .taskmaster/tasks/tasks.json | python -c "
+import json,sys
+data=json.load(sys.stdin)
+tasks=data['master']['tasks']
+t=[x for x in tasks if x['id']=='10'][0]
+print(json.dumps(t, ensure_ascii=False, indent=2))
+"
+
+
+mkdir -p "D:\TM_PROJECT_셀피시\코드엑스개발\src\cli"
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && cat .taskmaster/tasks/tasks.json | python -c "
+import json,sys
+data=json.load(sys.stdin)
+tasks=data['master']['tasks']
+for t in tasks:
+    if t['id'] == '10':
+        t['status'] = 'done'
+print(json.dumps(data, ensure_ascii=False, indent=2))
+" > .taskmaster/tasks/tasks.json.tmp && move /Y .taskmaster\tasks\tasks.json.tmp .taskmaster\tasks\tasks.json
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && python -c "
+import json
+with open('.taskmaster/tasks/tasks.json', 'r', encoding='utf-8') as f:
+    data = json.load(f)
+for t in data['master']['tasks']:
+    if t['id'] == '10':
+        t['status'] = 'done'
+with open('.taskmaster/tasks/tasks.json', 'w', encoding='utf-8') as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+print('done')
+"
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && git add src/cli/ package.json package-lock.json .taskmaster/tasks/tasks.json && git commit -m "feat: Implement CLI interface and operation dashboard (Task 10)"
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && python -c "
+import json
+with open('.taskmaster/tasks/tasks.json', 'r', encoding='utf-8') as f:
+    data = json.load(f)
+for t in data['master']['tasks']:
+    if t['id'] == '10':
+        for s in t.get('subtasks', []):
+            print(f'  subtask {s[\"id\"]}: {s[\"title\"]} → {s[\"status\"]}')
+"
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && python -c "
+import json
+with open('.taskmaster/tasks/tasks.json', 'r', encoding='utf-8') as f:
+    data = json.load(f)
+for t in data['master']['tasks']:
+    if t['id'] == '10':
+        for s in t.get('subtasks', []):
+            s['status'] = 'done'
+with open('.taskmaster/tasks/tasks.json', 'w', encoding='utf-8') as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+print('done')
+"
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && python -c "
+import json
+with open('.taskmaster/tasks/tasks.json', 'r', encoding='utf-8') as f:
+    data = json.load(f)
+for t in data['master']['tasks']:
+    if t['id'] == '10':
+        for s in t.get('subtasks', []):
+            print(f'  subtask {s[\"id\"]}: {s[\"status\"]}')
+"
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && git add .taskmaster/tasks/tasks.json && git commit -m "chore: Update Task 10 subtask statuses to done"
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && python -c "
+import json
+with open('.taskmaster/tasks/tasks.json', 'r', encoding='utf-8') as f:
+    data = json.load(f)
+for t in data['master']['tasks']:
+    if t['id'] == '11':
+        print(json.dumps(t, ensure_ascii=False, indent=2))
+"
+
+
+
+mkdir -p "D:\TM_PROJECT_셀피시\코드엑스개발\aa-starter-kit\templates\Mission" "D:\TM_PROJECT_셀피시\코드엑스개발\aa-starter-kit\templates\Meetings" "D:\TM_PROJECT_셀피시\코드엑스개발\aa-starter-kit\templates\Skills" "D:\TM_PROJECT_셀피시\코드엑스개발\aa-starter-kit\templates\Insights" "D:\TM_PROJECT_셀피시\코드엑스개발\aa-starter-kit\scripts" "D:\TM_PROJECT_셀피시\코드엑스개발\aa-starter-kit\docs" "D:\TM_PROJECT_셀피시\코드엑스개발\aa-starter-kit\examples"
+
+
+
+
+
+
+
+npx vitest run aa-starter-kit/starter-kit.test.ts
+
+npx vitest run aa-starter-kit/starter-kit.test.ts
+
+
+
+const fs=require('fs'); const data=JSON.parse(fs.readFileSync('.taskmaster/tasks/tasks.json','utf8')); const tasks=data.master.tasks; const task11=tasks.find((task)=>task.id==='11'); const completed=tasks.filter((task)=>task.status==='done').length; console.log(JSON.stringify({task11Status: task11.status, subtaskStatuses: task11.subtasks.map((subtask)=>subtask.status), completedCount: data.master.metadata.completedCount, actualCompleted: completed, lastModified: data.master.metadata.lastModified}, null, 2));
+
+
+
+npx vitest run src/security/security.test.ts
+
+
+
+
+
+==
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && node -e "
+const fs = require('fs');
+const path = require('path');
+
+const checks = [];
+
+// 1. vault 폴더 존재 여부
+const vaultPath = path.resolve('./vault');
+checks.push({ name: 'vault 폴더 존재', ok: fs.existsSync(vaultPath), detail: vaultPath });
+
+// 2. 서브폴더 확인
+const subfolders = ['mission', 'meetings', 'skillInsight', 'sharing', 'analysis', 'linkedin'];
+for (const f of subfolders) {
+  const p = path.join(vaultPath, f);
+  checks.push({ name: 'subfolder: ' + f, ok: fs.existsSync(p), detail: p });
+}
+
+// 3. VAULT_PATH 환경변수
+require('dotenv').config();
+checks.push({ name: 'VAULT_PATH 환경변수', ok: !!process.env.VAULT_PATH, detail: process.env.VAULT_PATH || '(없음)' });
+
+// 4. runScan이 VaultScanner 실제 사용 여부
+const cmdSrc = fs.readFileSync('./src/cli/commands.ts', 'utf-8');
+checks.push({ name: 'runScan → VaultScanner 연결', ok: cmdSrc.includes('VaultScanner'), detail: cmdSrc.includes('VaultScanner') ? '연결됨' : '미연결 (mock)' });
+
+console.log('\nObsidian Vault 연결 진단');
+console.log('='.repeat(40));
+for (const c of checks) {
+  console.log((c.ok ? '[PASS]' : '[FAIL]') + ' ' + c.name + ': ' + c.detail);
+}
+" 2>&1
+
+
+
+mkdir -p "D:\TM_PROJECT_셀피시\코드엑스개발\vault\mission" "D:\TM_PROJECT_셀피시\코드엑스개발\vault\meetings" "D:\TM_PROJECT_셀피시\코드엑스개발\vault\skillInsight" "D:\TM_PROJECT_셀피시\코드엑스개발\vault\sharing" "D:\TM_PROJECT_셀피시\코드엑스개발\vault\analysis" "D:\TM_PROJECT_셀피시\코드엑스개발\vault\linkedin" 2>&1
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && node ./dist/cli/index.js scan 2>&1
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && npm run build 2>&1 && node ./dist/cli/index.js scan 2>&1
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && node -e "
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
+
+const checks = [];
+const vaultPath = path.resolve(process.env.VAULT_PATH ?? './vault');
+checks.push({ name: 'vault 폴더 존재', ok: fs.existsSync(vaultPath), detail: vaultPath });
+
+const subfolders = ['mission', 'meetings', 'skillInsight', 'sharing', 'analysis', 'linkedin'];
+for (const f of subfolders) {
+  const p = path.join(vaultPath, f);
+  checks.push({ name: 'subfolder: ' + f, ok: fs.existsSync(p), detail: p });
+}
+
+checks.push({ name: 'VAULT_PATH 환경변수', ok: !!process.env.VAULT_PATH, detail: process.env.VAULT_PATH });
+const cmdSrc = fs.readFileSync('./src/cli/commands.ts', 'utf-8');
+checks.push({ name: 'runScan → VaultScanner 연결', ok: cmdSrc.includes('VaultScanner'), detail: cmdSrc.includes('VaultScanner') ? '연결됨' : '미연결' });
+
+console.log('\nObsidian Vault 연결 진단');
+console.log('='.repeat(40));
+for (const c of checks) {
+  console.log((c.ok ? '[PASS]' : '[FAIL]') + ' ' + c.name + ': ' + c.detail);
+}
+const passed = checks.filter(c => c.ok).length;
+console.log('\n결과: ' + passed + '/' + checks.length + ' 통과');
+" 2>&1
+
+
+
+cd "D:\TM_PROJECT_셀피시\코드엑스개발" && git add vault/skillInsight/test2.md && git commit -m "feat: Add test markdown file to skillInsight vault" && git push origin main 2>&1
+
+
+
+
+
+//
+
+
+
+npx ts-node src/cli/index.ts schedule start --interval-seconds 60 --output json
+
+npx vitest run src/cli/cli.test.ts src/workflows/orchestrator.test.ts -t "runSchedule|schedule"
+
+npx ts-node src/cli/index.ts schedule start --interval-seconds 60 --output json
+
+
+// analysis
+
+npx vitest run src/workflows/orchestrator.test.ts -t "meeting:synced 이벤트 시 Analysis 주간 보고서를 생성한다"
+
+
+
+npx vitest run src/integrations/analysis-factory.test.ts src/cli/security.test.ts src/workflows/orchestrator.test.ts -t "ANALYSIS_AI_PROVIDER=openai 이면 OpenAI 분석기를 선택한다|설정이 없으면 Claude 분석기를 기본값으로 선택한다|워크플로우별 필수 시크릿을 계산한다|meeting:synced 이벤트 시 Analysis 주간 보고서를 생성한다"
+
+
+npx vitest run src/workflows/orchestrator.test.ts src/integrations/analysis-factory.test.ts src/cli/security.test.ts -t "meeting:synced 이벤트 시 Analysis 주간 보고서를 생성한다|ANALYSIS_AI_PROVIDER=openai 이면 OpenAI 분석기를 선택한다|설정이 없으면 Claude 분석기를 기본값으로 선택한다|워크플로우별 필수 시크릿을 계산한다"
+
+
+
+const fs=require('fs'); const path=require('path'); const dotenv=require('dotenv'); const envPath=path.join(process.cwd(), '.env'); const parsed=fs.existsSync(envPath)?dotenv.parse(fs.readFileSync(envPath)):{}; const has=(k)=>Boolean((process.env[k]??parsed[k]??'').trim()); const result={ hasDotEnv: fs.existsSync(envPath), notionToken: has('NOTION_TOKEN'), claudeKey: has('CLAUDE_API_KEY')||has('ANTHROPIC_API_KEY'), openAIKey: has('OPENAI_API_KEY'), vaultPath: has('VAULT_PATH'), meetingsFolder: has('VAULT_FOLDER_MEETINGS'), analysisFolder: has('VAULT_FOLDER_ANALYSIS') }; console.log(JSON.stringify(result,null,2));
+
+
+
+
+node -r ts-node/register -r dotenv/config -e "const fs=require('fs'); const path=require('path'); const { WorkflowOrchestrator }=require('./src/workflows/orchestrator'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='claude'; const vaultPath=path.resolve(process.env.VAULT_PATH ?? './vault'); const analysisFolder=process.env.VAULT_FOLDER_ANALYSIS ?? 'analysis'; const analysisPath=path.join(vaultPath, analysisFolder); const orchestrator=new WorkflowOrchestrator(); await orchestrator.emit('meeting:synced', { smokeTest: true, provider: 'claude' }); const history=orchestrator.getExecutionHistory('onMeetingSync'); const latestExecution=history[history.length-1]; const files=fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); return { name, filePath, mtimeMs: fs.statSync(filePath).mtimeMs }; }).sort((a,b)=>b.mtimeMs-a.mtimeMs); const latestFile=files[0]; const preview=latestFile ? fs.readFileSync(latestFile.filePath,'utf-8').split(/\r?\n/).slice(0,8) : []; console.log(JSON.stringify({ provider:'claude', status: latestExecution?.status, latestStepStatuses: latestExecution?.stepResults?.map((step)=>({ stepId: step.stepId, status: step.status })), reportPath: latestFile?.filePath, preview }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+
+
+
+node -r ts-node/register -r dotenv/config -e "const { WorkflowOrchestrator }=require('./src/workflows/orchestrator'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='claude'; const orchestrator=new WorkflowOrchestrator(); await orchestrator.emit('meeting:synced', { smokeTest: true, provider: 'claude' }); const history=orchestrator.getExecutionHistory('onMeetingSync'); const latestExecution=history[history.length-1]; console.log(JSON.stringify({ provider:'claude', status: latestExecution?.status, stepResults: latestExecution?.stepResults?.map((step)=>({ stepId: step.stepId, status: step.status, error: step.error ?? null })) }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+
+
+
+node -r ts-node/register -r dotenv/config -e "const fs=require('fs'); const path=require('path'); const { WorkflowOrchestrator }=require('./src/workflows/orchestrator'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='openai'; const vaultPath=path.resolve(process.env.VAULT_PATH ?? './vault'); const analysisFolder=process.env.VAULT_FOLDER_ANALYSIS ?? 'analysis'; const analysisPath=path.join(vaultPath, analysisFolder); const before=new Map(fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); return [filePath, fs.statSync(filePath).mtimeMs]; })); const orchestrator=new WorkflowOrchestrator(); await orchestrator.emit('meeting:synced', { smokeTest: true, provider: 'openai' }); const history=orchestrator.getExecutionHistory('onMeetingSync'); const latestExecution=history[history.length-1]; const files=fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); return { name, filePath, mtimeMs: fs.statSync(filePath).mtimeMs, changed: (before.get(filePath) ?? 0) !== fs.statSync(filePath).mtimeMs }; }).sort((a,b)=>b.mtimeMs-a.mtimeMs); const latestFile=files[0]; const preview=latestFile ? fs.readFileSync(latestFile.filePath,'utf-8').split(/\r?\n/).slice(0,12) : []; console.log(JSON.stringify({ provider:'openai', status: latestExecution?.status, stepResults: latestExecution?.stepResults?.map((step)=>({ stepId: step.stepId, status: step.status, error: step.error ?? null })), reportPath: latestFile?.filePath, reportChanged: latestFile?.changed ?? false, preview }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+
+
+
+
+node -r ts-node/register -r dotenv/config -e "const fs=require('fs'); const path=require('path'); const { WorkflowOrchestrator }=require('./src/workflows/orchestrator'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='openai'; const vaultPath=path.resolve(process.env.VAULT_PATH ?? './vault'); const analysisFolder=process.env.VAULT_FOLDER_ANALYSIS ?? 'analysis'; const analysisPath=path.join(vaultPath, analysisFolder); const before=new Map(fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); return [filePath, fs.statSync(filePath).mtimeMs]; })); const orchestrator=new WorkflowOrchestrator(); await orchestrator.emit('meeting:synced', { smokeTest: true, provider: 'openai' }); const history=orchestrator.getExecutionHistory('onMeetingSync'); const latestExecution=history[history.length-1]; const files=fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); const stat=fs.statSync(filePath); return { name, filePath, mtimeMs: stat.mtimeMs, changed: (before.get(filePath) ?? 0) !== stat.mtimeMs }; }).sort((a,b)=>b.mtimeMs-a.mtimeMs); const latestFile=files[0]; const preview=latestFile ? fs.readFileSync(latestFile.filePath,'utf-8').split(/\r?\n/).slice(0,12) : []; console.log(JSON.stringify({ provider:'openai', status: latestExecution?.status, stepResults: latestExecution?.stepResults?.map((step)=>({ stepId: step.stepId, status: step.status, error: step.error ?? null })), reportPath: latestFile?.filePath, reportChanged: latestFile?.changed ?? false, preview }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+
+
+
+
+node -r ts-node/register -r dotenv/config -e "const { VaultScanner }=require('./src/core/vault-scanner'); const { createAnalysisEngineFromEnv }=require('./src/integrations/analysis-factory'); const path=require('path'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='openai'; const scanner=new VaultScanner({ basePath: path.resolve(process.env.VAULT_PATH ?? './vault'), folders: { mission: process.env.VAULT_FOLDER_MISSION ?? 'mission', meetings: process.env.VAULT_FOLDER_MEETINGS ?? 'meetings', skillInsight: process.env.VAULT_FOLDER_SKILL_INSIGHT ?? 'skillInsight', sharing: process.env.VAULT_FOLDER_SHARING ?? 'sharing', analysis: process.env.VAULT_FOLDER_ANALYSIS ?? 'analysis', linkedin: process.env.VAULT_FOLDER_LINKEDIN ?? 'linkedin' } }); const files=await scanner.scanFolder('meetings'); const picked=files.slice(0,1); const documents=[]; for (const file of picked){ const parsed=await scanner.parseMarkdown(file.filePath); documents.push({ content: parsed.content, title: parsed.frontmatter.title ?? file.fileName, date: parsed.frontmatter.date, author: parsed.frontmatter.author, folderType: 'meetings' }); } const analyzer=createAnalysisEngineFromEnv(); const summary=await analyzer.generateSummary({ weekNumber: 19, documents, memberCount: 1 }); const keywords=await analyzer.extractKeywords(documents); const trends=await analyzer.identifyTrends([{ weekNumber: 19, keywords: Array.isArray(keywords) ? keywords.map((k)=>k.keyword) : [], summary: typeof summary.summary === 'string' ? summary.summary : '', participationRate: summary.participationRate, analyzedAt: new Date() }]); console.log(JSON.stringify({ summaryType: typeof summary, summaryKeys: summary && typeof summary === 'object' ? Object.keys(summary) : [], summaryPreview: { weekNumber: summary.weekNumber, highlightsType: Array.isArray(summary.highlights) ? 'array' : typeof summary.highlights, topKeywordsType: Array.isArray(summary.topKeywords) ? 'array' : typeof summary.topKeywords }, keywordsType: Array.isArray(keywords) ? 'array' : typeof keywords, keywordCount: Array.isArray(keywords) ? keywords.length : -1, trendKeys: trends && typeof trends === 'object' ? Object.keys(trends) : [], trendPreview: { risingKeywordsType: Array.isArray(trends.risingKeywords) ? 'array' : typeof trends.risingKeywords, consistentThemesType: Array.isArray(trends.consistentThemes) ? 'array' : typeof trends.consistentThemes } }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+
+
+
+
+node -r ts-node/register -r dotenv/config -e "const fs=require('fs'); const path=require('path'); const { WorkflowOrchestrator }=require('./src/workflows/orchestrator'); (async()=>{ process.env.ANALYSIS_AI_PROVIDER='openai'; const vaultPath=path.resolve(process.env.VAULT_PATH ?? './vault'); const analysisFolder=process.env.VAULT_FOLDER_ANALYSIS ?? 'analysis'; const analysisPath=path.join(vaultPath, analysisFolder); const before=new Map(fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); return [filePath, fs.statSync(filePath).mtimeMs]; })); const orchestrator=new WorkflowOrchestrator(); await orchestrator.emit('meeting:synced', { smokeTest: true, provider: 'openai' }); const history=orchestrator.getExecutionHistory('onMeetingSync'); const latestExecution=history[history.length-1]; const files=fs.readdirSync(analysisPath).filter((name)=>name.endsWith('.md')).map((name)=>{ const filePath=path.join(analysisPath,name); const stat=fs.statSync(filePath); return { name, filePath, mtimeMs: stat.mtimeMs, changed: (before.get(filePath) ?? 0) !== stat.mtimeMs }; }).sort((a,b)=>b.mtimeMs-a.mtimeMs); const latestFile=files[0]; const preview=latestFile ? fs.readFileSync(latestFile.filePath,'utf-8').split(/\r?\n/).slice(0,12) : []; console.log(JSON.stringify({ provider:'openai', status: latestExecution?.status, stepResults: latestExecution?.stepResults?.map((step)=>({ stepId: step.stepId, status: step.status, error: step.error ?? null })), reportPath: latestFile?.filePath, reportChanged: latestFile?.changed ?? false, preview }, null, 2)); })().catch((error)=>{ console.error(error instanceof Error ? error.stack : String(error)); process.exit(1); });"
+
+
+
+
+
+node index.js schedule run-due가 실제로 어떤 순서로 흘러가는지 현재 코드 기준으로 확인하겠습니다. 최근 사용자 수정이 들어간 commands.ts와 설정 파일을 먼저 읽고, 그다음 실행 프로세스를 정리하겠습니다.
+
+핵심 흐름은 더 좁혀졌습니다. 이제 runScheduleRunDue가 결과를 어떻게 만들고, 현재 설정 파일 상태에서 왜 체감상 아무 일도 안 일어날 수 있는지까지 확인하겠습니다.
+
+이제 실행 경로는 거의 다 보였습니다. 마지막으로 executeCliCommand 보안 래퍼와 parseScheduleDate만 확인하면, 명령의 진입부터 출력까지 정확히 정리할 수 있습니다.
+
+실행 프로세스 설명에 중요한 마지막 포인트는 “현재 설정 파일이 비어 있어도 무엇이 실행 대상이 되는가”입니다. 기본 cron 스케줄 등록 지점만 확인하고, 바로 정리해드리겠습니다.
+
+node index.js schedule run-due 실행 프로세스는 현재 코드 기준으로 아래 순서입니다.
+
+먼저 CLI가 시작되면 src/cli/index.ts에서 .env를 로드하고, Command, ConfigManager, WorkflowOrchestrator를 생성합니다. 그다음 schedule run-due 서브커맨드가 매칭되면 src/cli/index.ts에서 executeCliCommand('schedule', { at, operation: 'run-due' }, ...) 형태로 진입합니다.
+
+여기서 바로 실행되는 게 아니라, 먼저 보안 래퍼를 탑니다. src/cli/index.ts executeCliCommand()가 src/cli/security.ts를 통해 권한, rate limit, 필수 시크릿 검증을 처리합니다. schedule 명령 자체는 manage 권한으로 매핑되고, run-due는 별도 시크릿이 없어도 통과할 수 있는 구조입니다.
+
+그다음 실제 본체는 src/cli/commands.ts runScheduleRunDue()입니다.
+
+opts.at가 있으면 src/cli/commands.ts parseScheduleDate()로 ISO 시각을 파싱합니다.
+opts.at가 없으면 현재 시각 new Date()를 사용합니다.
+그 시각을 src/workflows/orchestrator.ts orchestrator.runDueSchedules(at)에 넘깁니다.
+runDueSchedules()는 현재 orchestrator에 등록된 스케줄 목록만 가져와 isCronDue(schedule.cron, at)로 due 여부를 필터링합니다.
+due 판정된 스케줄만 executeWorkflow()로 즉시 실행합니다.
+각 실행 결과는 executionId, workflowId, status, stepResults, totalDurationMs 구조로 누적됩니다.
+마지막에 CLI는 이를 format(...)으로 감싸 action: "schedule-run-due", requestedAt, dueCount, executions, timestamp 형태로 출력합니다.
+중요한 포인트는 “무엇이 스케줄 목록에 들어와 있느냐”입니다. 이 목록은 두 군데에서 채워집니다.
+
+기본 등록: src/workflows/orchestrator.ts에서 weeklyDigest가 cron trigger 0 9 * * 1로 정의되어 있고, src/workflows/orchestrator.ts에서 생성 시 자동 등록됩니다.
+설정 파일 등록: CLI preAction 훅이 src/cli/index.ts에서 configManager.init() 후 src/cli/config-manager.ts listWorkflowSchedules()를 읽어 orchestrator에 추가 등록합니다.
+현재 워크스페이스의 selfish-club.config.json 상태는 workflows.schedules가 비어 있습니다. 즉, 현재 schedule run-due에서 실질적인 후보는 기본 등록된 weeklyDigest 하나뿐입니다. 그래서 이 명령을 지금 실행했을 때 결과는 보통 둘 중 하나입니다.
+
+현재 시각이 월요일 09:00 조건에 맞으면 weeklyDigest가 실행됩니다.
+그 외 시각이면 dueCount: 0과 빈 executions가 나옵니다.
+정리하면, 이 명령은 “설정 파일에 저장된 스케줄과 기본 cron 스케줄 중에서 지금 시각에 해당하는 것만 1회 즉시 실행하는 명령”입니다. 상주 프로세스가 아니라 단발 실행이고, 설정 파일이 비어 있어도 기본 weeklyDigest는 후보가 됩니다.
+
+원하면 다음 중 하나로 이어서 정리해드릴 수 있습니다.
+
+이 내용을 수정작업.md에 “schedule run-due 실행 프로세스” 섹션으로 추가
+실제 예시 기준으로 run-due --at "2026-05-11T09:00:00" 실행 결과까지 재현해서 설명
+schedule start와 schedule run-due 차이까지 표로 비교 정리
+GPT-5.4 • 1x
+
+
+
+
+
+
+
+
+
+
+
+
+npx vitest run src/workflows/orchestrator.test.ts src/cli/security.test.ts -t "weeklyDigest 실행 시 주간 보고서를 생성하고 GitHub 커밋 단계를 건너뛸 수 있다|워크플로우별 필수 시크릿을 계산한다"
+
+
+npx vitest run src/workflows/orchestrator.test.ts src/cli/security.test.ts -t "weeklyDigest 실행 시 주간 보고서를 생성하고 GitHub 커밋 단계를 건너뛸 수 있다|워크플로우별 필수 시크릿을 계산한다"
+
+
+
+$oldToken=$env:GITHUB_TOKEN; $oldOwner=$env:GITHUB_OWNER; $oldRepo=$env:GITHUB_REPO; try { Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue; Remove-Item Env:GITHUB_OWNER -ErrorAction SilentlyContinue; Remove-Item Env:GITHUB_REPO -ErrorAction SilentlyContinue; node ./dist/cli/index.js workflow weeklyDigest -o json } finally { if ($null -ne $oldToken) { $env:GITHUB_TOKEN=$oldToken } else { Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue }; if ($null -ne $oldOwner) { $env:GITHUB_OWNER=$oldOwner } else { Remove-Item Env:GITHUB_OWNER -ErrorAction SilentlyContinue }; if ($null -ne $oldRepo) { $env:GITHUB_REPO=$oldRepo } else { Remove-Item Env:GITHUB_REPO -ErrorAction SilentlyContinue } }
+
+
+
+
+npx vitest run src/workflows/orchestrator.test.ts -t "weeklyDigest 실행 시 주간 보고서를 생성하고 GitHub 커밋 단계를 건너뛸 수 있다|weeklyDigest 실행 시 webhook이 있으면 실제 알림 payload를 전송한다"
+
+
+
+node ./dist/cli/index.js workflow onNotionSync -o json
+
+
+
+
+
+
+node -r ts-node/register/transpile-only -r dotenv/config -e "const { WorkflowOrchestrator } = require('./src/workflows/orchestrator'); process.env.GITHUB_TOKEN=''; process.env.GITHUB_API_KEY=''; process.env.GITHUB_OWNER=''; process.env.GITHUB_REPO=''; process.env.WEEKLY_DIGEST_WEBHOOK_URL='https://example.invalid/webhook'; const orchestrator = new WorkflowOrchestrator({ fetch: async () => ({ ok: true, status: 200 }), createAnalysisEngine: () => ({ extractKeywords: async () => [{ keyword: 'meeting', frequency: 3, relevance: 0.8 }], generateSummary: async () => ({ weekNumber: 19, highlights: ['자동 점검 실행'], summary: '### Week19 다이제스트\n- 자동 점검 실행', participationRate: 100, topKeywords: ['meeting'], markdownOutput: '### Week19 다이제스트\n- 자동 점검 실행' }), identifyTrends: async () => ({ risingKeywords: ['meeting'], decliningKeywords: [], consistentThemes: ['sync'], weeklyGrowth: 1, markdownOutput: '### 다이제스트 트렌드\n- meeting' }) }) }); orchestrator.executeWorkflow('weeklyDigest').then((result) => { const notify = result.stepResults.find((step) => step.stepId === 'digest-notify'); const report = result.stepResults.find((step) => step.stepId === 'weekly-report'); console.log(JSON.stringify({ status: result.status, notify, report }, null, 2)); }).catch((error) => { console.error(error); process.exit(1); });"
+
+
+
+node -r ts-node/register/transpile-only -r dotenv/config -e "const path = require('path'); const { WorkflowOrchestrator } = require('./src/workflows/orchestrator'); const orchestrator = new WorkflowOrchestrator(); const webhookUrl = orchestrator.getWeeklyDigestWebhookUrl(); if (!webhookUrl) { throw new Error('WEEKLY_DIGEST_WEBHOOK_URL not configured'); } const payload = orchestrator.buildWeeklyDigestNotificationPayload({ report: { weekNumber: 19, reportPath: path.resolve('./vault/analysis/2026-19_weekly_report.md') }, github: { status: 'skipped' }, scan: { totalDocuments: 3, weekNumber: 19 } }); fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(async (response) => { console.log(JSON.stringify({ ok: response.ok, status: response.status, text: payload.text, reportPath: payload.attachments?.[0]?.fields?.find((field) => field.title === 'Report')?.value ?? null }, null, 2)); if (!response.ok) { process.exit(1); } }).catch((error) => { console.error(error); process.exit(1); });"
+
+
+
+npx ts-node src/cli/index.ts workflow weeklyDigest --output json
+
+
+
+// workflow 현황체크
+
+npx ts-node src/cli/index.ts status --output json
+npx ts-node src/cli/index.ts workflow onMissionUpdate --output json
+npx ts-node src/cli/index.ts workflow onSkillUpdate --output json
+npx ts-node src/cli/index.ts workflow onMeetingSync --output json
+npx ts-node src/cli/index.ts workflow onNotionSync --output json
+
+
+
+
+
+// deploy
+const token=process.env.VERCEL_TOKEN; const teamId=process.env.VERCEL_TEAM_ID; const projectId=process.env.VERCEL_PROJECT_ID; if(!token){throw new Error('VERCEL_TOKEN missing')} const headers={Authorization:'Bearer '+token}; const teamQuery=teamId?('?teamId='+encodeURIComponent(teamId)):''; async function main(){ const userRes=await fetch('https://api.vercel.com/v2/user',{headers}); const userText=await userRes.text(); console.log('USER', userRes.status, userText.slice(0,500)); const projectRes=await fetch('https://api.vercel.com/v9/projects/'+encodeURIComponent(projectId)+teamQuery,{headers}); const projectText=await projectRes.text(); console.log('PROJECT', projectRes.status, projectText.slice(0,500)); } main().catch(err=>{ console.error(err); process.exit(1); });
+
+
+
+node ./dist/cli/index.js --output json workflow onMissionUpdate
+
+
+
+
+// mission - linkedin
+Set-Location 'd:\TM_PROJECT_셀피시\코드엑스개발'; $script = @'
+const fs = require(''fs'');
+const os = require(''os'');
+const path = require(''path'');
+const { WorkflowOrchestrator } = require(''./src/workflows/orchestrator'');
+
+(async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orchestrator-debug-'));
+  const vaultPath = path.join(tempDir, 'vault');
+  const missionPath = path.join(vaultPath, 'mission');
+  const analysisPath = path.join(vaultPath, 'analysis');
+  const linkedinPath = path.join(vaultPath, 'linkedin');
+  fs.mkdirSync(missionPath, { recursive: true });
+  fs.mkdirSync(analysisPath, { recursive: true });
+  fs.mkdirSync(linkedinPath, { recursive: true });
+  fs.writeFileSync(path.join(missionPath, 'mission-1.md'), ['---','title: OpenAI 워크플로우 연결','date: 2026-05-11','author: peter','tags: [OpenAI, Workflow]','week: 20','---','','# 구현 메모','','- onMissionUpdate에 실제 OpenAI 분석 연결','- 결과를 분석 폴더에 저장',].join('\n'), 'utf-8');
+  process.env.VAULT_PATH = vaultPath;
+  process.env.VAULT_FOLDER_MISSION = 'mission';
+  process.env.VAULT_FOLDER_ANALYSIS = 'analysis';
+  process.env.VAULT_FOLDER_LINKEDIN = 'linkedin';
+
+  const orchestrator = new WorkflowOrchestrator({
+    createOpenAIAnalysisEngine: () => ({
+      extractKeywords: async () => [{ keyword: 'OpenAI', frequency: 2, relevance: 0.9 }, { keyword: 'Workflow', frequency: 1, relevance: 0.8 }],
+      generateSummary: async () => ({ weekNumber: 20, highlights: ['onMissionUpdate에 실제 OpenAI 분석 연결'], summary: 'Mission 문서를 OpenAI로 분석했다.', participationRate: 100, topKeywords: ['OpenAI', 'Workflow'], markdownOutput: '## 요약\n- OpenAI 분석 완료' }),
+      identifyTrends: async () => ({ risingKeywords: ['OpenAI'], decliningKeywords: [], consistentThemes: ['Workflow'], weeklyGrowth: 10, markdownOutput: '## 트렌드\n- OpenAI' }),
+    }),
+    createLinkedInContentGenerator: () => ({
+      generateDraft: async () => ({ headline: 'OpenAI 워크플로우 연결', body: 'Mission 업데이트를 바탕으로 LinkedIn 초안을 작성했습니다.', hashtags: ['#OpenAI', '#Workflow'], callToAction: '여러분은 어떤 자동화를 적용하고 있나요?' }),
+      formatForPlatform: async () => ({ content: ['OpenAI 워크플로우 연결','','Mission 업데이트를 바탕으로 LinkedIn 초안을 작성했습니다.','','여러분은 어떤 자동화를 적용하고 있나요?','','#OpenAI #Workflow'].join('\n'), charCount: 84, isWithinLimit: true, hashtags: ['#OpenAI', '#Workflow'], fileName: '2026-05-11_OpenAI_워크플로우_연결_peter.md' }),
+    }),
+  });
+
+  const result = await orchestrator.executeWorkflow('onMissionUpdate');
+  console.log(JSON.stringify(result, null, 2));
+})();
+'@; node -r ts-node/register -e $script
+
+
+
+
+Set-Location 'd:\TM_PROJECT_셀피시\코드엑스개발'; $script = @"
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { WorkflowOrchestrator } = require('./src/workflows/orchestrator');
+(async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orchestrator-debug-'));
+  const vaultPath = path.join(tempDir, 'vault');
+  const missionPath = path.join(vaultPath, 'mission');
+  const analysisPath = path.join(vaultPath, 'analysis');
+  const linkedinPath = path.join(vaultPath, 'linkedin');
+  fs.mkdirSync(missionPath, { recursive: true });
+  fs.mkdirSync(analysisPath, { recursive: true });
+  fs.mkdirSync(linkedinPath, { recursive: true });
+  fs.writeFileSync(path.join(missionPath, 'mission-1.md'), ['---','title: OpenAI 워크플로우 연결','date: 2026-05-11','author: peter','tags: [OpenAI, Workflow]','week: 20','---','','# 구현 메모','','- onMissionUpdate에 실제 OpenAI 분석 연결','- 결과를 분석 폴더에 저장'].join('\n'), 'utf-8');
+  process.env.VAULT_PATH = vaultPath;
+  process.env.VAULT_FOLDER_MISSION = 'mission';
+  process.env.VAULT_FOLDER_ANALYSIS = 'analysis';
+  process.env.VAULT_FOLDER_LINKEDIN = 'linkedin';
+  const orchestrator = new WorkflowOrchestrator({
+    createOpenAIAnalysisEngine: () => ({
+      extractKeywords: async () => [{ keyword: 'OpenAI', frequency: 2, relevance: 0.9 }, { keyword: 'Workflow', frequency: 1, relevance: 0.8 }],
+      generateSummary: async () => ({ weekNumber: 20, highlights: ['onMissionUpdate에 실제 OpenAI 분석 연결'], summary: 'Mission 문서를 OpenAI로 분석했다.', participationRate: 100, topKeywords: ['OpenAI', 'Workflow'], markdownOutput: '## 요약\n- OpenAI 분석 완료' }),
+      identifyTrends: async () => ({ risingKeywords: ['OpenAI'], decliningKeywords: [], consistentThemes: ['Workflow'], weeklyGrowth: 10, markdownOutput: '## 트렌드\n- OpenAI' }),
+    }),
+    createLinkedInContentGenerator: () => ({
+      generateDraft: async () => ({ headline: 'OpenAI 워크플로우 연결', body: 'Mission 업데이트를 바탕으로 LinkedIn 초안을 작성했습니다.', hashtags: ['#OpenAI', '#Workflow'], callToAction: '여러분은 어떤 자동화를 적용하고 있나요?' }),
+      formatForPlatform: async () => ({ content: ['OpenAI 워크플로우 연결','','Mission 업데이트를 바탕으로 LinkedIn 초안을 작성했습니다.','','여러분은 어떤 자동화를 적용하고 있나요?','','#OpenAI #Workflow'].join('\n'), charCount: 84, isWithinLimit: true, hashtags: ['#OpenAI', '#Workflow'], fileName: '2026-05-11_OpenAI_워크플로우_연결_peter.md' }),
+    }),
+  });
+  const result = await orchestrator.executeWorkflow('onMissionUpdate');
+  console.log(JSON.stringify(result, null, 2));
+})();
+"@; node -r ts-node/register -e $script
+
+
+

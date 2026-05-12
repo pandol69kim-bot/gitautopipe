@@ -87,10 +87,13 @@
 
 1. `site-build`
    - 이름: 정적 사이트 빌드
+   - 설명: `WEBSITE_DEPLOY_SOURCE_FOLDER` 또는 `vault/skillInsight`를 빌드해 `.build` 산출물을 생성
 2. `vercel-deploy`
    - 이름: Vercel 배포
+   - 설명: 생성된 `.build` 산출물을 Vercel에 업로드하고 배포 완료 및 접근 가능 여부를 확인
 3. `deploy-notify`
    - 이름: 배포 알림 전송
+   - 설명: `NOTIFICATION_WEBHOOK_URL`이 있으면 배포 완료 알림을 전송
 
 ---
 

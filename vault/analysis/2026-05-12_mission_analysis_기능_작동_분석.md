@@ -11,32 +11,32 @@ week: 20
 
 ## 요약
 
-이번 주 회의에서는 `node ./dist/cli/index.js deploy` 명령어의 작동 방식에 대한 분석을 진행했습니다. 이 명령어는 Skill/Insight 사이트를 Vercel에 배포하는 과정에서의 전체 흐름, 보안 절차, 배포 요청 및 상태 확인 방법, Markdown 파일을 HTML로 변환하는 빌드 과정, 그리고 최종 결과 출력 형식에 대해 상세히 설명했습니다.
+이번 주 회의에서는 `node ./dist/cli/index.js deploy` 명령어의 작동 방식을 분석하였습니다. 이 명령어는 Skill/Insight 사이트를 Vercel에 배포하는 기능을 수행하며, 보안 검증, 상태 조회, Markdown 파일 빌드 등의 과정을 포함합니다. 배포 과정에서의 필수 환경 변수와 실패 조건도 정리하였습니다.
 
 ## 하이라이트
 
-- CLI 명령어 `node ./dist/cli/index.js deploy`의 기능 분석
+- CLI 명령어 `node ./dist/cli/index.js deploy`의 작동 방식 분석
 - 배포 과정에서의 보안 및 권한 확인 절차 설명
-- Vercel API를 통한 배포 요청 및 상태 폴링 메커니즘 설명
-- Markdown 파일을 HTML로 변환하는 빌드 프로세스 설명
-- 배포 후 알림 전송 및 결과 출력 형식 설명
+- Vercel API를 통한 배포 요청 및 상태 조회 방법 정리
+- Markdown 파일을 기반으로 한 정적 HTML 사이트 빌드 과정 설명
+- 배포 URL 접근 검증 및 알림 전송 과정 정리
 
 ## 키워드
 
-- deploy (빈도: 20, 관련성: 0.90)
-- Vercel (빈도: 15, 관련성: 0.85)
-- CLI (빈도: 12, 관련성: 0.80)
-- Markdown (빈도: 10, 관련성: 0.75)
-- build (빈도: 8, 관련성: 0.70)
-- audit log (빈도: 6, 관련성: 0.65)
-- environment variables (빈도: 5, 관련성: 0.60)
-- notification webhook (빈도: 4, 관련성: 0.55)
-- rate limit (빈도: 3, 관련성: 0.50)
-- security (빈도: 3, 관련성: 0.50)
+- deploy (빈도: 15, 관련성: 0.90)
+- Vercel (빈도: 10, 관련성: 0.85)
+- CLI (빈도: 8, 관련성: 0.80)
+- Markdown (빈도: 7, 관련성: 0.75)
+- audit log (빈도: 5, 관련성: 0.70)
+- environment variables (빈도: 6, 관련성: 0.65)
+- rate limit (빈도: 4, 관련성: 0.60)
+- notification webhook (빈도: 3, 관련성: 0.55)
+- build (빈도: 5, 관련성: 0.50)
+- security (빈도: 4, 관련성: 0.50)
 
 ## 트렌드
 
-이번 주 회의에서는 `node ./dist/cli/index.js deploy` 명령어의 작동 방식에 대한 분석을 진행했습니다. 이 명령어는 Skill/Insight 사이트를 Vercel에 배포하는 과정에서의 전체 흐름, 보안 절차, 배포 요청 및 상태 확인 방법, Markdown 파일을 HTML로 변환하는 빌드 과정, 그리고 최종 결과 출력 형식에 대해 상세히 설명했습니다.
+이번 주 회의에서는 `node ./dist/cli/index.js deploy` 명령어의 작동 방식을 분석하였습니다. 이 명령어는 Skill/Insight 사이트를 Vercel에 배포하는 기능을 수행하며, 보안 검증, 상태 조회, Markdown 파일 빌드 등의 과정을 포함합니다. 배포 과정에서의 필수 환경 변수와 실패 조건도 정리하였습니다.
 
 ## 원문
 

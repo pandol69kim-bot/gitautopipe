@@ -3,13 +3,19 @@
     "slug": "skills",
     "title": "Skills",
     "category": "uncategorized",
-    "excerpt": "skill 1 추가"
+    "excerpt": "# 셀피시 클럽 CodeX 프로젝트 명령어 정리  > 작성일: 2026-05-06   > 프로젝트 경로: `D:\\TM_PROJECT_셀피시\\코드엑스개발`  ---  ## 1. 개발 환경 명령어 (npm scripts)  ### 빌드 & 타입체크  ```bash npm"
   },
   {
     "slug": "test2",
     "title": "Test2",
     "category": "uncategorized",
-    "excerpt": "asdfasd  ▣ 셀피시클럼 실행케스트  -- C:\\Users\\codelab\\Downloads\\gitautopipe http://localhost:3000/dashboard"
+    "excerpt": "# 각 workflow 별 스텝  작성일: 2026-05-06 기준 파일: `src/workflows/orchestrator.ts`  ---  ## 1. onGitHubSync  - 이름: GitHub 동기화 - 트리거: `github:sync` 이벤트 - 에러 처리:"
+  },
+  {
+    "slug": "기능 작동 분석 copy",
+    "title": "기능 작동 분석 Copy",
+    "category": "uncategorized",
+    "excerpt": "crosoft Windows [Version 10.0.19045.6466] (c) Microsoft Corporation. All rights reserved.  D:\\TM_PROJECT_셀피시\\코드엑스개발>cd \"D:\\TM_PROJECT_셀피시\\코드엑스개발\" && n"
   },
   {
     "slug": "기능 작동 분석서",

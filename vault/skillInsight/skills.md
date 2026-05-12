@@ -1,1 +1,274 @@
-skill 1 추가
+# 셀피시 클럽 CodeX 프로젝트 명령어 정리
+
+> 작성일: 2026-05-06  
+> 프로젝트 경로: `D:\TM_PROJECT_셀피시\코드엑스개발`
+
+---
+
+## 1. 개발 환경 명령어 (npm scripts)
+
+### 빌드 & 타입체크
+
+```bash
+npm run build         # TypeScript 컴파일 (tsc) → dist/ 생성
+npm run typecheck     # 타입 오류 확인만 (파일 생성 없음)
+npm run dev           # ts-node로 직접 실행 (빌드 없이)
+```
+
+### 코드 품질
+
+```bash
+npm run lint          # ESLint 검사
+npm run lint:fix      # ESLint 자동 수정
+npm run format        # Prettier 자동 포맷 (src/ 전체)
+```
+
+### 테스트
+
+```bash
+npm test              # 전체 테스트 실행 (vitest run)
+npm run test:watch    # 테스트 감시 모드 (저장 시 자동 재실행)
+npm run test:all      # 일반 테스트 + Claude API 테스트 순서 실행
+npm run test:claude   # Claude API 통합 테스트만 실행 (메모리 8GB 확보)
+npm run test:api      # API 스모크 테스트 (scripts/api-smoke-test.ts)
+```
+
+### 보안
+
+```bash
+npm run security:scan  # 시크릿 스캔 (scripts/secret-scan.ts)
+```
+
+---
+
+## 2. CLI 명령어
+
+> 운영 실행: `node ./dist/cli/index.js ...`
+> 개발/즉시 실행: `npx ts-node src/cli/index.ts ...`
+> dist 기준으로 정리하되, 예시 마지막 줄에 ts-node 대체 예시를 함께 둠
+
+### 공통 옵션
+
+```bash
+node ./dist/cli/index.js [command] -o table     # 출력: 테이블 형식 (기본값)
+node ./dist/cli/index.js [command] -o json      # 출력: JSON 형식
+node ./dist/cli/index.js [command] -o minimal   # 출력: 최소 형식
+node ./dist/cli/index.js [command] --log-level debug  # 로그 레벨 설정
+```
+
+### scan - 볼트 폴더 스캔
+
+```bash
+node ./dist/cli/index.js scan                    # 전체 폴더 스캔
+node ./dist/cli/index.js scan --folder mission   # 특정 폴더만 스캔
+node ./dist/cli/index.js scan --folder meetings
+node ./dist/cli/index.js scan --folder skillInsight
+node ./dist/cli/index.js scan --folder sharing
+node ./dist/cli/index.js scan --folder analysis
+node ./dist/cli/index.js scan --folder linkedin
+```
+
+### sync - 외부 서비스 동기화
+
+```bash
+node ./dist/cli/index.js sync                    # GitHub 동기화 (기본값)
+node ./dist/cli/index.js sync --target github    # GitHub 동기화
+node ./dist/cli/index.js sync --target notion    # Notion 동기화
+node ./dist/cli/index.js sync --target all       # 전체 동기화
+```
+
+### analyze - 볼트 데이터 분석
+
+```bash
+node ./dist/cli/index.js analyze                 # 현재 주차 분석
+node ./dist/cli/index.js analyze --week 18       # 특정 주차 분석
+```
+
+### deploy - Vercel 배포
+
+```bash
+node ./dist/cli/index.js deploy                  # 프로덕션 배포
+node ./dist/cli/index.js deploy --preview        # 프리뷰 배포
+```
+
+### workflow - 워크플로우 직접 실행
+
+```bash
+node ./dist/cli/index.js workflow onGitHubSync
+node ./dist/cli/index.js workflow onNotionSync
+node ./dist/cli/index.js workflow onMissionUpdate
+node ./dist/cli/index.js workflow onMeetingSync
+node ./dist/cli/index.js workflow onSkillUpdate
+node ./dist/cli/index.js workflow weeklyDigest
+```
+
+### schedule - 워크플로우 스케줄 관리
+
+```bash
+node ./dist/cli/index.js schedule list
+node ./dist/cli/index.js schedule add onNotionSync --cron "0 9 * * *"
+node ./dist/cli/index.js schedule add weeklyDigest --cron "0 9 * * 1"
+node ./dist/cli/index.js schedule remove onNotionSync
+node ./dist/cli/index.js schedule run-due
+node ./dist/cli/index.js schedule run-due --at "2026-05-06T09:00:00"
+node ./dist/cli/index.js schedule start --interval-seconds 60
+```
+
+스케줄 동작 방식:
+- `schedule add/remove/list` 는 설정 파일(`selfish-club.config.json`) 기준으로 영속 관리됨
+- `schedule run-due` 는 현재 시각 또는 지정 시각 기준으로 실행 대상만 1회 실행
+- `schedule start` 는 상주 프로세스로 돌려야 자동 실행이 계속됨
+- 기본 등록값: `weeklyDigest -> 0 9 * * 1`, `onNotionSync -> 0 9 * * *`
+
+cron 형식:
+```bash
+minute hour day month dayOfWeek
+예: 0 9 * * *     # 매일 09:00
+예: 0 9 * * 1     # 매주 월요일 09:00
+```
+
+### status - 시스템 상태 확인
+
+```bash
+node ./dist/cli/index.js status                  # 워크플로우 등록 상태 및 스케줄 확인
+```
+
+### notion-check - Notion 연결 사전 점검
+
+```bash
+node ./dist/cli/index.js notion-check
+node ./dist/cli/index.js notion-check --id "https://www.notion.so/..."
+node ./dist/cli/index.js notion-check --id "356ce5bf5072808cb2f3ed6c2913e96f"
+```
+
+### interactive - 인터랙티브 모드
+
+```bash
+node ./dist/cli/index.js interactive             # 메뉴 선택형 실행
+node ./dist/cli/index.js i                       # 단축 별칭
+```
+
+> 인터랙티브 모드에서 선택 가능한 명령어: `scan`, `sync`, `analyze`, `deploy`, `workflow`, `schedule`, `status`, `exit`
+
+`schedule` 선택 시 사용 가능한 하위 작업:
+- `list`
+- `add`
+- `remove`
+- `run-due`
+- `start`
+
+개발 중 즉시 실행 예시:
+
+```bash
+npx ts-node src/cli/index.ts status --output json
+npx ts-node src/cli/index.ts workflow onNotionSync --output json
+npx ts-node src/cli/index.ts schedule list --output json
+npx ts-node src/cli/index.ts schedule start --interval-seconds 60 --output json
+```
+
+---
+
+## 3. Git 명령어
+
+### 상태 확인
+
+```bash
+git status -sb
+git log --oneline --decorate --graph --max-count=6
+git rev-parse --abbrev-ref HEAD          # 현재 브랜치 확인
+git rev-list --left-right --count origin/main...main  # 원격과 로컬 커밋 차이
+```
+
+### 커밋 & 푸시
+
+```bash
+git add <파일명>
+git commit -m "feat: 설명"
+git push origin main
+git push -u origin <브랜치명>            # 새 브랜치 첫 푸시
+```
+
+### 히스토리에서 민감 파일 제거 (비상용)
+
+```bash
+# .env_bk 같은 파일을 히스토리에서 완전 제거
+git filter-branch --force --index-filter \
+  'git rm --cached --ignore-unmatch .env_bk' \
+  --prune-empty --tag-name-filter cat -- main
+
+git update-ref -d refs/original/refs/heads/main
+git reflog expire --expire=now --all
+git gc --prune=now
+git push --force-with-lease
+```
+
+---
+
+## 4. 환경변수 (.env)
+
+| 변수명 | 설명 | 예시 |
+|---|---|---|
+| `VAULT_PATH` | Obsidian 볼트 경로 | `D:\vault\selfisclub` |
+| `VAULT_FOLDER_MISSION` | 미션 폴더명 | `mission` |
+| `VAULT_FOLDER_MEETINGS` | 미팅 폴더명 | `meetings` |
+| `VAULT_FOLDER_SKILL_INSIGHT` | 스킬 인사이트 폴더명 | `skillInsight` |
+| `VAULT_FOLDER_SHARING` | 공유 폴더명 | `sharing` |
+| `VAULT_FOLDER_ANALYSIS` | 분석 폴더명 | `analysis` |
+| `VAULT_FOLDER_LINKEDIN` | LinkedIn 폴더명 | `linkedin` |
+| `ANALYSIS_AI_PROVIDER` | 분석 리포트 기본 AI 공급자 | `openai` |
+| `OPENAI_API_KEY` | 기본 분석용 OpenAI API 키 | `sk-proj-...` |
+| `ANTHROPIC_API_KEY` | Claude API 키 | `sk-ant-...` |
+| `GITHUB_TOKEN` | GitHub Personal Access Token | `ghp_...` |
+| `NOTION_TOKEN` | Notion Integration Token | `ntn_...` 또는 `secret_...` |
+| `NOTION_DATABASE_ID` | Notion 데이터베이스 또는 데이터소스 ID/URL | `356ce5bf5072808cb2f3ed6c2913e96f` |
+
+운영 기본값은 `ANALYSIS_AI_PROVIDER=openai` 입니다. Claude를 쓰려면 `ANALYSIS_AI_PROVIDER=claude` 와 `CLAUDE_API_KEY` 또는 `ANTHROPIC_API_KEY`를 함께 설정합니다.
+
+Notion 동기화 전 확인:
+`gitautopipe` integration 이 대상 데이터베이스 또는 상위 페이지에 공유되어 있어야 한다.
+
+---
+
+## 5. 주요 워크플로우 ID 목록
+
+| 워크플로우 ID | 설명 |
+|---|---|
+| `onGitHubSync` | GitHub pull → 변경 확인 → commit/push |
+| `onNotionSync` | Notion-Obsidian 미팅 양방향 동기화 |
+| `onMissionUpdate` | Mission 변경 로그 → 분석 → LinkedIn 초안 |
+| `onMeetingSync` | Notion 미팅 조회 → Obsidian 반영 → 보고서 업데이트 |
+| `onSkillUpdate` | Skill/Insight 변경 후 사이트 배포 |
+| `weeklyDigest` | 주간 다이제스트 생성 |
+
+---
+
+## 6. 자주 쓰는 조합
+
+```bash
+# 빌드 후 전체 상태 확인
+npm run build && node ./dist/cli/index.js status
+
+# 볼트 스캔 후 GitHub 동기화
+node ./dist/cli/index.js scan && node ./dist/cli/index.js sync --target github
+
+# Notion 접근 권한/DB ID 사전 점검
+npm run notion:check-access
+
+# CLI에서 Notion 연결 자체 점검
+node ./dist/cli/index.js notion-check
+
+# Notion 동기화 워크플로우를 즉시 1회 실행
+node ./dist/cli/index.js workflow onNotionSync
+
+# 등록된 스케줄 확인
+node ./dist/cli/index.js schedule list
+
+# 스케줄러 상주 실행
+node ./dist/cli/index.js schedule start --interval-seconds 60
+
+# 테스트 + 빌드
+npm test && npm run build
+
+# 인터랙티브 모드로 편하게 실행
+node ./dist/cli/index.js i
+```

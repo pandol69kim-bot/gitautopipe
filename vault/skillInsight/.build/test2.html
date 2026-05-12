@@ -10,10 +10,111 @@
     <a href="./index.html">Back</a>
     <h1>Test2</h1>
     <p>uncategorized</p>
-    <p>asdfasd</p>
-<p>▣ 셀피시클럼 실행케스트</p>
-<p>-- C:\Users\codelab\Downloads\gitautopipe</p>
-<p>http://localhost:3000/dashboard</p>
+    <h1>각 workflow 별 스텝</h1>
+<p>작성일: 2026-05-06</p>
+<p>기준 파일: <code>src/workflows/orchestrator.ts</code></p>
+<p>---</p>
+<h2>1. onGitHubSync</h2>
+<li>이름: GitHub 동기화</li>
+<li>트리거: <code>github:sync</code> 이벤트</li>
+<li>에러 처리: <code>stop</code></li>
+<h3>스텝</h3>
+<li><code>github-pull</code></li>
+<li>이름: 원격 최신화 (pull)</li>
+<li>설명: 원격 저장소에서 최신 변경을 pull</li>
+<li><code>github-status</code></li>
+<li>이름: 변경 파일 확인</li>
+<li>설명: 수정/생성/삭제 파일 목록과 총 변경 건수 확인</li>
+<li><code>github-commit-push</code></li>
+<li>이름: 커밋 및 푸시</li>
+<li>설명: 변경 파일이 있으면 커밋 메시지를 생성해 push, 없으면 커밋 생략</li>
+<p>---</p>
+<h2>2. onNotionSync</h2>
+<li>이름: Notion 동기화</li>
+<li>트리거: <code>notion:sync</code> 이벤트</li>
+<li>에러 처리: <code>stop</code></li>
+<h3>스텝</h3>
+<li><code>notion-sync-bidirectional</code></li>
+<li>이름: Notion-Obsidian 양방향 동기화</li>
+<li>설명: Notion DB와 Obsidian meetings 폴더를 양방향 동기화하고 summary를 payload에 반영</li>
+<p>---</p>
+<h2>3. onMissionUpdate</h2>
+<li>이름: Mission 업데이트 처리</li>
+<li>트리거: <code>mission:updated</code> 이벤트</li>
+<li>에러 처리: <code>continue</code></li>
+<h3>스텝</h3>
+<li><code>mission-collect</code></li>
+<li>이름: Mission 파일 수집</li>
+<li>설명: 최신 Mission 문서를 읽어 제목, 작성자, 주차, 본문을 payload에 적재</li>
+<li><code>openai-analyze</code></li>
+<li>이름: OpenAI 분석 실행</li>
+<li>설명: Mission 문서를 OpenAI로 분석해 <code>vault/analysis</code>에 분석 보고서를 생성</li>
+<li><code>linkedin-draft</code></li>
+<li>이름: LinkedIn 초안 생성</li>
+<li>설명: Mission 내용과 분석 결과를 바탕으로 OpenAI 기반 LinkedIn 초안 파일을 <code>vault/linkedin</code>에 생성</li>
+<p>---</p>
+<h2>4. onMeetingSync</h2>
+<li>이름: Notion 미팅 동기화</li>
+<li>트리거: <code>meeting:synced</code> 이벤트</li>
+<li>에러 처리: <code>retry</code></li>
+<li>재시도 설정: 최대 2회, 지연 1000ms</li>
+<h3>스텝</h3>
+<li><code>notion-fetch</code></li>
+<li>이름: Notion 미팅 데이터 조회</li>
+<li><code>obsidian-sync</code></li>
+<li>이름: Obsidian 동기화</li>
+<li><code>report-update</code></li>
+<li>이름: Analysis 보고서 업데이트</li>
+<p>---</p>
+<h2>5. onSkillUpdate</h2>
+<li>이름: Skill/Insight 게시물 배포</li>
+<li>트리거: <code>skill:updated</code> 이벤트</li>
+<li>에러 처리: <code>stop</code></li>
+<h3>스텝</h3>
+<li><code>site-build</code></li>
+<li>이름: 정적 사이트 빌드</li>
+<li><code>vercel-deploy</code></li>
+<li>이름: Vercel 배포</li>
+<li><code>deploy-notify</code></li>
+<li>이름: 배포 알림 전송</li>
+<p>---</p>
+<h2>6. weeklyDigest</h2>
+<li>이름: 주간 다이제스트 생성</li>
+<li>트리거: cron <code>0 9 <em> </em> 1</code></li>
+<li>에러 처리: <code>continue</code></li>
+<li>기본 스케줄 자동 등록: <code>0 9 <em> </em> 1</code></li>
+<h3>스텝</h3>
+<li><code>vault-scan</code></li>
+<li>이름: 볼트 주간 데이터 수집</li>
+<li>설명: meetings 폴더를 스캔해 대상 주차 문서를 수집하고 payload에 저장</li>
+<li><code>weekly-report</code></li>
+<li>이름: 주간 보고서 생성</li>
+<li>설명: 수집한 주간 데이터로 Analysis 주간 보고서를 생성하고 <code>vault/analysis</code>에 저장</li>
+<li><code>github-commit</code></li>
+<li>이름: GitHub 커밋</li>
+<li>설명: GitHub 환경 변수가 준비되어 있으면 생성된 보고서를 커밋/푸시하고, 없으면 skip</li>
+<li><code>digest-notify</code></li>
+<li>이름: 다이제스트 알림 전송</li>
+<li>설명: <code>WEEKLY_DIGEST_WEBHOOK_URL</code>이 설정되어 있으면 Slack/Discord 호환 webhook으로 실제 알림을 전송하고, 없으면 skip</li>
+<h3>실행 흐름</h3>
+<li><code>node ./dist/cli/index.js workflow weeklyDigest</code> 실행</li>
+<li>CLI 보안 검증에서 workflow 실행 권한과 AI 시크릿 그룹 확인</li>
+<li><code>runWorkflow()</code>가 <code>orchestrator.executeWorkflow('weeklyDigest')</code> 호출</li>
+<li><code>vault-scan</code>이 주간 meetings 데이터를 payload에 적재</li>
+<li><code>weekly-report</code>가 Analysis 주간 보고서 파일 생성</li>
+<li><code>github-commit</code>이 GitHub 설정 존재 시 커밋/푸시, 없으면 skip</li>
+<li><code>digest-notify</code>가 최종 요약 정보를 반환</li>
+<li>CLI가 <code>executionId</code>, <code>status</code>, <code>stepResults</code>, <code>totalDurationMs</code>를 출력</li>
+<p>---</p>
+<h2>요약 표</h2>
+<p>| Workflow ID | 스텝 수 | 주요 목적 |</p>
+<p>| --- | ---: | --- |</p>
+<p>| <code>onGitHubSync</code> | 3 | Git pull/status/commit-push |</p>
+<p>| <code>onNotionSync</code> | 1 | Notion-Obsidian 양방향 동기화 |</p>
+<p>| <code>onMissionUpdate</code> | 3 | Mission 분석 및 LinkedIn 초안 |</p>
+<p>| <code>onMeetingSync</code> | 3 | 미팅 동기화 후 보고서 갱신 |</p>
+<p>| <code>onSkillUpdate</code> | 3 | 사이트 빌드 및 배포 |</p>
+<p>| <code>weeklyDigest</code> | 4 | 주간 데이터 수집 및 요약 생성 |</p>
   </main>
 </body>
 </html>

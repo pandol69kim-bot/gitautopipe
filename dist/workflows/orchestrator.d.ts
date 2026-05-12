@@ -1,6 +1,7 @@
 import type { Workflow, Execution, ExecutionResult } from '../types/workflow';
 import { GitHubSync } from '../integrations/github';
 import type { AnalysisEngine } from '../types/analysis';
+import type { BuildResult, DeploymentResult, DeploymentStatus, DeploymentVerification } from '../types/deployer';
 import type { FormattedPost, LinkedInPost, MissionContent } from '../types/linkedin';
 interface ScheduleEntry {
     workflowId: string;
@@ -11,6 +12,7 @@ interface WorkflowOrchestratorDeps {
     createAnalysisEngine?: () => AnalysisEngine;
     createOpenAIAnalysisEngine?: () => AnalysisEngine;
     createLinkedInContentGenerator?: () => MissionLinkedInGenerator;
+    createWebsiteDeployer?: () => SkillWebsiteDeployer;
     createGitHubSync?: () => GitHubSync;
     fetch?: (input: string, init?: {
         method?: string;
@@ -19,11 +21,27 @@ interface WorkflowOrchestratorDeps {
     }) => Promise<{
         ok: boolean;
         status?: number;
+        json?: () => Promise<unknown>;
     }>;
 }
 interface MissionLinkedInGenerator {
     generateDraft(mission: MissionContent): Promise<LinkedInPost>;
     formatForPlatform(post: LinkedInPost, mission: MissionContent): Promise<FormattedPost>;
+}
+interface SkillWebsiteDeployer {
+    buildSite(sourceFolder: string): Promise<BuildResult>;
+    deployToVercel(buildOutput: string, options?: {
+        preview?: boolean;
+    }): Promise<DeploymentResult>;
+    waitForDeploymentReady(deploymentId: string, options?: {
+        maxAttempts?: number;
+        delayMs?: number;
+    }): Promise<DeploymentStatus>;
+    verifyDeploymentUrl(url: string, options?: {
+        maxAttempts?: number;
+        delayMs?: number;
+    }): Promise<DeploymentVerification>;
+    sendNotification(result: DeploymentResult): Promise<void>;
 }
 export declare class WorkflowOrchestrator {
     private readonly workflows;
@@ -49,6 +67,9 @@ export declare class WorkflowOrchestrator {
     private createMissionAnalysisStep;
     private createMissionLinkedInDraftStep;
     private createMeetingReportStep;
+    private createSkillSiteBuildStep;
+    private createSkillVercelDeployStep;
+    private createSkillDeployNotifyStep;
     private createWeeklyDigestScanStep;
     private createWeeklyDigestReportStep;
     private createWeeklyDigestGitHubCommitStep;
@@ -58,6 +79,15 @@ export declare class WorkflowOrchestrator {
     private collectMeetingWeeklyData;
     private resolveMeetingDate;
     private createMissionOpenAIAnalysisEngine;
+    private createWebsiteDeployerFromEnv;
+    private resolveWebsiteDeploySourceFolder;
+    private resolveDeploymentPollingOptions;
+    private resolveDeploymentVerificationOptions;
+    private verifyDeploymentAccess;
+    private mergeDeploymentResult;
+    private mapDeploymentStateToCommandStatus;
+    private mapVerificationStatus;
+    private parsePositiveIntEnv;
     private createMissionLinkedInContentGenerator;
     private createMissionLinkedInClient;
     private buildLinkedInMissionContent;
@@ -69,6 +99,7 @@ export declare class WorkflowOrchestrator {
     private generateWeeklyDigestReport;
     private readWeeklyDigestPayload;
     private readMissionUpdatePayload;
+    private readSkillUpdatePayload;
     private getWeeklyDigestWebhookUrl;
     private buildWeeklyDigestNotificationPayload;
     private hasGitHubSyncEnv;

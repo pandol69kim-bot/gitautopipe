@@ -51,6 +51,7 @@ const github_1 = require("../integrations/github");
 const openai_2 = require("../integrations/openai");
 const notion_1 = require("../integrations/notion");
 const notion_sync_1 = require("../integrations/notion-sync");
+const website_deployer_1 = require("./website-deployer");
 const cron_1 = require("./cron");
 function createGitHubSyncFromEnv() {
     const token = process.env['GITHUB_TOKEN'] ?? process.env['GITHUB_API_KEY'];
@@ -345,9 +346,9 @@ class WorkflowOrchestrator {
             id: 'onSkillUpdate',
             name: 'Skill/Insight 게시물 배포',
             steps: [
-                this.makeLogStep('site-build', '정적 사이트 빌드'),
-                this.makeLogStep('vercel-deploy', 'Vercel 배포'),
-                this.makeLogStep('deploy-notify', '배포 알림 전송'),
+                this.createSkillSiteBuildStep(),
+                this.createSkillVercelDeployStep(),
+                this.createSkillDeployNotifyStep(),
             ],
             triggers: [{ type: 'event', event: 'skill:updated' }],
             errorHandling: { strategy: 'stop', notifyOnFailure: true },
@@ -564,6 +565,142 @@ class WorkflowOrchestrator {
                     const message = error instanceof Error ? error.message : String(error);
                     throw new Error(`Analysis 보고서 업데이트 실패: ${message}`);
                 }
+            },
+        };
+    }
+    createSkillSiteBuildStep() {
+        return {
+            id: 'site-build',
+            name: '정적 사이트 빌드',
+            execute: async (ctx) => {
+                const deployer = this.deps.createWebsiteDeployer?.() ?? this.createWebsiteDeployerFromEnv();
+                const sourceFolder = this.resolveWebsiteDeploySourceFolder();
+                const buildResult = await deployer.buildSite(sourceFolder);
+                const result = {
+                    status: 'built',
+                    sourceFolder,
+                    outputPath: buildResult.outputPath,
+                    pageCount: buildResult.pageCount,
+                };
+                ctx.payload = {
+                    ...ctx.payload,
+                    skillUpdate: {
+                        ...(this.readSkillUpdatePayload(ctx.payload) ?? {}),
+                        build: result,
+                    },
+                };
+                return result;
+            },
+        };
+    }
+    createSkillVercelDeployStep() {
+        return {
+            id: 'vercel-deploy',
+            name: 'Vercel 배포',
+            execute: async (ctx) => {
+                const deployer = this.deps.createWebsiteDeployer?.() ?? this.createWebsiteDeployerFromEnv();
+                const skillUpdate = this.readSkillUpdatePayload(ctx.payload);
+                const build = skillUpdate?.build;
+                if (!build?.outputPath || !build.sourceFolder) {
+                    throw new Error('site-build 결과가 없어 배포를 진행할 수 없습니다.');
+                }
+                const resolvedSourceFolder = path.resolve(build.sourceFolder);
+                const resolvedOutputPath = path.resolve(build.outputPath);
+                if (path.basename(resolvedOutputPath) !== '.build') {
+                    throw new Error(`유효하지 않은 빌드 산출물 경로입니다: ${build.outputPath}`);
+                }
+                if (!this.isSubPath(resolvedSourceFolder, resolvedOutputPath)) {
+                    throw new Error(`빌드 산출물 경로가 source 범위를 벗어났습니다: ${build.outputPath}`);
+                }
+                if (!fs.existsSync(resolvedOutputPath)) {
+                    throw new Error(`빌드 산출물을 찾을 수 없습니다: ${build.outputPath}`);
+                }
+                const preview = Boolean(ctx.payload?.['preview']);
+                const deployment = await deployer.deployToVercel(resolvedOutputPath, { preview });
+                const deploymentStatus = await deployer.waitForDeploymentReady(deployment.deploymentId, this.resolveDeploymentPollingOptions());
+                const finalDeployment = this.mergeDeploymentResult(deployment, deploymentStatus);
+                const status = this.mapDeploymentStateToCommandStatus(finalDeployment.state);
+                if (status !== 'completed') {
+                    throw new Error(deploymentStatus.errorMessage ?? `배포가 준비 완료 상태가 아닙니다: ${finalDeployment.state}`);
+                }
+                const verification = await this.verifyDeploymentAccess(deployer, finalDeployment, status);
+                const result = {
+                    status,
+                    preview,
+                    sourceFolder: build.sourceFolder,
+                    outputPath: resolvedOutputPath,
+                    pageCount: build.pageCount,
+                    deploymentId: finalDeployment.deploymentId,
+                    state: finalDeployment.state,
+                    url: finalDeployment.url,
+                    previewUrl: finalDeployment.previewUrl,
+                    verificationStatus: this.mapVerificationStatus(verification),
+                    verificationUrl: verification.url,
+                    verificationHttpStatus: verification.statusCode,
+                    createdAt: finalDeployment.createdAt.toISOString(),
+                    readyAt: deploymentStatus.readyAt?.toISOString(),
+                };
+                ctx.payload = {
+                    ...ctx.payload,
+                    skillUpdate: {
+                        ...(skillUpdate ?? {}),
+                        deployment: result,
+                    },
+                };
+                return result;
+            },
+        };
+    }
+    createSkillDeployNotifyStep() {
+        return {
+            id: 'deploy-notify',
+            name: '배포 알림 전송',
+            execute: async (ctx) => {
+                const skillUpdate = this.readSkillUpdatePayload(ctx.payload);
+                const deployment = skillUpdate?.deployment;
+                if (!deployment?.deploymentId || !deployment.url || deployment.status !== 'completed') {
+                    const skipped = { status: 'skipped', reason: 'deployment-not-completed' };
+                    ctx.payload = {
+                        ...ctx.payload,
+                        skillUpdate: {
+                            ...(skillUpdate ?? {}),
+                            notification: skipped,
+                        },
+                    };
+                    return skipped;
+                }
+                if (!process.env['NOTIFICATION_WEBHOOK_URL']) {
+                    const skipped = { status: 'skipped', reason: 'notification-webhook-not-configured' };
+                    ctx.payload = {
+                        ...ctx.payload,
+                        skillUpdate: {
+                            ...(skillUpdate ?? {}),
+                            notification: skipped,
+                        },
+                    };
+                    return skipped;
+                }
+                const deployer = this.deps.createWebsiteDeployer?.() ?? this.createWebsiteDeployerFromEnv();
+                await deployer.sendNotification({
+                    deploymentId: deployment.deploymentId,
+                    url: deployment.url,
+                    previewUrl: deployment.previewUrl ?? deployment.url,
+                    state: 'READY',
+                    createdAt: new Date(deployment.createdAt ?? new Date().toISOString()),
+                });
+                const result = {
+                    status: 'sent',
+                    deploymentId: deployment.deploymentId,
+                    url: deployment.url,
+                };
+                ctx.payload = {
+                    ...ctx.payload,
+                    skillUpdate: {
+                        ...(skillUpdate ?? {}),
+                        notification: result,
+                    },
+                };
+                return result;
             },
         };
     }
@@ -831,6 +968,106 @@ class WorkflowOrchestrator {
             model: process.env['OPENAI_MODEL'] ?? 'gpt-4o-mini',
         });
     }
+    createWebsiteDeployerFromEnv() {
+        const vercelToken = process.env['VERCEL_TOKEN'];
+        if (!vercelToken) {
+            throw new Error('VERCEL_TOKEN 환경변수가 필요합니다.');
+        }
+        const projectId = process.env['VERCEL_PROJECT_ID'];
+        if (!projectId) {
+            throw new Error('VERCEL_PROJECT_ID 환경변수가 필요합니다.');
+        }
+        const fetchFn = this.deps.fetch ?? globalThis.fetch?.bind(globalThis);
+        if (!fetchFn) {
+            throw new Error('fetch API를 사용할 수 없습니다.');
+        }
+        return new website_deployer_1.WebsiteDeployer({
+            vercelToken,
+            projectId,
+            teamId: process.env['VERCEL_TEAM_ID'],
+            notificationWebhookUrl: process.env['NOTIFICATION_WEBHOOK_URL'],
+        }, fetchFn);
+    }
+    resolveWebsiteDeploySourceFolder() {
+        const configuredPath = process.env['WEBSITE_DEPLOY_SOURCE_FOLDER'];
+        if (configuredPath) {
+            return path.resolve(configuredPath);
+        }
+        const vaultBasePath = path.resolve(process.env['VAULT_PATH'] ?? './vault');
+        const skillInsightFolder = process.env['VAULT_FOLDER_SKILL_INSIGHT'] ?? 'skillInsight';
+        return path.resolve(vaultBasePath, skillInsightFolder);
+    }
+    resolveDeploymentPollingOptions() {
+        return {
+            maxAttempts: this.parsePositiveIntEnv('DEPLOY_STATUS_MAX_ATTEMPTS', 24),
+            delayMs: this.parsePositiveIntEnv('DEPLOY_STATUS_POLL_INTERVAL_MS', 5000),
+        };
+    }
+    resolveDeploymentVerificationOptions() {
+        return {
+            maxAttempts: this.parsePositiveIntEnv('DEPLOY_VERIFY_MAX_ATTEMPTS', 10),
+            delayMs: this.parsePositiveIntEnv('DEPLOY_VERIFY_INTERVAL_MS', 3000),
+        };
+    }
+    async verifyDeploymentAccess(deployer, deployment, status) {
+        const verificationUrl = deployment.url || deployment.previewUrl;
+        if (!verificationUrl) {
+            throw new Error('배포 URL이 없어 실제 접속 확인을 수행할 수 없습니다.');
+        }
+        if (status !== 'completed') {
+            return {
+                url: /^https?:\/\//.test(verificationUrl) ? verificationUrl : `https://${verificationUrl}`,
+                reachable: false,
+                accessControlled: false,
+                checkedAt: new Date(),
+            };
+        }
+        const verification = await deployer.verifyDeploymentUrl(verificationUrl, this.resolveDeploymentVerificationOptions());
+        if (!verification.reachable) {
+            const statusSuffix = verification.statusCode ? ` (HTTP ${verification.statusCode})` : '';
+            throw new Error(`배포 URL 접속 확인 실패: ${verification.url}${statusSuffix}`);
+        }
+        return verification;
+    }
+    mergeDeploymentResult(deployment, deploymentStatus) {
+        return {
+            ...deployment,
+            state: deploymentStatus.state,
+            url: deploymentStatus.url ?? deployment.url,
+            previewUrl: deployment.previewUrl,
+        };
+    }
+    mapDeploymentStateToCommandStatus(state) {
+        switch (state) {
+            case 'INITIALIZING':
+                return 'initializing';
+            case 'READY':
+                return 'completed';
+            case 'QUEUED':
+                return 'queued';
+            case 'BUILDING':
+                return 'building';
+            case 'CANCELED':
+                return 'canceled';
+            case 'ERROR':
+            default:
+                return 'failed';
+        }
+    }
+    mapVerificationStatus(verification) {
+        if (!verification.reachable) {
+            return 'unreachable';
+        }
+        return verification.accessControlled ? 'access-controlled' : 'reachable';
+    }
+    parsePositiveIntEnv(key, fallback) {
+        const value = process.env[key];
+        if (!value) {
+            return fallback;
+        }
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+    }
     createMissionLinkedInContentGenerator() {
         const apiKey = process.env['OPENAI_API_KEY'];
         if (!apiKey) {
@@ -1000,6 +1237,13 @@ class WorkflowOrchestrator {
             return null;
         }
         return missionUpdate;
+    }
+    readSkillUpdatePayload(payload) {
+        const skillUpdate = payload?.['skillUpdate'];
+        if (!skillUpdate || typeof skillUpdate !== 'object') {
+            return null;
+        }
+        return skillUpdate;
     }
     getWeeklyDigestWebhookUrl() {
         const value = process.env['WEEKLY_DIGEST_WEBHOOK_URL'] ?? process.env['NOTIFICATION_WEBHOOK_URL'];

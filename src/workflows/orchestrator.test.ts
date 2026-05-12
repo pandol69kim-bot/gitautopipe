@@ -690,6 +690,134 @@ describe('WorkflowOrchestrator', () => {
       expect(orchestrator.getWorkflow('onSkillUpdate')).toBeDefined();
     });
 
+    it('onSkillUpdate 실행 시 실제 배포 단계를 순서대로 수행한다', async () => {
+      const sourceFolder = path.join(tempDir, 'skillInsight');
+      const buildOutputPath = path.join(sourceFolder, '.build');
+      fs.mkdirSync(sourceFolder, { recursive: true });
+      fs.mkdirSync(buildOutputPath, { recursive: true });
+
+      vi.stubEnv('WEBSITE_DEPLOY_SOURCE_FOLDER', sourceFolder);
+      vi.stubEnv('NOTIFICATION_WEBHOOK_URL', 'https://hooks.slack.com/test');
+
+      const deployer = {
+        buildSite: vi.fn().mockResolvedValue({
+          outputPath: buildOutputPath,
+          pageCount: 2,
+          builtAt: new Date('2026-05-12T00:00:00.000Z'),
+          pages: [],
+          searchIndex: [],
+        }),
+        deployToVercel: vi.fn().mockResolvedValue({
+          deploymentId: 'dpl_123',
+          url: 'selfish-club.vercel.app',
+          previewUrl: 'selfish-club-preview.vercel.app',
+          state: 'QUEUED',
+          createdAt: new Date('2026-05-12T00:00:10.000Z'),
+        }),
+        waitForDeploymentReady: vi.fn().mockResolvedValue({
+          deploymentId: 'dpl_123',
+          state: 'READY',
+          url: 'selfish-club.vercel.app',
+          readyAt: new Date('2026-05-12T00:01:00.000Z'),
+        }),
+        verifyDeploymentUrl: vi.fn().mockResolvedValue({
+          url: 'https://selfish-club.vercel.app',
+          reachable: true,
+          accessControlled: false,
+          statusCode: 200,
+          checkedAt: new Date('2026-05-12T00:01:05.000Z'),
+        }),
+        sendNotification: vi.fn().mockResolvedValue(undefined),
+      };
+
+      orchestrator = new WorkflowOrchestrator({
+        createWebsiteDeployer: () => deployer,
+      });
+
+      const result = await orchestrator.executeWorkflow('onSkillUpdate');
+
+      expect(result.status).toBe('completed');
+      expect(result.stepResults.map((step) => step.stepId)).toEqual([
+        'site-build',
+        'vercel-deploy',
+        'deploy-notify',
+      ]);
+      expect(deployer.buildSite).toHaveBeenCalledWith(sourceFolder);
+      expect(deployer.deployToVercel).toHaveBeenCalledWith(buildOutputPath, {
+        preview: false,
+      });
+      expect(deployer.waitForDeploymentReady).toHaveBeenCalledWith('dpl_123', expect.any(Object));
+      expect(deployer.verifyDeploymentUrl).toHaveBeenCalledWith(
+        'selfish-club.vercel.app',
+        expect.any(Object)
+      );
+      expect(deployer.sendNotification).toHaveBeenCalledTimes(1);
+
+      const buildStep = result.stepResults.find((step) => step.stepId === 'site-build');
+      const deployStep = result.stepResults.find((step) => step.stepId === 'vercel-deploy');
+      const notifyStep = result.stepResults.find((step) => step.stepId === 'deploy-notify');
+
+      expect(buildStep?.output).toMatchObject({
+        status: 'built',
+        pageCount: 2,
+      });
+      expect(deployStep?.output).toMatchObject({
+        status: 'completed',
+        deploymentId: 'dpl_123',
+        verificationStatus: 'reachable',
+      });
+      expect(notifyStep?.output).toMatchObject({
+        status: 'sent',
+        deploymentId: 'dpl_123',
+      });
+    });
+
+    it('onSkillUpdate는 배포가 READY가 아니면 실패한다', async () => {
+      const sourceFolder = path.join(tempDir, 'skillInsight-timeout');
+      const buildOutputPath = path.join(sourceFolder, '.build');
+      fs.mkdirSync(buildOutputPath, { recursive: true });
+
+      vi.stubEnv('WEBSITE_DEPLOY_SOURCE_FOLDER', sourceFolder);
+      vi.stubEnv('NOTIFICATION_WEBHOOK_URL', 'https://hooks.slack.com/test');
+
+      const deployer = {
+        buildSite: vi.fn().mockResolvedValue({
+          outputPath: buildOutputPath,
+          pageCount: 1,
+          builtAt: new Date('2026-05-12T00:00:00.000Z'),
+          pages: [],
+          searchIndex: [],
+        }),
+        deployToVercel: vi.fn().mockResolvedValue({
+          deploymentId: 'dpl_timeout',
+          url: 'selfish-club.vercel.app',
+          previewUrl: 'selfish-club-preview.vercel.app',
+          state: 'QUEUED',
+          createdAt: new Date('2026-05-12T00:00:10.000Z'),
+        }),
+        waitForDeploymentReady: vi.fn().mockResolvedValue({
+          deploymentId: 'dpl_timeout',
+          state: 'BUILDING',
+          url: 'selfish-club.vercel.app',
+        }),
+        verifyDeploymentUrl: vi.fn(),
+        sendNotification: vi.fn(),
+      };
+
+      orchestrator = new WorkflowOrchestrator({
+        createWebsiteDeployer: () => deployer,
+      });
+
+      const result = await orchestrator.executeWorkflow('onSkillUpdate');
+
+      expect(result.status).toBe('failed');
+      const deployStep = result.stepResults.find((step) => step.stepId === 'vercel-deploy');
+      expect(deployStep?.status).toBe('failed');
+      expect(deployStep?.error).toContain('배포가 준비 완료 상태가 아닙니다: BUILDING');
+      expect(deployer.verifyDeploymentUrl).not.toHaveBeenCalled();
+      expect(deployer.sendNotification).not.toHaveBeenCalled();
+    });
+
     it('weeklyDigest 워크플로우가 등록된다', () => {
       expect(orchestrator.getWorkflow('weeklyDigest')).toBeDefined();
     });
