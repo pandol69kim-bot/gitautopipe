@@ -14,6 +14,8 @@ export interface LinkedInPost {
     hashtags: string[];
     callToAction?: string;
     suggestedMedia?: string[];
+    generationMode?: 'llm' | 'fallback';
+    fallbackReason?: string;
 }
 export interface FormattedPost {
     content: string;

@@ -1,6 +1,7 @@
 import type { Workflow, Execution, ExecutionResult } from '../types/workflow';
 import { GitHubSync } from '../integrations/github';
 import type { AnalysisEngine } from '../types/analysis';
+import type { FormattedPost, LinkedInPost, MissionContent } from '../types/linkedin';
 interface ScheduleEntry {
     workflowId: string;
     cron: string;
@@ -9,6 +10,7 @@ interface ScheduleEntry {
 interface WorkflowOrchestratorDeps {
     createAnalysisEngine?: () => AnalysisEngine;
     createOpenAIAnalysisEngine?: () => AnalysisEngine;
+    createLinkedInContentGenerator?: () => MissionLinkedInGenerator;
     createGitHubSync?: () => GitHubSync;
     fetch?: (input: string, init?: {
         method?: string;
@@ -18,6 +20,10 @@ interface WorkflowOrchestratorDeps {
         ok: boolean;
         status?: number;
     }>;
+}
+interface MissionLinkedInGenerator {
+    generateDraft(mission: MissionContent): Promise<LinkedInPost>;
+    formatForPlatform(post: LinkedInPost, mission: MissionContent): Promise<FormattedPost>;
 }
 export declare class WorkflowOrchestrator {
     private readonly workflows;
@@ -52,8 +58,14 @@ export declare class WorkflowOrchestrator {
     private collectMeetingWeeklyData;
     private resolveMeetingDate;
     private createMissionOpenAIAnalysisEngine;
+    private createMissionLinkedInContentGenerator;
+    private createMissionLinkedInClient;
+    private buildLinkedInMissionContent;
     private buildMissionAnalysisFileName;
     private buildMissionAnalysisMarkdown;
+    private buildMissionLinkedInDraftMarkdown;
+    private isSubPath;
+    private escapeYamlString;
     private generateWeeklyDigestReport;
     private readWeeklyDigestPayload;
     private readMissionUpdatePayload;

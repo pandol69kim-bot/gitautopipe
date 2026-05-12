@@ -32,18 +32,23 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkflowOrchestrator = void 0;
 const events_1 = require("events");
 const crypto_1 = require("crypto");
 const fs = __importStar(require("fs"));
+const openai_1 = __importDefault(require("openai"));
 const path = __importStar(require("path"));
 const client_1 = require("@notionhq/client");
 const report_generator_1 = require("../core/report-generator");
 const vault_scanner_1 = require("../core/vault-scanner");
 const analysis_factory_1 = require("../integrations/analysis-factory");
+const linkedin_1 = require("../integrations/linkedin");
 const github_1 = require("../integrations/github");
-const openai_1 = require("../integrations/openai");
+const openai_2 = require("../integrations/openai");
 const notion_1 = require("../integrations/notion");
 const notion_sync_1 = require("../integrations/notion-sync");
 const cron_1 = require("./cron");
@@ -479,8 +484,10 @@ class WorkflowOrchestrator {
             id: 'linkedin-draft',
             name: 'LinkedIn 초안 생성',
             execute: async (ctx) => {
+                const scanner = this.createVaultScannerFromEnv();
                 const missionUpdate = this.readMissionUpdatePayload(ctx.payload);
                 const analysis = missionUpdate?.analysis;
+                const mission = missionUpdate?.mission;
                 if (!analysis || analysis.status !== 'generated') {
                     const skipped = { status: 'skipped', reason: 'analysis-not-generated' };
                     ctx.payload = {
@@ -492,19 +499,56 @@ class WorkflowOrchestrator {
                     };
                     return skipped;
                 }
-                const skipped = {
-                    status: 'skipped',
-                    reason: 'linkedin-draft-not-implemented',
+                if (!mission) {
+                    const skipped = {
+                        status: 'skipped',
+                        reason: 'mission-not-found',
+                        reportPath: analysis.reportPath,
+                    };
+                    ctx.payload = {
+                        ...ctx.payload,
+                        missionUpdate: {
+                            ...(missionUpdate ?? {}),
+                            linkedinDraft: skipped,
+                        },
+                    };
+                    return skipped;
+                }
+                const generator = this.deps.createLinkedInContentGenerator?.() ?? this.createMissionLinkedInContentGenerator();
+                const missionContent = this.buildLinkedInMissionContent(mission);
+                const draft = await generator.generateDraft(missionContent);
+                if (draft.headline.trim().length === 0 || draft.body.trim().length === 0) {
+                    throw new Error('LinkedIn 초안 필수 섹션이 비어 있습니다.');
+                }
+                const formatted = await generator.formatForPlatform(draft, missionContent);
+                if (!formatted.isWithinLimit) {
+                    throw new Error('LinkedIn 초안이 글자 수 제한을 초과했습니다.');
+                }
+                const outputDir = path.resolve(scanner.getFullPath('linkedin'));
+                fs.mkdirSync(outputDir, { recursive: true });
+                const outputPath = path.resolve(outputDir, formatted.fileName);
+                if (!this.isSubPath(outputDir, outputPath)) {
+                    throw new Error('LinkedIn 초안 경로가 유효하지 않습니다.');
+                }
+                fs.writeFileSync(outputPath, this.buildMissionLinkedInDraftMarkdown(mission, analysis.reportPath, formatted), 'utf-8');
+                const result = {
+                    status: 'generated',
                     reportPath: analysis.reportPath,
+                    draftPath: outputPath,
+                    charCount: formatted.charCount,
+                    isWithinLimit: formatted.isWithinLimit,
+                    hashtags: formatted.hashtags,
+                    generationMode: draft.generationMode ?? 'llm',
+                    fallbackReason: draft.fallbackReason,
                 };
                 ctx.payload = {
                     ...ctx.payload,
                     missionUpdate: {
                         ...(missionUpdate ?? {}),
-                        linkedinDraft: skipped,
+                        linkedinDraft: result,
                     },
                 };
-                return skipped;
+                return result;
             },
         };
     }
@@ -782,10 +826,53 @@ class WorkflowOrchestrator {
         if (!apiKey) {
             throw new Error('OPENAI_API_KEY 환경변수가 필요합니다.');
         }
-        return new openai_1.OpenAIAnalyzer({
+        return new openai_2.OpenAIAnalyzer({
             apiKey,
             model: process.env['OPENAI_MODEL'] ?? 'gpt-4o-mini',
         });
+    }
+    createMissionLinkedInContentGenerator() {
+        const apiKey = process.env['OPENAI_API_KEY'];
+        if (!apiKey) {
+            throw new Error('OPENAI_API_KEY 환경변수가 필요합니다.');
+        }
+        const client = this.createMissionLinkedInClient(apiKey);
+        return new linkedin_1.LinkedInContentGenerator({
+            apiKey,
+            model: process.env['LINKEDIN_MODEL'] ?? process.env['OPENAI_MODEL'] ?? undefined,
+        }, client);
+    }
+    createMissionLinkedInClient(apiKey) {
+        const client = new openai_1.default({ apiKey });
+        return {
+            messages: {
+                create: async ({ model, max_tokens, messages }) => {
+                    const response = await client.chat.completions.create({
+                        model,
+                        max_tokens,
+                        temperature: 0.4,
+                        messages: messages.map((message) => ({
+                            role: message.role === 'system' ? 'system' : 'user',
+                            content: message.content,
+                        })),
+                    });
+                    const text = response.choices[0]?.message?.content;
+                    return {
+                        content: [{ type: 'text', text: typeof text === 'string' ? text : '' }],
+                    };
+                },
+            },
+        };
+    }
+    buildLinkedInMissionContent(mission) {
+        return {
+            title: mission.title,
+            body: mission.document.content,
+            author: mission.author ?? 'unknown',
+            date: mission.date,
+            weekNumber: mission.weekNumber,
+            keywords: mission.keywords,
+        };
     }
     buildMissionAnalysisFileName(mission) {
         const date = mission.date.toISOString().split('T')[0];
@@ -831,6 +918,30 @@ class WorkflowOrchestrator {
             '',
         ];
         return lines.join('\n');
+    }
+    buildMissionLinkedInDraftMarkdown(mission, reportPath, formatted) {
+        const lines = [
+            '---',
+            `title: "${this.escapeYamlString(`${mission.title} LinkedIn 초안`)}"`,
+            `date: ${new Date().toISOString().split('T')[0]}`,
+            'type: linkedin-draft',
+            `source: "${mission.filePath.replace(/\\/g, '/')}"`,
+            `analysis: "${(reportPath ?? '').replace(/\\/g, '/')}"`,
+            `week: ${mission.weekNumber}`,
+            `charCount: ${formatted.charCount}`,
+            `isWithinLimit: ${formatted.isWithinLimit}`,
+            '---',
+            '',
+            formatted.content,
+        ];
+        return lines.join('\n');
+    }
+    isSubPath(basePath, targetPath) {
+        const relativePath = path.relative(basePath, targetPath);
+        return relativePath !== '' && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+    }
+    escapeYamlString(value) {
+        return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, ' ');
     }
     async generateWeeklyDigestReport(ctx) {
         const scanner = this.createVaultScannerFromEnv();

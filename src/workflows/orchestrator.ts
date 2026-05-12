@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
+import OpenAI from 'openai';
 import type {
   Workflow,
   WorkflowStep,
@@ -16,13 +17,16 @@ import { Client as NotionSdkClient } from '@notionhq/client';
 import { ReportGenerator } from '../core/report-generator';
 import { VaultScanner } from '../core/vault-scanner';
 import { createAnalysisEngineFromEnv } from '../integrations/analysis-factory';
+import { LinkedInContentGenerator } from '../integrations/linkedin';
 import { GitHubSync } from '../integrations/github';
+import type { LLMClient } from '../integrations/linkedin';
 import { OpenAIAnalyzer } from '../integrations/openai';
 import { NotionMCPConnector } from '../integrations/notion';
 import type { NotionClient as INotionClient } from '../integrations/notion';
 import { syncNotionBidirectional } from '../integrations/notion-sync';
 import type { AnalysisEngine } from '../types/analysis';
 import type { Document, KeywordResult, TrendResult, WeeklyData, WeeklySummary } from '../types/claude';
+import type { FormattedPost, LinkedInPost, MissionContent } from '../types/linkedin';
 import { isCronDue } from './cron';
 
 function createGitHubSyncFromEnv(): GitHubSync {
@@ -72,8 +76,14 @@ interface ScheduleEntry {
 interface WorkflowOrchestratorDeps {
   createAnalysisEngine?: () => AnalysisEngine;
   createOpenAIAnalysisEngine?: () => AnalysisEngine;
+  createLinkedInContentGenerator?: () => MissionLinkedInGenerator;
   createGitHubSync?: () => GitHubSync;
   fetch?: (input: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<{ ok: boolean; status?: number }>;
+}
+
+interface MissionLinkedInGenerator {
+  generateDraft(mission: MissionContent): Promise<LinkedInPost>;
+  formatForPlatform(post: LinkedInPost, mission: MissionContent): Promise<FormattedPost>;
 }
 
 interface MeetingCandidate {
@@ -576,8 +586,10 @@ export class WorkflowOrchestrator {
       id: 'linkedin-draft',
       name: 'LinkedIn 초안 생성',
       execute: async (ctx: WorkflowContext) => {
+        const scanner = this.createVaultScannerFromEnv();
         const missionUpdate = this.readMissionUpdatePayload(ctx.payload);
         const analysis = missionUpdate?.analysis;
+        const mission = missionUpdate?.mission;
 
         if (!analysis || analysis.status !== 'generated') {
           const skipped = { status: 'skipped' as const, reason: 'analysis-not-generated' };
@@ -591,19 +603,64 @@ export class WorkflowOrchestrator {
           return skipped;
         }
 
-        const skipped = {
-          status: 'skipped' as const,
-          reason: 'linkedin-draft-not-implemented',
+        if (!mission) {
+          const skipped = {
+            status: 'skipped' as const,
+            reason: 'mission-not-found',
+            reportPath: analysis.reportPath,
+          };
+          ctx.payload = {
+            ...ctx.payload,
+            missionUpdate: {
+              ...(missionUpdate ?? {}),
+              linkedinDraft: skipped,
+            },
+          };
+          return skipped;
+        }
+
+        const generator =
+          this.deps.createLinkedInContentGenerator?.() ?? this.createMissionLinkedInContentGenerator();
+        const missionContent = this.buildLinkedInMissionContent(mission);
+        const draft = await generator.generateDraft(missionContent);
+        if (draft.headline.trim().length === 0 || draft.body.trim().length === 0) {
+          throw new Error('LinkedIn 초안 필수 섹션이 비어 있습니다.');
+        }
+        const formatted = await generator.formatForPlatform(draft, missionContent);
+        if (!formatted.isWithinLimit) {
+          throw new Error('LinkedIn 초안이 글자 수 제한을 초과했습니다.');
+        }
+
+        const outputDir = path.resolve(scanner.getFullPath('linkedin'));
+        fs.mkdirSync(outputDir, { recursive: true });
+        const outputPath = path.resolve(outputDir, formatted.fileName);
+        if (!this.isSubPath(outputDir, outputPath)) {
+          throw new Error('LinkedIn 초안 경로가 유효하지 않습니다.');
+        }
+        fs.writeFileSync(
+          outputPath,
+          this.buildMissionLinkedInDraftMarkdown(mission, analysis.reportPath, formatted),
+          'utf-8'
+        );
+
+        const result = {
+          status: 'generated' as const,
           reportPath: analysis.reportPath,
+          draftPath: outputPath,
+          charCount: formatted.charCount,
+          isWithinLimit: formatted.isWithinLimit,
+          hashtags: formatted.hashtags,
+          generationMode: draft.generationMode ?? 'llm',
+          fallbackReason: draft.fallbackReason,
         };
         ctx.payload = {
           ...ctx.payload,
           missionUpdate: {
             ...(missionUpdate ?? {}),
-            linkedinDraft: skipped,
+            linkedinDraft: result,
           },
         };
-        return skipped;
+        return result;
       },
     };
   }
@@ -935,6 +992,59 @@ export class WorkflowOrchestrator {
     });
   }
 
+  private createMissionLinkedInContentGenerator(): MissionLinkedInGenerator {
+    const apiKey = process.env['OPENAI_API_KEY'];
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY 환경변수가 필요합니다.');
+    }
+
+    const client = this.createMissionLinkedInClient(apiKey);
+
+    return new LinkedInContentGenerator(
+      {
+        apiKey,
+        model: process.env['LINKEDIN_MODEL'] ?? process.env['OPENAI_MODEL'] ?? undefined,
+      },
+      client
+    );
+  }
+
+  private createMissionLinkedInClient(apiKey: string): LLMClient {
+    const client = new OpenAI({ apiKey });
+
+    return {
+      messages: {
+        create: async ({ model, max_tokens, messages }) => {
+          const response = await client.chat.completions.create({
+            model,
+            max_tokens,
+            temperature: 0.4,
+            messages: messages.map((message) => ({
+              role: message.role === 'system' ? 'system' : 'user',
+              content: message.content,
+            })),
+          });
+
+          const text = response.choices[0]?.message?.content;
+          return {
+            content: [{ type: 'text', text: typeof text === 'string' ? text : '' }],
+          };
+        },
+      },
+    };
+  }
+
+  private buildLinkedInMissionContent(mission: MissionCandidate): MissionContent {
+    return {
+      title: mission.title,
+      body: mission.document.content,
+      author: mission.author ?? 'unknown',
+      date: mission.date,
+      weekNumber: mission.weekNumber,
+      keywords: mission.keywords,
+    };
+  }
+
   private buildMissionAnalysisFileName(mission: MissionCandidate): string {
     const date = mission.date.toISOString().split('T')[0];
     const safeSlug = mission.slug.replace(/[^\w가-힣-]+/g, '_');
@@ -989,6 +1099,38 @@ export class WorkflowOrchestrator {
     ];
 
     return lines.join('\n');
+  }
+
+  private buildMissionLinkedInDraftMarkdown(
+    mission: MissionCandidate,
+    reportPath: string | undefined,
+    formatted: FormattedPost
+  ): string {
+    const lines = [
+      '---',
+      `title: "${this.escapeYamlString(`${mission.title} LinkedIn 초안`)}"`,
+      `date: ${new Date().toISOString().split('T')[0]}`,
+      'type: linkedin-draft',
+      `source: "${mission.filePath.replace(/\\/g, '/')}"`,
+      `analysis: "${(reportPath ?? '').replace(/\\/g, '/')}"`,
+      `week: ${mission.weekNumber}`,
+      `charCount: ${formatted.charCount}`,
+      `isWithinLimit: ${formatted.isWithinLimit}`,
+      '---',
+      '',
+      formatted.content,
+    ];
+
+    return lines.join('\n');
+  }
+
+  private isSubPath(basePath: string, targetPath: string): boolean {
+    const relativePath = path.relative(basePath, targetPath);
+    return relativePath !== '' && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+  }
+
+  private escapeYamlString(value: string): string {
+    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, ' ');
   }
 
   private async generateWeeklyDigestReport(ctx: WorkflowContext): Promise<{

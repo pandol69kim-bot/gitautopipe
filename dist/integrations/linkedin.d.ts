@@ -30,6 +30,8 @@ export declare class LinkedInContentGenerator {
     private callWithRetry;
     private extractSection;
     private buildFileName;
+    private sanitizeFileSegment;
+    private buildFallbackDraft;
     private sleep;
 }
 //# sourceMappingURL=linkedin.d.ts.map

@@ -47,12 +47,15 @@
 
 ### 스텝
 
-1. `mission-log`
-   - 이름: Mission 파일 변경 감지
-2. `claude-analyze`
-   - 이름: Claude 분석 실행
+1. `mission-collect`
+   - 이름: Mission 파일 수집
+   - 설명: 최신 Mission 문서를 읽어 제목, 작성자, 주차, 본문을 payload에 적재
+2. `openai-analyze`
+   - 이름: OpenAI 분석 실행
+   - 설명: Mission 문서를 OpenAI로 분석해 `vault/analysis`에 분석 보고서를 생성
 3. `linkedin-draft`
    - 이름: LinkedIn 초안 생성
+   - 설명: Mission 내용과 분석 결과를 바탕으로 OpenAI 기반 LinkedIn 초안 파일을 `vault/linkedin`에 생성
 
 ---
 

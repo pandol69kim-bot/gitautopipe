@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "skillInsight/skills.md",
+                "file": "mission/기능 작동 분석.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "skills"
+              "title": "기능 작동 분석"
             }
           }
         ]
@@ -185,33 +185,33 @@
   },
   "active": "053d82304ae1b85d",
   "lastOpenFiles": [
-    "skillInsight/test2.md",
-    "skillInsight/skills.md",
-    "meetings/Meeting_2026-05-11.md",
-    "meetings/Meeting_2026_05_05.md",
+    "linkedin/2026-05-12_기능_작동_분석_unknown.md",
+    "analysis/2026-05-12_mission_analysis_기능_작동_분석.md",
+    "linkedin/2026-05-11_test_unknown.md",
+    "analysis/2026-20_weekly_report.md",
+    "analysis/2026-05-11_mission_analysis_test.md",
+    "analysis/2026-19_weekly_report.md",
+    "analysis/test.md",
+    "linkedin/test.md",
     "meetings/Meeting_2026_05_06.md",
-    "meetings/Meeting_2026_05_09.md",
     "meetings/Meeting_2026_05_06-2.md",
-    "meetings/Meeting_2026-05-10.md",
+    "meetings/Meeting_2026_05_09.md",
+    "meetings/Meeting_2026-05-11.md",
+    "mission/기능 작동 분석.md",
+    "sharing/test.md",
     "skillInsight/기능 작동 분석서.md",
     "skillInsight/작업내용 - 2026-05-11.md",
-    "analysis/2026-20_weekly_report.md",
+    "skillInsight/skills.md",
+    "skillInsight/test2.md",
+    "meetings/Meeting_2026_05_05.md",
+    "meetings/Meeting_2026-05-10.md",
     "무제.md",
-    "sharing/test.md",
-    "analysis/2026-19_weekly_report.md",
     "analysis/2026-19_weekly_report.md_bk2",
     "analysis/2026-19_weekly_report.md_bk",
-    "analysis/test.md",
     "meetings/Meeting_2026_05_04.md",
     "meetings/Meeting_2026_05_04-358ce5bf-5072-814a-8261-d6c34291868e.md",
     "meetings/{{meeting_title}} 타이틀 수정.md",
     "meetings/asfasdf.md",
-    "meetings/샘플 2.md",
-    "meetings/샘플 5.md",
-    "meetings/샘플 3.md",
-    "meetings/샘플 4.md",
-    "meetings/샘플 1.md",
-    "meetings/테스트 후 싱크 노션수정.md",
-    "meetings/제목 없음.md"
+    "meetings/샘플 2.md"
   ]
 }

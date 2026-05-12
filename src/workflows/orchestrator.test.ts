@@ -349,9 +349,11 @@ describe('WorkflowOrchestrator', () => {
       const vaultPath = path.join(tempDir, 'vault');
       const missionPath = path.join(vaultPath, 'mission');
       const analysisPath = path.join(vaultPath, 'analysis');
+      const linkedinPath = path.join(vaultPath, 'linkedin');
 
       fs.mkdirSync(missionPath, { recursive: true });
       fs.mkdirSync(analysisPath, { recursive: true });
+      fs.mkdirSync(linkedinPath, { recursive: true });
       fs.writeFileSync(
         path.join(missionPath, 'mission-1.md'),
         [
@@ -374,6 +376,7 @@ describe('WorkflowOrchestrator', () => {
       vi.stubEnv('VAULT_PATH', vaultPath);
       vi.stubEnv('VAULT_FOLDER_MISSION', 'mission');
       vi.stubEnv('VAULT_FOLDER_ANALYSIS', 'analysis');
+      vi.stubEnv('VAULT_FOLDER_LINKEDIN', 'linkedin');
 
       orchestrator = new WorkflowOrchestrator({
         createOpenAIAnalysisEngine: () => ({
@@ -397,6 +400,29 @@ describe('WorkflowOrchestrator', () => {
             markdownOutput: '## 트렌드\n- OpenAI',
           }),
         }),
+        createLinkedInContentGenerator: () => ({
+          generateDraft: vi.fn().mockResolvedValue({
+            headline: 'OpenAI 워크플로우 연결',
+            body: 'Mission 업데이트를 바탕으로 LinkedIn 초안을 작성했습니다.',
+            hashtags: ['#OpenAI', '#Workflow'],
+            callToAction: '여러분은 어떤 자동화를 적용하고 있나요?',
+          }),
+          formatForPlatform: vi.fn().mockResolvedValue({
+            content: [
+              'OpenAI 워크플로우 연결',
+              '',
+              'Mission 업데이트를 바탕으로 LinkedIn 초안을 작성했습니다.',
+              '',
+              '여러분은 어떤 자동화를 적용하고 있나요?',
+              '',
+              '#OpenAI #Workflow',
+            ].join('\n'),
+            charCount: 84,
+            isWithinLimit: true,
+            hashtags: ['#OpenAI', '#Workflow'],
+            fileName: '2026-05-11_OpenAI_워크플로우_연결_peter.md',
+          }),
+        }),
       });
 
       const result = await orchestrator.executeWorkflow('onMissionUpdate');
@@ -408,18 +434,35 @@ describe('WorkflowOrchestrator', () => {
         'linkedin-draft',
       ]);
       const analysisStep = result.stepResults.find((step) => step.stepId === 'openai-analyze');
+      const linkedInStep = result.stepResults.find((step) => step.stepId === 'linkedin-draft');
       expect(analysisStep?.output).toMatchObject({
         status: 'generated',
         provider: 'openai',
         weekNumber: 20,
       });
+      expect(linkedInStep?.output).toMatchObject({
+        status: 'generated',
+        charCount: 84,
+        isWithinLimit: true,
+        generationMode: 'llm',
+      });
 
       const files = fs.readdirSync(analysisPath);
       expect(files.some((file) => file.includes('mission_analysis'))).toBe(true);
 
+      const linkedInFiles = fs.readdirSync(linkedinPath);
+      expect(linkedInFiles).toContain('2026-05-11_OpenAI_워크플로우_연결_peter.md');
+
       const content = fs.readFileSync(path.join(analysisPath, files[0]), 'utf-8');
       expect(content).toContain('provider: openai');
       expect(content).toContain('Mission 문서를 OpenAI로 분석했다.');
+
+      const linkedInContent = fs.readFileSync(
+        path.join(linkedinPath, '2026-05-11_OpenAI_워크플로우_연결_peter.md'),
+        'utf-8'
+      );
+      expect(linkedInContent).toContain('Mission 업데이트를 바탕으로 LinkedIn 초안을 작성했습니다.');
+      expect(linkedInContent).toContain('#OpenAI #Workflow');
     });
 
     it('onMeetingSync 워크플로우가 등록된다', () => {

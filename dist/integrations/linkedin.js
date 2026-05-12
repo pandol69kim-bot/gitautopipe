@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LinkedInContentGenerator = void 0;
 const zod_1 = require("zod");
 const linkedin_1 = require("../types/linkedin");
-const DEFAULT_MODEL = 'claude-sonnet-4-6';
+const DEFAULT_MODEL = 'gpt-4o-mini';
 const DEFAULT_MAX_TOKENS = 2048;
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_RETRY_DELAY_MS = 1000;
@@ -80,12 +80,22 @@ class LinkedInContentGenerator {
     // ── Subtask 2: 초안 생성 ──────────────────────────────────────────
     async generateDraft(mission) {
         const prompt = PROMPTS.generateDraft(mission);
-        const raw = await this.callWithRetry(prompt);
-        const headline = this.extractSection(raw, '헤드라인');
-        const body = this.extractSection(raw, '본문');
-        const callToAction = this.extractSection(raw, 'CTA');
-        const hashtags = LinkedInContentGenerator.buildHashtags(mission.keywords ?? []);
-        return { headline, body, hashtags, callToAction };
+        try {
+            const raw = await this.callWithRetry(prompt);
+            const headline = this.extractSection(raw, '헤드라인');
+            const body = this.extractSection(raw, '본문');
+            const callToAction = this.extractSection(raw, 'CTA');
+            const hashtags = LinkedInContentGenerator.buildHashtags(mission.keywords ?? []);
+            if (headline.length > 0 && body.length > 0) {
+                return { headline, body, hashtags, callToAction, generationMode: 'llm' };
+            }
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            process.emitWarning(`LinkedIn draft fallback applied: ${message}`);
+            return this.buildFallbackDraft(mission, message);
+        }
+        return this.buildFallbackDraft(mission, 'model-output-missing-required-sections');
     }
     // ── Subtask 3: 톤 적용 ────────────────────────────────────────────
     async applyTone(draft, tone) {
@@ -168,11 +178,40 @@ class LinkedInContentGenerator {
     }
     buildFileName(mission) {
         const date = mission.date.toISOString().split('T')[0];
-        const title = mission.title
-            .replace(/[^\w가-힣]/g, '_')
+        const title = this.sanitizeFileSegment(mission.title, 30);
+        const author = this.sanitizeFileSegment(mission.author, 20);
+        return `${date}_${title}_${author}.md`;
+    }
+    sanitizeFileSegment(value, maxLength) {
+        const sanitized = value
+            .replace(/[\\/.:*?"<>|]/g, '_')
+            .replace(/\s+/g, '_')
             .replace(/_+/g, '_')
-            .slice(0, 30);
-        return `${date}_${title}_${mission.author}.md`;
+            .replace(/^_+|_+$/g, '')
+            .slice(0, maxLength);
+        return sanitized.length > 0 ? sanitized : 'unknown';
+    }
+    buildFallbackDraft(mission, fallbackReason) {
+        const normalizedBody = mission.body
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .join(' ')
+            .slice(0, 1200);
+        const headline = `${mission.title}에서 배운 점`;
+        const body = [
+            `이번 주에는 ${mission.title}를 중심으로 학습하고 적용한 내용을 정리했습니다.`,
+            normalizedBody.length > 0 ? normalizedBody : '실무에 바로 적용할 수 있는 포인트를 중심으로 정리했습니다.',
+            '같은 주제를 다루는 분들과 시행착오와 개선 포인트를 더 나눠보고 싶습니다.',
+        ].join('\n\n');
+        return {
+            headline,
+            body,
+            hashtags: LinkedInContentGenerator.buildHashtags(mission.keywords ?? []),
+            callToAction: '비슷한 경험이나 더 좋은 접근이 있다면 공유해주세요.',
+            generationMode: 'fallback',
+            fallbackReason,
+        };
     }
     sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));

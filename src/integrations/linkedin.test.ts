@@ -80,8 +80,27 @@ describe('LinkedInContentGenerator', () => {
     it('LLM 클라이언트를 1회 호출한다', async () => {
       const client = makeClient(mockLLMPost);
       const gen = new LinkedInContentGenerator({ apiKey: 'test' }, client);
-      await gen.generateDraft(sampleMission);
+      const post = await gen.generateDraft(sampleMission);
       expect(client.messages.create).toHaveBeenCalledTimes(1);
+      expect(post.generationMode).toBe('llm');
+    });
+
+    it('LLM 호출이 실패해도 fallback 초안을 반환한다', async () => {
+      const client = {
+        messages: {
+          create: vi.fn().mockRejectedValue(new Error('billing unavailable')),
+        },
+      };
+      const gen = new LinkedInContentGenerator({ apiKey: 'test', maxRetries: 0 }, client);
+
+      const post = await gen.generateDraft(sampleMission);
+
+      expect(post.headline).toContain(sampleMission.title);
+      expect(post.body).toContain(sampleMission.body.slice(0, 20));
+      expect(post.hashtags).toContain('#React');
+      expect(post.callToAction).toBeTruthy();
+      expect(post.generationMode).toBe('fallback');
+      expect(post.fallbackReason).toContain('billing unavailable');
     });
   });
 
@@ -201,6 +220,18 @@ describe('LinkedInContentGenerator', () => {
     it('fileName이 {날짜}_{제목}_{작성자}.md 형식이다', async () => {
       const formatted = await generator.formatForPlatform(samplePost, sampleMission);
       expect(formatted.fileName).toMatch(/^\d{4}-\d{2}-\d{2}_.*_alice\.md$/);
+    });
+
+    it('fileName에서 경로 이탈 문자를 제거한다', async () => {
+      const formatted = await generator.formatForPlatform(samplePost, {
+        ...sampleMission,
+        author: '../alice\\ops',
+      });
+
+      expect(formatted.fileName).not.toContain('..');
+      expect(formatted.fileName).not.toContain('/');
+      expect(formatted.fileName).not.toContain('\\');
+      expect(formatted.fileName).toMatch(/^\d{4}-\d{2}-\d{2}_.*_alice_ops\.md$/);
     });
   });
 
