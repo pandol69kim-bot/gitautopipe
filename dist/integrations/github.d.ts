@@ -8,6 +8,7 @@ export declare class GitHubSync {
     commitAndPush(files: ChangedFile[], message: string): Promise<CommitResult>;
     pull(): Promise<void>;
     getStatus(): Promise<StatusResult>;
+    filterIgnoredFiles(files: ChangedFile[]): Promise<ChangedFile[]>;
     getLatestChanges(since: Date): Promise<ChangedFile[]>;
     createPullRequest(title: string, body: string, headBranch?: string): Promise<PullRequestResult>;
     getOpenPullRequests(): Promise<PullRequestResult[]>;

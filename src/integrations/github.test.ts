@@ -3,17 +3,19 @@ import { GitHubSync } from './github';
 import type { GitHubConfig, ChangedFile, CommitContext } from '../types/github';
 
 // simple-git과 Octokit는 외부 의존성이므로 mock 처리
+const mockGit = {
+  fetch: vi.fn().mockResolvedValue(undefined),
+  status: vi.fn().mockResolvedValue({ conflicted: [], staged: [], modified: [] }),
+  checkIgnore: vi.fn().mockResolvedValue([]),
+  add: vi.fn().mockResolvedValue(undefined),
+  commit: vi.fn().mockResolvedValue({ commit: 'abc123def456' }),
+  push: vi.fn().mockResolvedValue(undefined),
+  pull: vi.fn().mockResolvedValue(undefined),
+  log: vi.fn().mockResolvedValue({ all: [] }),
+  diff: vi.fn().mockResolvedValue(''),
+};
+
 vi.mock('simple-git', () => {
-  const mockGit = {
-    fetch: vi.fn().mockResolvedValue(undefined),
-    status: vi.fn().mockResolvedValue({ conflicted: [], staged: [], modified: [] }),
-    add: vi.fn().mockResolvedValue(undefined),
-    commit: vi.fn().mockResolvedValue({ commit: 'abc123def456' }),
-    push: vi.fn().mockResolvedValue(undefined),
-    pull: vi.fn().mockResolvedValue(undefined),
-    log: vi.fn().mockResolvedValue({ all: [] }),
-    diff: vi.fn().mockResolvedValue(''),
-  };
   return { default: vi.fn(() => mockGit) };
 });
 
@@ -140,6 +142,28 @@ describe('GitHubSync', () => {
     it('충돌 없는 경우 빈 배열 반환', async () => {
       const conflicts = await sync.detectConflicts();
       expect(conflicts).toEqual([]);
+    });
+  });
+
+  describe('filterIgnoredFiles', () => {
+    it('gitignore 대상 파일은 커밋 후보에서 제외한다', async () => {
+      mockGit.checkIgnore.mockResolvedValueOnce(['vault/.obsidian/workspace.json']);
+
+      const result = await sync.filterIgnoredFiles([
+        {
+          filePath: '/tmp/test-repo/vault/.obsidian/workspace.json',
+          relativePath: 'vault/.obsidian/workspace.json',
+          folderType: 'mission',
+          changeType: 'modify',
+        },
+        ...makeChangedFiles(),
+      ]);
+
+      expect(result).toEqual(makeChangedFiles());
+      expect(mockGit.checkIgnore).toHaveBeenCalledWith([
+        'vault/.obsidian/workspace.json',
+        'Mission/Week01/goals.md',
+      ]);
     });
   });
 

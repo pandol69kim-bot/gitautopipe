@@ -228,6 +228,30 @@ class WorkflowOrchestrator {
     sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
+    async getStageableGitHubFiles(sync) {
+        const status = await sync.getStatus();
+        const changedFiles = [
+            ...status.modified.map((filePath) => ({
+                filePath,
+                relativePath: filePath,
+                folderType: 'mission',
+                changeType: 'modify',
+            })),
+            ...status.created.map((filePath) => ({
+                filePath,
+                relativePath: filePath,
+                folderType: 'mission',
+                changeType: 'add',
+            })),
+            ...status.deleted.map((filePath) => ({
+                filePath,
+                relativePath: filePath,
+                folderType: 'mission',
+                changeType: 'delete',
+            })),
+        ];
+        return sync.filterIgnoredFiles(changedFiles);
+    }
     // ── Subtask 5~8: 사전 정의 워크플로우 ────────────────────────────
     registerPredefinedWorkflows() {
         // onGitHubSync: github:sync 이벤트 → pull → status 확인 → commit & push
@@ -239,7 +263,7 @@ class WorkflowOrchestrator {
                     id: 'github-pull',
                     name: '원격 최신화 (pull)',
                     execute: async (_ctx) => {
-                        const sync = createGitHubSyncFromEnv();
+                        const sync = this.deps.createGitHubSync?.() ?? createGitHubSyncFromEnv();
                         await sync.pull();
                         return { message: 'pull 완료' };
                     },
@@ -248,13 +272,19 @@ class WorkflowOrchestrator {
                     id: 'github-status',
                     name: '변경 파일 확인',
                     execute: async (_ctx) => {
-                        const sync = createGitHubSyncFromEnv();
-                        const status = await sync.getStatus();
+                        const sync = this.deps.createGitHubSync?.() ?? createGitHubSyncFromEnv();
+                        const files = await this.getStageableGitHubFiles(sync);
                         return {
-                            modified: status.modified,
-                            created: status.created,
-                            deleted: status.deleted,
-                            total: status.modified.length + status.created.length + status.deleted.length,
+                            modified: files
+                                .filter((file) => file.changeType === 'modify')
+                                .map((file) => file.relativePath),
+                            created: files
+                                .filter((file) => file.changeType === 'add')
+                                .map((file) => file.relativePath),
+                            deleted: files
+                                .filter((file) => file.changeType === 'delete')
+                                .map((file) => file.relativePath),
+                            total: files.length,
                         };
                     },
                 },
@@ -262,18 +292,11 @@ class WorkflowOrchestrator {
                     id: 'github-commit-push',
                     name: '커밋 및 푸시',
                     execute: async (_ctx) => {
-                        const sync = createGitHubSyncFromEnv();
-                        const status = await sync.getStatus();
-                        const allChanged = [...status.modified, ...status.created, ...status.deleted];
-                        if (allChanged.length === 0) {
+                        const sync = this.deps.createGitHubSync?.() ?? createGitHubSyncFromEnv();
+                        const files = await this.getStageableGitHubFiles(sync);
+                        if (files.length === 0) {
                             return { message: '변경 사항 없음 — 커밋 생략' };
                         }
-                        const files = allChanged.map((f) => ({
-                            filePath: f,
-                            relativePath: f,
-                            folderType: 'mission',
-                            changeType: 'modify',
-                        }));
                         const message = github_1.GitHubSync.buildCommitMessage({
                             type: 'generic',
                             description: `sync: ${new Date().toISOString()}`,

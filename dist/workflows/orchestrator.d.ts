@@ -61,6 +61,7 @@ export declare class WorkflowOrchestrator {
     emit(event: string, payload: Record<string, unknown>): Promise<void>;
     private executeStep;
     private sleep;
+    private getStageableGitHubFiles;
     private registerPredefinedWorkflows;
     private makeLogStep;
     private createMissionCollectStep;

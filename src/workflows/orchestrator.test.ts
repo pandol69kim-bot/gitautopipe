@@ -2,6 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { GitHubSync } from '../integrations/github';
 import { WorkflowOrchestrator } from './orchestrator';
 import type { Workflow, WorkflowStep, WorkflowContext } from '../types/workflow';
 
@@ -324,6 +325,36 @@ describe('WorkflowOrchestrator', () => {
         'github-status',
         'github-commit-push',
       ]);
+    });
+
+    it('onGitHubSync는 ignore 대상 파일만 바뀌면 커밋을 건너뛴다', async () => {
+      const commitAndPush = vi.fn();
+      const mockSync = {
+        pull: vi.fn().mockResolvedValue(undefined),
+        getStatus: vi.fn().mockResolvedValue({
+          modified: ['vault/.obsidian/workspace.json'],
+          created: [],
+          deleted: [],
+        }),
+        filterIgnoredFiles: vi.fn().mockResolvedValue([]),
+        commitAndPush,
+      } as unknown as GitHubSync;
+
+      const isolatedOrchestrator = new WorkflowOrchestrator({
+        createGitHubSync: () => mockSync,
+      });
+
+      const result = await isolatedOrchestrator.executeWorkflow('onGitHubSync');
+
+      expect(result.status).toBe('completed');
+      expect(result.stepResults[1]?.output).toEqual({
+        modified: [],
+        created: [],
+        deleted: [],
+        total: 0,
+      });
+      expect(result.stepResults[2]?.output).toEqual({ message: '변경 사항 없음 — 커밋 생략' });
+      expect(commitAndPush).not.toHaveBeenCalled();
     });
 
     it('onNotionSync 워크플로우가 등록된다', () => {

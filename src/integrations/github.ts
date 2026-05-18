@@ -66,6 +66,17 @@ export class GitHubSync {
     return this.git.status();
   }
 
+  async filterIgnoredFiles(files: ChangedFile[]): Promise<ChangedFile[]> {
+    if (files.length === 0) {
+      return [];
+    }
+
+    const relativePaths = [...new Set(files.map((file) => file.relativePath))];
+    const ignoredPaths = new Set(await this.git.checkIgnore(relativePaths));
+
+    return files.filter((file) => !ignoredPaths.has(file.relativePath));
+  }
+
   async getLatestChanges(since: Date): Promise<ChangedFile[]> {
     const log = await this.git.log({
       from: since.toISOString(),

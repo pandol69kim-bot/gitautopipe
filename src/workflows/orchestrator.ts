@@ -27,6 +27,7 @@ import { syncNotionBidirectional } from '../integrations/notion-sync';
 import type { AnalysisEngine } from '../types/analysis';
 import type { Document, KeywordResult, TrendResult, WeeklyData, WeeklySummary } from '../types/claude';
 import type { BuildResult, DeploymentResult, DeploymentStatus, DeploymentVerification } from '../types/deployer';
+import type { ChangedFile } from '../types/github';
 import type { FormattedPost, LinkedInPost, MissionContent } from '../types/linkedin';
 import { WebsiteDeployer } from './website-deployer';
 import { isCronDue } from './cron';
@@ -346,6 +347,32 @@ export class WorkflowOrchestrator {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  private async getStageableGitHubFiles(sync: GitHubSync): Promise<ChangedFile[]> {
+    const status = await sync.getStatus();
+    const changedFiles: ChangedFile[] = [
+      ...status.modified.map((filePath) => ({
+        filePath,
+        relativePath: filePath,
+        folderType: 'mission' as const,
+        changeType: 'modify' as const,
+      })),
+      ...status.created.map((filePath) => ({
+        filePath,
+        relativePath: filePath,
+        folderType: 'mission' as const,
+        changeType: 'add' as const,
+      })),
+      ...status.deleted.map((filePath) => ({
+        filePath,
+        relativePath: filePath,
+        folderType: 'mission' as const,
+        changeType: 'delete' as const,
+      })),
+    ];
+
+    return sync.filterIgnoredFiles(changedFiles);
+  }
+
   // ── Subtask 5~8: 사전 정의 워크플로우 ────────────────────────────
 
   private registerPredefinedWorkflows(): void {
@@ -358,7 +385,7 @@ export class WorkflowOrchestrator {
           id: 'github-pull',
           name: '원격 최신화 (pull)',
           execute: async (_ctx: WorkflowContext) => {
-            const sync = createGitHubSyncFromEnv();
+            const sync = this.deps.createGitHubSync?.() ?? createGitHubSyncFromEnv();
             await sync.pull();
             return { message: 'pull 완료' };
           },
@@ -367,13 +394,19 @@ export class WorkflowOrchestrator {
           id: 'github-status',
           name: '변경 파일 확인',
           execute: async (_ctx: WorkflowContext) => {
-            const sync = createGitHubSyncFromEnv();
-            const status = await sync.getStatus();
+            const sync = this.deps.createGitHubSync?.() ?? createGitHubSyncFromEnv();
+            const files = await this.getStageableGitHubFiles(sync);
             return {
-              modified: status.modified,
-              created: status.created,
-              deleted: status.deleted,
-              total: status.modified.length + status.created.length + status.deleted.length,
+              modified: files
+                .filter((file) => file.changeType === 'modify')
+                .map((file) => file.relativePath),
+              created: files
+                .filter((file) => file.changeType === 'add')
+                .map((file) => file.relativePath),
+              deleted: files
+                .filter((file) => file.changeType === 'delete')
+                .map((file) => file.relativePath),
+              total: files.length,
             };
           },
         },
@@ -381,20 +414,12 @@ export class WorkflowOrchestrator {
           id: 'github-commit-push',
           name: '커밋 및 푸시',
           execute: async (_ctx: WorkflowContext) => {
-            const sync = createGitHubSyncFromEnv();
-            const status = await sync.getStatus();
-            const allChanged = [...status.modified, ...status.created, ...status.deleted];
+            const sync = this.deps.createGitHubSync?.() ?? createGitHubSyncFromEnv();
+            const files = await this.getStageableGitHubFiles(sync);
 
-            if (allChanged.length === 0) {
+            if (files.length === 0) {
               return { message: '변경 사항 없음 — 커밋 생략' };
             }
-
-            const files = allChanged.map((f) => ({
-              filePath: f,
-              relativePath: f,
-              folderType: 'mission' as const,
-              changeType: 'modify' as const,
-            }));
 
             const message = GitHubSync.buildCommitMessage({
               type: 'generic',
