@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "analysis/2026-21_weekly_report.md",
+                "file": "meetings/제목 - 마지막 경작지.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2026-21_weekly_report"
+              "title": "제목 - 마지막 경작지"
             }
           }
         ]
@@ -185,16 +185,18 @@
   },
   "active": "053d82304ae1b85d",
   "lastOpenFiles": [
-    "meetings/제목 - 그림자 프로토콜.md",
     "meetings/제목 - 회색 프로토콜.md",
+    "meetings/제목 - 마지막 경작지.md",
+    "meetings/제목 - 그림자 프로토콜.md",
     "meetings/Meeting_2026_05_18.md",
+    "meetings/Meeting_2026_05_09.md",
+    "meetings/Meeting_2026_05_06-2.md",
+    "meetings/Meeting_2026_05_06.md",
+    "analysis/2026-21_weekly_report.md",
     "무제 1.base",
     "2026-05-18.md",
     "무제.canvas",
     "무제.base",
-    "meetings/Meeting_2026_05_06.md",
-    "meetings/Meeting_2026_05_06-2.md",
-    "analysis/2026-21_weekly_report.md",
     "skillInsight/제목 - 회색 프로토콜.md",
     "mission/2026-20_홍길동.md",
     "mission/기능 작동 분석.md",
@@ -213,8 +215,6 @@
     "linkedin/2026-05-12_기능_작동_분석_unknown.md",
     "analysis/2026-05-12_mission_analysis_기능_작동_분석.md",
     "linkedin/2026-05-11_test_unknown.md",
-    "analysis/2026-20_weekly_report.md",
-    "analysis/2026-05-11_mission_analysis_test.md",
     "analysis/2026-19_weekly_report.md_bk2",
     "analysis/2026-19_weekly_report.md_bk"
   ]
